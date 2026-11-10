@@ -1,0 +1,69 @@
+
+
+WITH test_cases AS (
+    SELECT *
+    FROM (VALUES
+        ('48.019'),
+        ('1:14.816'),
+        ('1:55:57.718'),
+        ('00:75.00'),
+        ('1:-5'),
+        ('inconnu'),
+        (NULL),
+        ('1:-5:20'),
+        ('1:20:-5'),
+        ('-1:20:05'),
+        ('1:60:00'),
+        ('1:59:59.999'),
+        ('-5')
+    ) AS t(pit_time)
+)
+SELECT
+    pit_time,
+           CASE
+            -- Format minutes:secondes : secondes hors plage
+            WHEN array_length(string_split(pit_time, ':')) = 2
+                AND (
+                    TRY_CAST(split_part(pit_time, ':', 1) AS DOUBLE) < 0
+                    OR TRY_CAST(split_part(pit_time, ':', 2) AS DOUBLE) < 0
+                    OR TRY_CAST(split_part(pit_time, ':', 2) AS DOUBLE) >= 60
+                )
+            THEN NULL
+
+            -- Format heures:minutes:secondes : minutes ou secondes hors plage
+            WHEN array_length(string_split(pit_time, ':')) = 3
+                AND (
+                    TRY_CAST(
+                        split_part(pit_time, ':', 2) AS DOUBLE
+                    ) >= 60
+                    OR TRY_CAST(
+                        split_part(pit_time, ':', 3) AS DOUBLE
+                    ) >= 60
+                    OR TRY_CAST(split_part(pit_time, ':', 1) AS DOUBLE) < 0
+                    OR TRY_CAST(split_part(pit_time, ':', 2) AS DOUBLE) < 0
+                    OR TRY_CAST(split_part(pit_time, ':', 3) AS DOUBLE) < 0
+                )
+            THEN NULL
+
+            -- Conversion heures:minutes:secondes
+            WHEN array_length(string_split(pit_time, ':')) = 3 THEN
+                TRY_CAST(split_part(pit_time, ':', 1) AS DOUBLE) * 3600
+                + TRY_CAST(split_part(pit_time, ':', 2) AS DOUBLE) * 60
+                + TRY_CAST(split_part(pit_time, ':', 3) AS DOUBLE)
+
+            -- Conversion minutes:secondes
+            WHEN array_length(string_split(pit_time, ':')) = 2 THEN
+                TRY_CAST(split_part(pit_time, ':', 1) AS DOUBLE) * 60
+                + TRY_CAST(split_part(pit_time, ':', 2) AS DOUBLE)
+
+            -- Conversion secondes seules
+            WHEN array_length(string_split(pit_time, ':')) = 1 THEN
+                CASE
+                    WHEN TRY_CAST(pit_time AS DOUBLE) >= 0
+                    THEN TRY_CAST(pit_time AS DOUBLE)
+                    ELSE NULL
+                END
+
+            ELSE NULL
+        END AS pit_time_in_seconds
+FROM test_cases;

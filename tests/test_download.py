@@ -73,6 +73,22 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(list(self.destination.iterdir()), [self.target])
 
+    def test_http_503_preserves_previous_file(self):
+        previous = self.seed_previous_file()
+        reponse = self.response(b"Service Unavailable", status=503)
+        with patch("download.requests.get", return_value=reponse):
+            with self.assertRaises(requests.HTTPError):
+                download(self.url, self.destination)
+
+        self.assertEqual(self.target.read_bytes(), previous)
+
+    def test_invalid_json_does_not_create_final_file(self):
+        reponse = self.response(b'{"session": {}, "pit_stop_analysis": [}')
+        with patch("download.requests.get", return_value=reponse):
+            with self.assertRaises(json.JSONDecodeError):
+                download(self.url, self.destination)
+        self.assertFalse(self.target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

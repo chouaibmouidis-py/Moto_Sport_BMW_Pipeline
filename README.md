@@ -1,80 +1,205 @@
 # BMW Motorsport data pipeline
 
-Projet personnel pédagogique d'extraction de données publiques de chronométrage
-IMSA, avec un premier périmètre sur les engagements BMW à Road America 2025.
-Ce projet n'est ni affilié, ni approuvé, ni sponsorisé par BMW, BMW M Motorsport
-ou IMSA.
+Projet personnel de data engineering construit comme une mission de stage
+simulée : transformer des rapports officiels de compétition en données
+traçables et contrôlées, puis analyser les engagements BMW et leurs arrêts.
+Le projet n'est ni affilié, ni approuvé, ni sponsorisé par BMW ou IMSA.
+La [fiche de mission](docs/mission_stage_personnel.fr.md) définit le périmètre,
+les livrables et les critères d'acceptation.
 
-## Source et périmètre
+## Ce que le projet traite aujourd'hui
 
-Le document provient du
-[portail de résultats IMSA](https://imsa.results.alkamelcloud.com/?evvent=16_Road+America&season=25_2025).
-La source sélectionnée est le JSON « Pit Stops Time Cards » de la course du
-3 août 2025. L'extraction conserve le document complet ; l'exploration locale
-affiche les engagements dont le constructeur est BMW.
+Trois documents JSON « Pit Stops Time Cards » du portail officiel
+[IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
+[`config/sources.json`](config/sources.json).
 
-Les données observées sont réelles, pas simulées. Une durée d'arrêt publiée
-n'est pas nécessairement une durée de ravitaillement ou une perte de temps
-par rapport à un véhicule resté en piste. Aucune donnée interne BMW, mesure
-d'usure ou prédiction n'est fournie.
+| Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
+| --- | ---: | ---: | ---: | ---: |
+| Road America, Race | 50 | 100 | 137 | 15 |
+| Long Beach, Race | 26 | 52 | 32 | 3 |
+| Daytona, Race, heure 24 | 69 | 265 | 1 622 | 144 |
+| **Total** | **145** | **417** | **1 791** | **162** |
 
-L'accès public ne constitue pas une autorisation générale de redistribution.
-Les conditions de réutilisation restent à vérifier avant de republier les
-fichiers bruts. Ce dépôt n'inclut ni ces fichiers ni les artefacts d'extraction.
+Ces volumes sont des références pour ce jeu de données, pas des constantes
+métier imposées aux prochaines courses. Une entrée source n'est pas forcément
+une voiture distincte : un même numéro peut apparaître dans plusieurs fragments.
+Tous les concurrents sont conservés ; le lecteur du mart filtre ensuite BMW.
 
-## Exécution locale avec uv
+Une durée d'arrêt publiée ne mesure pas nécessairement un ravitaillement, le
+travail des mécaniciens ou une perte nette de temps en piste. La couverture
+mondiale auto et moto sur 2022–2026 reste un objectif d'exploration, pas une
+couverture acquise.
 
-Depuis la racine du projet :
+## Installation et lancement
+
+Prérequis : Python 3.12 ou supérieur, uv et accès Internet pour installer les
+dépendances et télécharger les sources initiales. Depuis la racine du projet :
 
 ```bash
 uv sync --locked
 uv run --locked python -m unittest discover -s tests -v
-uv run --locked python download.py
-uv run --locked python inspect_source.py
+uv run --locked python run_pipeline.py
 ```
 
-`download.py` effectue une requête HTTP avec timeout, vérifie le statut,
-écrit un fichier `.part`, vérifie la syntaxe JSON puis remplace le fichier final.
-Une erreur HTTP, un timeout ou un JSON invalide laisse le fichier final précédent
-intact dans les scénarios testés. Le script retélécharge la source à chaque
-lancement ; il n'implémente ni reprise partielle, ni historique, ni contrôle
-de fraîcheur ou de schéma métier complet.
+La commande unique exécute dans cet ordre :
 
-`inspect_source.py` lit le fichier local sans nouvelle requête. Les données se
-trouvent sous `data/raw/`, relativement au dossier d'exécution. Elles sont
-exclues de Git, comme les fichiers `.env` et l'environnement virtuel.
+1. `inspect_manifest.py` : sélection des rapports activés de type `pit_stops`,
+   téléchargement si nécessaire, ou vérification SHA-256 des fichiers locaux.
+2. `build_bronze.py` : conservation des blocs JSON dans Parquet et comparaison
+   des contenus et volumes avec le document source.
+3. `analyze_bronze.py` : transformations, contrôles, écriture des huit résultats
+   dans un nouveau dossier d'exécution, puis activation de cet ensemble.
 
-## GitHub Actions
+Si une étape termine en erreur, le lanceur s'arrête avant la suivante.
+`Pipeline completed successfully.` n'est affiché qu'après les trois réussites.
+Les chemins des trois étapes sont construits depuis les scripts ; leur
+fonctionnement depuis un autre dossier a été vérifié localement.
 
-Le workflow **Validate and extract IMSA source** est uniquement manuel :
+Exemple de lancement depuis un autre dossier, avec un chemin à adapter :
 
-1. Publier le dépôt avec le workflow sur sa branche par défaut.
-2. Ouvrir **Actions**, sélectionner le workflow, puis **Run workflow**.
-3. Vérifier les étapes de tests, de téléchargement et d'inspection.
+```bash
+uv run --locked --project /chemin/vers/Moto_Sport_BMW_Pipeline python /chemin/vers/Moto_Sport_BMW_Pipeline/run_pipeline.py
+```
 
-Il utilise un runner standard Ubuntu, Python 3.12, uv 0.13.0 et `uv.lock`.
-Les cinq tests utilisent des réponses HTTP simulées ; seule l'étape
-d'extraction contacte la source. Aucun secret Azure ou autre abonnement cloud
-n'est requis. Le jeton GitHub a uniquement le droit de lire le dépôt.
+Les fichiers déjà présents sont réutilisés. Pour retélécharger volontairement
+les rapports configurés et enregistrer de nouvelles métadonnées, puis reconstruire :
 
-Le fichier téléchargé reste sur le disque temporaire du runner et ne constitue
-pas un archivage. Il n'est ni commité, ni publié comme artefact. Le chargement
-vers un stockage persistant sera une étape séparée. L'écriture temporaire
-protège un lancement, pas la persistance entre runners.
+```bash
+uv run --locked python inspect_manifest.py --refresh
+uv run --locked python run_pipeline.py
+```
 
-Les conditions de gratuité des runners et les quotas GitHub peuvent évoluer :
-vérifier le type de dépôt, le plan et les paramètres de facturation avant usage.
-La source historique est déclenchée manuellement pour éviter des téléchargements
-planifiés sans objectif de collecte défini.
+Pour afficher les tableaux détaillés de l'analyse :
 
-## Prochaines étapes
+```bash
+uv run --locked python analyze_bronze.py --verbose
+```
 
-- Vérifier un premier lancement réel sur GitHub Actions.
-- Séparer les paramètres d'événement du code de téléchargement.
-- Ajouter des contrôles de structure et une trace de provenance.
-- Préparer un chargement indépendant du fournisseur de stockage.
-- Construire les transformations SQL et leurs contrôles qualité.
+`--verbose` appartient à `analyze_bronze.py` ; le lanceur ne transmet pas encore
+cette option. Les contrôles bloquants et les compteurs essentiels s'exécutent
+aussi sans elle.
 
-Aucune licence de réutilisation du code n'a encore été choisie ; un dépôt public
-ne remplace pas une licence open source. La licence du code et les conditions
-d'utilisation des données sont deux sujets distincts.
+## Données et résultats
+
+```text
+data/
+├── raw/<source_id>/
+│   ├── 20_Pit Stops Time Cards_Race.JSON
+│   └── metadata.json
+├── bronze/<source_id>/document.parquet
+├── runs/<run_id>/
+│   ├── silver/
+│   │   ├── sessions.parquet
+│   │   ├── car_entries.parquet
+│   │   ├── driver_entries.parquet
+│   │   └── pit_stops.parquet
+│   ├── quality/
+│   │   ├── session_quality_summary.parquet
+│   │   ├── total_pit_duration_quality.parquet
+│   │   └── total_pit_duration_comparison.parquet
+│   └── marts/enriched_pit_stops.parquet
+└── current.json
+```
+
+- **Raw** : document téléchargé et métadonnées de provenance, date de
+  téléchargement et empreinte SHA-256. Cette empreinte vérifie l'identité des
+  octets locaux ; elle ne prouve pas la justesse du contenu de la source.
+- **Bronze** : une ligne par document, avec `session` et `pit_stop_analysis`
+  conservés en colonnes JSON. Les transformations métier se font dans Silver.
+- **Silver** : contexte de session par document, entrées de voitures, entrées
+  de pilotes et arrêts séparés. Les numéros textuels gardent leurs zéros.
+- **Qualité** : absence et échec de conversion distingués ; comparaison entre
+  somme des durées et dernier cumul déclaré par source, version et numéro de
+  voiture, avec les statuts `matched`, `incomplete` et `mismatch`.
+- **Mart** : arrêts enrichis avec les noms des pilotes d'entrée et de sortie,
+  sans multiplier les lignes par le nombre de pilotes.
+
+`bronze_sha256` identifie les octets du fichier Bronze utilisé. Les relations
+vers les entrées de voitures utilisent aussi `source_id` et
+`source_entry_index`. Cet indice est une position dans une version du document,
+pas un identifiant permanent de voiture.
+
+## Consulter les résultats actifs
+
+Après un lancement réussi :
+
+```bash
+uv run --locked python inspect_quality.py
+uv run --locked python inspect_marts.py
+```
+
+Chaque lecteur affiche `Reading run: ...`, lit `current.json` une seule fois,
+puis utilise le dossier sélectionné pour ses fichiers.
+
+- Le lecteur qualité affiche les informations de session manquantes ou invalides
+  et les temps cumulés non convertis. Dans le jeu actuel, les deux températures
+  de Long Beach sont manquantes ; aucun temps cumulé n'est non converti.
+- Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
+  un arrondi d'affichage à trois décimales.
+
+Un tableau d'anomalies vide signifie qu'aucune ligne ne respecte le filtre
+considéré, pas que le fichier ne contient aucune donnée. Le rapport de
+comparaison des cumuls est sauvegardé, mais n'est pas encore affiché par
+`inspect_quality.py`.
+
+## Publication et gestion des échecs
+
+Chaque fichier est d'abord écrit dans un Parquet temporaire, relu et comparé
+aux données attendues avant remplacement dans le dossier candidat.
+Les huit fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
+vérifiée avant d'écrire une référence JSON temporaire et de remplacer
+`data/current.json`.
+
+Un échec avant l'activation laisse l'ancienne référence inchangée. Le dossier
+candidat incomplet et certains fichiers temporaires peuvent rester disponibles
+pour le diagnostic. Le nettoyage automatique n'est pas implémenté ; ne pas
+supprimer un dossier encore utilisé par un lecteur.
+
+Le prochain lancement recommence les transformations ; il ne reprend pas
+exactement à la dernière étape réussie. Les fichiers Raw existants sont
+vérifiés et réutilisés. Le premier lancement qui échoue avant activation ne
+crée aucune exécution active ; les lecteurs signalent alors la référence absente.
+
+La vérification de présence lors de l'activation complète les contrôles de
+contenu effectués pendant les écritures ; elle n'est pas, seule, une validation
+Parquet. Les scénarios simulés ne démontrent pas une récupération après coupure
+machine, une durabilité après panne matérielle ou une gestion de publications
+concurrentes.
+
+## Vérifications et limites actuelles
+
+La suite de tests couvre notamment les erreurs HTTP et JSON, la conservation
+des fichiers précédents, les conversions et le passage de minuit, les clés,
+les relations, les versions, les cumuls, l'arrêt du lanceur et l'activation.
+Les données de test sont synthétiques ; les données des rapports sont réelles.
+
+Les dates des rapports sont interprétées sans attribuer un fuseau non confirmé.
+Le calcul des durées à partir des heures de passage suppose un arrêt inférieur
+à 24 heures ; les écarts sont diagnostiqués, sans remplacer la durée source.
+Les durées numériques utilisent `DOUBLE` : de faibles écarts de représentation
+binaire sont possibles. Les comparaisons utilisent une tolérance explicite.
+
+L'association entre une Bronze reconstruite et les fichiers Raw actuellement
+présents n'est pas un historique immuable de toutes les versions sources.
+Les anciens chemins `data/silver`, `data/quality` et `data/marts` peuvent encore
+exister localement : les lecteurs actuels utilisent les dossiers sous `runs`.
+
+## GitHub Actions et réutilisation
+
+Le workflow manuel **Validate and extract IMSA source** exécute la suite de tests,
+puis l'ancien parcours `download.py` → `inspect_source.py` sur Road America.
+Il ne lance pas encore `run_pipeline.py` et n'archive pas les résultats.
+La validation complète et la publication décrites ici sont locales.
+
+`data/`, les environnements virtuels et les fichiers de secrets sont exclus de
+Git. L'accès public aux rapports ne constitue pas une autorisation générale
+pour redistribuer les données ; leurs conditions de réutilisation restent à
+vérifier avant publication des fichiers. La licence du code est un sujet
+séparé ; aucune licence n'est encore annoncée ici.
+
+## Prochain jalon
+
+Rejouer cette procédure sur le socle actuel, puis qualifier une nouvelle source
+officielle de structure différente. Documenter ses champs, sa granularité et
+ses limites avant d'adapter les transformations. L'expérimentation de stockage
+objet local et cloud viendra dans un périmètre distinct, avec budget défini.

@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "target_seasons": [2022, 2023, 2024, 2025, 2026],
+  "as_of_date": "2026-11-06",
+  "documents": [
+    {
+      "source_id": "imsa-2025-road-america-race-pit-stops",
+      "enabled": true,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2025,
+      "event_id": "road-america",
+      "session_id": "202508031310-race",
+      "document_type": "pit_stops",
+      "report_period": "session",
+      "publication_status": "unspecified",
+      "format": "json",
+      "url": "https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/20_Pit%20Stops%20Time%20Cards_Race.JSON",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "tested_locally"
+    },
+    {
+      "source_id": "imsa-2025-long-beach-race-pit-stops",
+      "enabled": true,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2025,
+      "event_id": "long-beach",
+      "session_id": "202504121405-race",
+      "document_type": "pit_stops",
+      "report_period": "session",
+      "publication_status": "unspecified",
+      "format": "json",
+      "url": "https://imsa.results.alkamelcloud.com/Results/25_2025/07_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202504121405_Race/20_Pit%20Stops%20Time%20Cards_Race.JSON",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "tested_locally"
+    },
+    {
+      "source_id": "imsa-2025-daytona-race-hour24-pit-stops",
+      "enabled": true,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2025,
+      "event_id": "daytona",
+      "session_id": "202501251340-race",
+      "document_type": "pit_stops",
+      "report_period": "hour_24",
+      "publication_status": "unspecified",
+      "format": "json",
+      "url": "https://imsa.results.alkamelcloud.com/Results/25_2025/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202501251340_Race/24_Hour%2024/20_Pit%20Stops%20Time%20Cards_Race.JSON",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "tested_locally"
+    }
+  ],
+  "catalogs_to_explore": [
+    {
+      "discipline": "moto",
+      "championship": "worldsbk",
+      "url": "https://www.worldsbk.com/en/results",
+      "status": "discovered_not_integrated"
+    },
+    {
+      "discipline": "moto",
+      "championship": "fim-ewc",
+      "url": "https://www.fimewc.fr/results/",
+      "status": "discovered_not_integrated",
+      "notes": "La page inspectée expose des archives anciennes ; couverture 2024–2026 à vérifier."
+    }
+  ]
+}
