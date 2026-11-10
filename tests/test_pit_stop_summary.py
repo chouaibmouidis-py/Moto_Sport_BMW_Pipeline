@@ -1,0 +1,69 @@
+import unittest
+from pathlib import Path
+
+import duckdb
+
+class PitStopSummaryTests(unittest.TestCase):
+    def test_summary_with_missing_duration(self):
+        with duckdb.connect() as connexion:
+            connexion.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT 'test-source' AS source_id, *
+                FROM (VALUES
+                    ('24', 60.0),
+                    ('24', NULL),
+                    ('24', 80.0)
+                ) AS t(car_number, pit_time_in_seconds)
+            """)
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "06_pit_stop_summary.sql"
+            )
+            query = query_path.read_text(encoding="utf-8")
+            rows = connexion.sql(query).fetchall()
+            self.assertEqual(rows, [('test-source', '24', 3, 2, 1, 70.0, 66.67)])
+
+    def test_summary_with_only_missing_durations(self):
+            with duckdb.connect() as connexion:
+                connexion.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT 'test-source' AS source_id, *
+                    FROM (VALUES
+                        ('25', NULL),
+                        ('25', NULL)
+                    ) AS t(car_number, pit_time_in_seconds)
+                """)
+                query_path = (
+                    Path(__file__).resolve().parent.parent
+                    / "sql"
+                    / "06_pit_stop_summary.sql"
+                )
+                query = query_path.read_text(encoding="utf-8")
+                rows = connexion.sql(query).fetchall()
+                self.assertEqual(rows, [('test-source', '25', 2, 0, 2, None, 0.0)])
+
+    def test_keeps_sources_separate(self):
+        with duckdb.connect() as connexion:
+            connexion.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT *
+                FROM (VALUES
+                    ('course-a', '24', 60.0),
+                    ('course-a', '24', 80.0),
+                    ('course-b', '24', 100.0)
+                ) AS t(source_id, car_number, pit_time_in_seconds)
+            """)
+
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "06_pit_stop_summary.sql"
+            )
+            query = query_path.read_text(encoding="utf-8")
+            rows = connexion.sql(query).fetchall()
+            expected = [
+                ("course-a", "24", 2, 2, 0, 70.0, 100.0),
+                ("course-b", "24", 1, 1, 0, 100.0, 100.0),
+            ]
+            self.assertEqual(rows, expected)
