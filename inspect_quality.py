@@ -25,3 +25,21 @@ with duckdb.connect() as connection:
     report_quality.filter(
         "missing_total_duration_count > 0 OR invalid_total_duration_count > 0"
     ).show()
+
+comparison_path = (
+    run_directory
+    / "quality"
+    / "classification_pit_stop_comparison.parquet"
+)
+
+with duckdb.connect() as connection:
+    comparison = connection.read_parquet(str(comparison_path))
+
+    comparison.filter(
+        "comparison_status != 'matched'"
+    ).project("""
+        car_number,
+        reported_pit_stop_count,
+        observed_pit_stop_count,
+        comparison_status
+    """).show()

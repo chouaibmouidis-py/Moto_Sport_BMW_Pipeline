@@ -8,6 +8,8 @@ REQUIRED_OUTPUTS = (
     "silver/car_entries.parquet",
     "silver/driver_entries.parquet",
     "silver/sessions.parquet",
+    "silver/classification.parquet",
+    "quality/classification_pit_stop_comparison.parquet",
     "quality/total_pit_duration_quality.parquet",
     "quality/total_pit_duration_comparison.parquet",
     "quality/session_quality_summary.parquet",

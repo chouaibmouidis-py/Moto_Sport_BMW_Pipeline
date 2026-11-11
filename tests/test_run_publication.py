@@ -7,6 +7,30 @@ from unittest.mock import patch
 
 
 class RunPublicationTests(unittest.TestCase):
+    def test_missing_classification_comparison_preserves_current_reference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data_directory = Path(directory) / "data"
+            run_directory = data_directory / "runs" / "new-run"
+            run_directory.mkdir(parents=True)
+            current_path = data_directory / "current.json"
+            previous_content = b'{"run_id": "previous-run"}'
+            current_path.write_bytes(previous_content)
+
+            missing_output = "quality/classification_pit_stop_comparison.parquet"
+            for relative_path in REQUIRED_OUTPUTS:
+                if relative_path == missing_output:
+                    continue
+                output_path = run_directory / relative_path
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_bytes(b"test fixture")
+
+            with self.assertRaisesRegex(
+                FileNotFoundError, "classification_pit_stop_comparison"
+            ):
+                activate_run(run_directory)
+
+            self.assertEqual(current_path.read_bytes(), previous_content)
+
     def test_incomplete_run_preserves_current_reference(self):
         with tempfile.TemporaryDirectory() as directory:
             data_directory = Path(directory) / "data"

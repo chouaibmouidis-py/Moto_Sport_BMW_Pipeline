@@ -10,6 +10,8 @@ def main() -> None:
     scripts = [
         "inspect_manifest.py",
         "build_bronze.py",
+        "inspect_classification.py",
+        "build_classification_bronze.py",
         "analyze_bronze.py",
     ]
 

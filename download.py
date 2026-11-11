@@ -9,8 +9,12 @@ BRONZE_DIR = "data/bronze"
 SOURCE_FILENAME = "20_Pit Stops Time Cards_Race.JSON"
 
 
-def download(url: str, save_path: str | Path) -> Path:
-    target_path = Path(save_path) / SOURCE_FILENAME
+def download(
+    url: str,
+    save_path: str | Path,
+    filename: str = SOURCE_FILENAME,
+) -> Path:
+    target_path = Path(save_path) / filename
     response = requests.get(url, timeout=60)
     response.raise_for_status()
     target_path.parent.mkdir(parents=True, exist_ok=True)

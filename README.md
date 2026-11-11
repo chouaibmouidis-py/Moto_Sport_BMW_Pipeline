@@ -9,9 +9,10 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
-Trois documents JSON « Pit Stops Time Cards » du portail officiel
+Quatre documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
-[`config/sources.json`](config/sources.json).
+[`config/sources.json`](config/sources.json) : trois rapports « Pit Stops Time
+Cards » et le classement Official de Road America 2025.
 
 | Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
 | --- | ---: | ---: | ---: | ---: |
@@ -24,6 +25,12 @@ Ces volumes sont des références pour ce jeu de données, pas des constantes
 métier imposées aux prochaines courses. Une entrée source n'est pas forcément
 une voiture distincte : un même numéro peut apparaître dans plusieurs fragments.
 Tous les concurrents sont conservés ; le lecteur du mart filtre ensuite BMW.
+
+Le classement de Road America contient **48 participants**, dont cinq BMW.
+Le rapport d'arrêts de cette course décrit 50 fragments pour 47 numéros
+distincts. La comparaison conserve les 48 participants : la voiture `70`
+déclare zéro arrêt mais n'a aucune ligne d'arrêt détaillé ; ce cas est signalé
+par `zero_reported_no_detail`, sans remplacer son comptage observé `NULL` par zéro.
 
 Une durée d'arrêt publiée ne mesure pas nécessairement un ravitaillement, le
 travail des mécaniciens ou une perte nette de temps en piste. La couverture
@@ -47,13 +54,16 @@ La commande unique exécute dans cet ordre :
    téléchargement si nécessaire, ou vérification SHA-256 des fichiers locaux.
 2. `build_bronze.py` : conservation des blocs JSON dans Parquet et comparaison
    des contenus et volumes avec le document source.
-3. `analyze_bronze.py` : transformations, contrôles, écriture des huit résultats
+3. `inspect_classification.py` : sélection des classements activés, vérification
+   du Raw existant ou téléchargement avec métadonnées.
+4. `build_classification_bronze.py` : conservation et comparaison des trois
+   racines `session`, `fastest_lap` et `classification` dans une Bronze distincte.
+5. `analyze_bronze.py` : transformations, contrôles, écriture des dix résultats
    dans un nouveau dossier d'exécution, puis activation de cet ensemble.
 
 Si une étape termine en erreur, le lanceur s'arrête avant la suivante.
-`Pipeline completed successfully.` n'est affiché qu'après les trois réussites.
-Les chemins des trois étapes sont construits depuis les scripts ; leur
-fonctionnement depuis un autre dossier a été vérifié localement.
+`Pipeline completed successfully.` n'est affiché qu'après les cinq réussites.
+Les chemins des étapes sont construits depuis les scripts.
 
 Exemple de lancement depuis un autre dossier, avec un chemin à adapter :
 
@@ -66,6 +76,7 @@ les rapports configurés et enregistrer de nouvelles métadonnées, puis reconst
 
 ```bash
 uv run --locked python inspect_manifest.py --refresh
+uv run --locked python inspect_classification.py --refresh
 uv run --locked python run_pipeline.py
 ```
 
@@ -84,7 +95,7 @@ aussi sans elle.
 ```text
 data/
 ├── raw/<source_id>/
-│   ├── 20_Pit Stops Time Cards_Race.JSON
+│   ├── <document source .JSON>
 │   └── metadata.json
 ├── bronze/<source_id>/document.parquet
 ├── runs/<run_id>/
@@ -92,11 +103,13 @@ data/
 │   │   ├── sessions.parquet
 │   │   ├── car_entries.parquet
 │   │   ├── driver_entries.parquet
-│   │   └── pit_stops.parquet
+│   │   ├── pit_stops.parquet
+│   │   └── classification.parquet
 │   ├── quality/
 │   │   ├── session_quality_summary.parquet
 │   │   ├── total_pit_duration_quality.parquet
-│   │   └── total_pit_duration_comparison.parquet
+│   │   ├── total_pit_duration_comparison.parquet
+│   │   └── classification_pit_stop_comparison.parquet
 │   └── marts/enriched_pit_stops.parquet
 └── current.json
 ```
@@ -104,13 +117,18 @@ data/
 - **Raw** : document téléchargé et métadonnées de provenance, date de
   téléchargement et empreinte SHA-256. Cette empreinte vérifie l'identité des
   octets locaux ; elle ne prouve pas la justesse du contenu de la source.
-- **Bronze** : une ligne par document, avec `session` et `pit_stop_analysis`
-  conservés en colonnes JSON. Les transformations métier se font dans Silver.
+- **Bronze** : une ligne par document. Les rapports d'arrêts conservent
+  `session` et `pit_stop_analysis` en JSON ; le classement conserve `session`,
+  `fastest_lap` et `classification`. Les transformations métier se font dans Silver.
 - **Silver** : contexte de session par document, entrées de voitures, entrées
-  de pilotes et arrêts séparés. Les numéros textuels gardent leurs zéros.
+  de pilotes, arrêts et participants au classement séparés. Les numéros textuels
+  gardent leurs zéros. La Silver du classement ne projette pour l'instant que
+  les clés, le numéro, la position générale, la classe, le nombre d'arrêts
+  déclaré et `not_finished` ; les autres champs restent conservés en Bronze.
 - **Qualité** : absence et échec de conversion distingués ; comparaison entre
   somme des durées et dernier cumul déclaré par source, version et numéro de
   voiture, avec les statuts `matched`, `incomplete` et `mismatch`.
+  Un rapport distinct rapproche aussi les comptages du classement et des arrêts.
 - **Mart** : arrêts enrichis avec les noms des pilotes d'entrée et de sortie,
   sans multiplier les lignes par le nombre de pilotes.
 
@@ -118,6 +136,46 @@ data/
 vers les entrées de voitures utilisent aussi `source_id` et
 `source_entry_index`. Cet indice est une position dans une version du document,
 pas un identifiant permanent de voiture.
+
+### Rapprochement classement et arrêts
+
+Les documents sont associés via le manifeste sur `championship`, `season`,
+`event_id` et `session_id`. Chaque classement doit avoir exactement un rapport
+d'arrêts candidat ; une correspondance absente ou multiple bloque le traitement.
+Le constructeur commun accepte actuellement **un seul classement activé**.
+
+Les arrêts sont comptés par source, empreinte Bronze et numéro textuel de
+voiture, tous fragments confondus. Un `LEFT JOIN` depuis le classement conserve
+les participants sans arrêt détaillé. La version du rapport chargé participe à
+la jointure ; les empreintes du classement et du rapport d'arrêts sont conservées
+séparément. Le nombre de participants avant et après jointure est contrôlé.
+
+| `comparison_status` | Signification |
+| --- | --- |
+| `matched` | Comptages déclaré et observé égaux. |
+| `zero_reported_no_detail` | Zéro déclaré, aucune ligne détaillée retrouvée. |
+| `missing_stop_details` | Comptage déclaré disponible et non nul, aucun détail retrouvé. |
+| `count_mismatch` | Comptages disponibles mais différents. |
+| `unavailable_reported_count` | Comptage déclaré absent ou non convertible. |
+| `missing_pit_stop_report` | Rapport correspondant non retrouvé dans la Bronze chargée. |
+
+Ces statuts décrivent les données ; ils ne corrigent pas les nombres sources et
+ne constituent pas une explication sportive. Les écarts de comptage sont publiés
+pour investigation, sans être à eux seuls bloquants. Le cas zéro sans détail
+n'est pas automatiquement une erreur. Le rapprochement utilise les documents
+sélectionnés ; il ne démontre pas qu'ils ont été publiés simultanément.
+
+### Responsabilités du code
+
+`analyze_bronze.py` coordonne les fonctions de chargement, les transformations
+Silver, les contrôles de rattachement, les rapports et la publication.
+`analyze_classification.py` fournit le chargement et la transformation du
+classement ; son lancement isolé reste une exploration du seul pilote Road America.
+`silver_writer.py` écrit et vérifie un fichier ; `run_publication.py` active
+l'ensemble et permet aux lecteurs de retrouver le run courant. Les requêtes
+SQL restent distinctes pour permettre leur test indépendant. La séparation
+en fonctions est engagée ; le lanceur d'analyse contient encore des blocs
+d'exploration et sera progressivement simplifié.
 
 ## Consulter les résultats actifs
 
@@ -134,6 +192,12 @@ puis utilise le dossier sélectionné pour ses fichiers.
 - Le lecteur qualité affiche les informations de session manquantes ou invalides
   et les temps cumulés non convertis. Dans le jeu actuel, les deux températures
   de Long Beach sont manquantes ; aucun temps cumulé n'est non converti.
+- Il affiche aussi les comparaisons classement/arrêts autres que `matched`.
+  Dans le jeu local vérifié, les voitures `22` et `88` apparaissent avec
+  `count_mismatch` : respectivement 1 arrêt déclaré contre 2 détaillés, et
+  4 déclarés contre 3 détaillés. La voiture `70` apparaît avec
+  `zero_reported_no_detail`. Les valeurs ont été relues dans les deux Raw ;
+  la cause des écarts n'est pas établie et aucune correction n'est appliquée.
 - Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
 
@@ -146,7 +210,7 @@ comparaison des cumuls est sauvegardé, mais n'est pas encore affiché par
 
 Chaque fichier est d'abord écrit dans un Parquet temporaire, relu et comparé
 aux données attendues avant remplacement dans le dossier candidat.
-Les huit fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
+Les dix fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
 vérifiée avant d'écrire une référence JSON temporaire et de remplacer
 `data/current.json`.
 
@@ -181,6 +245,11 @@ binaire sont possibles. Les comparaisons utilisent une tolérance explicite.
 
 L'association entre une Bronze reconstruite et les fichiers Raw actuellement
 présents n'est pas un historique immuable de toutes les versions sources.
+`--refresh` remplace la copie Raw et ses métadonnées ; le couple n'est pas publié
+en une transaction unique. Le pipeline ne détecte pas encore automatiquement
+les changements distants. La vérification SHA-256 locale ne consulte pas le serveur.
+Les dates à tirets, le message officiel, la météo et `fastest_lap` du classement
+sont conservés en Bronze ; ils ne sont pas encore normalisés dans ses tables Silver.
 Les anciens chemins `data/silver`, `data/quality` et `data/marts` peuvent encore
 exister localement : les lecteurs actuels utilisent les dossiers sous `runs`.
 
@@ -199,7 +268,9 @@ séparé ; aucune licence n'est encore annoncée ici.
 
 ## Prochain jalon
 
-Rejouer cette procédure sur le socle actuel, puis qualifier une nouvelle source
-officielle de structure différente. Documenter ses champs, sa granularité et
-ses limites avant d'adapter les transformations. L'expérimentation de stockage
-objet local et cloud viendra dans un périmètre distinct, avec budget défini.
+Compléter le contrat des données de classement et leur contexte documentaire,
+puis étendre les sources par lots vérifiés. La future couche Gold doit être
+documentée et exploitable depuis SQL ou un notebook ; son usage par une application
+d'IA reste à démontrer. L'orchestration avancée, la détection des changements
+distants et l'archivage des versions Raw restent au backlog. L'expérimentation
+de stockage objet local et cloud viendra dans un périmètre distinct, avec budget défini.
