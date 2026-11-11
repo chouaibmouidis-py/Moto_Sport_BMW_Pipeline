@@ -1,6 +1,7 @@
 # Mission de stage personnelle simulée — données de compétition BMW
 
 Version de cadrage : 10 novembre 2026.
+Actualisation du jalon local : 11 novembre 2026.
 
 Projet pédagogique indépendant. BMW est le destinataire fictif de la restitution : aucune commande, affiliation, convention de stage ou validation par BMW n'est revendiquée. Le livrable de portfolio sera présenté comme un projet personnel ayant utilisé un tuteur IA comme sparring-partner technique (revue de code critique, challenge d'architecture et scénarios de tests).
 
@@ -15,6 +16,7 @@ Les premiers résultats doivent permettre de répondre à trois questions : quel
 - Socle de livraison initial : trois rapports officiels IMSA 2025, Road America, Long Beach et Daytona heure 24 ; tous les concurrents restent disponibles pour contextualiser les engagements BMW.
 - Données : préserver les documents sources et les champs vides dans Bronze ; représenter les champs renseignés dans Silver, avec les valeurs sources nécessaires au diagnostic.
 - Extension : qualifier puis intégrer une première source de structure différente. L'objectif à terme reste l'étude des participations BMW auto et moto sur les saisons 2022–2026 ; la couverture mondiale n'est pas encore démontrée et fera l'objet d'un inventaire vérifié.
+- Premier pilote intégré : classement Official de Road America, 48 participants, rapproché des rapports d'arrêts. Sa projection Silver reste partielle ; les champs non projetés demeurent en Bronze.
 - Expérimentation stockage : émulation locale puis validation ciblée dans un cloud de test, avec budget convenu avant utilisation. Aucun déploiement cloud n'est nécessaire pour accepter le premier livrable local.
 
 ## Livrables
@@ -27,11 +29,11 @@ Les premiers résultats doivent permettre de répondre à trois questions : quel
 
 ## Critères d'acceptation du premier livrable local
 
-- Une procédure documentée permet de restaurer l'environnement et d'exécuter les trois étapes depuis un autre dossier.
+- Une procédure documentée permet de restaurer l'environnement et d'exécuter les cinq étapes du lanceur depuis un autre dossier.
 - Les trois documents produisent les volumes de référence : 145 entrées de voitures, 417 entrées de pilotes et 1 791 arrêts ; le filtre BMW retrouve 162 arrêts. Ces nombres sont des références de ce jeu, pas des constantes métier universelles.
 - Les numéros textuels, la provenance et la version sont conservés ; les jointures n'ajoutent ni ne suppriment involontairement des arrêts.
 - Les conversions, clés, liens parent/enfant et cumuls ont des scénarios valides et invalides testés. Absence et erreur de conversion sont distinguées.
-- Les huit fichiers d'une exécution sont préparés et vérifiés avant activation. Un échec simulé laisse l'ancienne référence exploitable. Les lecteurs choisissent une seule exécution par lecture.
+- Les dix fichiers d'une exécution sont préparés et vérifiés avant activation, dont le classement et sa comparaison avec les arrêts. Un échec simulé laisse l'ancienne référence exploitable. Les lecteurs choisissent une seule exécution par lecture.
 - La suite de tests passe ; la procédure de lancement et les lecteurs de qualité et de mart sont rejoués conformément au README.
 - Les limites sont explicites : sources encore peu nombreuses, dates sans fuseau confirmé, conditions de comparaison sportive, absence de validation de concurrence et de récupération après coupure machine.
 

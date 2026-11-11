@@ -2,11 +2,27 @@
 
 `sources.json` est un inventaire initial, pas la liste complète des courses BMW.
 Il est lu par les scripts d'inspection, de construction Bronze et d'analyse.
-Ils sélectionnent les documents activés (`enabled: true`) de type `pit_stops`.
+Ils sélectionnent les documents activés (`enabled: true`) par famille :
+`pit_stops` pour les arrêts, `classification` pour les classements.
 Les trois rapports IMSA 2025 — Road America, Long Beach et Daytona heure 24 —
 ont traversé le pipeline local et contiennent des engagements BMW vérifiés.
+Le classement Official de Road America 2025 est aussi intégré : 48 participants,
+dont cinq BMW, rapprochés des comptages d'arrêts de la même session.
 Le manifeste seul ne déclenche rien : les téléchargements sont effectués par
-`inspect_manifest.py`, directement ou via `run_pipeline.py`.
+`inspect_manifest.py` et `inspect_classification.py`, directement ou via
+`run_pipeline.py`.
+
+Les classements doivent fournir `filename`, par exemple
+`03_Results_Race_Official.JSON`. Le téléchargeur reçoit ce nom explicitement.
+Le parcours des arrêts conserve son nom de fichier historique par défaut.
+`pipeline_status` décrit l'état de qualification ; il ne sert pas à exclure
+un document déjà testé des exécutions suivantes.
+
+Le rapprochement associe les documents sur `championship`, `season`, `event_id`
+et `session_id` ; `source_id` reste propre à chaque document. Un classement
+sans rapport d'arrêts compatible, ou avec plusieurs candidats, est refusé.
+Le constructeur commun accepte pour l'instant exactement un classement activé ;
+le chargement de plusieurs classements dans une même exécution reste à implémenter.
 
 Les saisons sont une cible de couverture, pas une preuve d'ingestion.
 `documents` référence des fichiers précis. `catalogs_to_explore` contient des

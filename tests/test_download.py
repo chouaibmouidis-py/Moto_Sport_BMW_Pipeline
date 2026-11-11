@@ -89,6 +89,25 @@ class DownloadTests(unittest.TestCase):
                 download(self.url, self.destination)
         self.assertFalse(self.target.exists())
 
+    def test_download_uses_custom_filename(self):
+        filename = "03_Results_Race_Official.JSON"
+        expected_path = self.destination / filename
+        content = b'{"session": {}, "classification": []}'
+
+        with patch(
+            "download.requests.get",
+            return_value=self.response(content),
+        ):
+            result = download(
+                self.url,
+                self.destination,
+                filename=filename,
+            )
+
+        self.assertEqual(result, expected_path)
+        self.assertEqual(expected_path.read_bytes(), content)
+        self.assertFalse(self.target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

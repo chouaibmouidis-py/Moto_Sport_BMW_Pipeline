@@ -6,6 +6,336 @@ from silver_writer import publish_silver
 import hashlib
 import argparse
 from run_publication import activate_run
+from analyze_classification import (
+    load_classification_bronze,
+    transform_classification,
+)
+from build_classification_bronze import select_classification_sources
+
+
+def load_source_sessions(connection, documents) -> None:
+
+    connection.execute("""
+        CREATE TEMP TABLE source_sessions (
+            source_id VARCHAR,
+            championship VARCHAR,
+            season INTEGER,
+            event_id VARCHAR,
+            session_id VARCHAR,
+            document_type VARCHAR
+        )
+    """)
+
+    for source in documents:
+        if not source.get("enabled", False):
+            continue
+
+        connection.execute(
+            "INSERT INTO source_sessions VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                source["source_id"],
+                source["championship"],
+                source["season"],
+                source["event_id"],
+                source["session_id"],
+                source["document_type"],
+            ],
+        )
+
+def load_pit_stop_bronze(
+    connection,
+    sources,
+    project_directory: Path,
+) -> None:
+
+    connection.execute("""
+        CREATE TEMP TABLE bronze_document (
+            session JSON,
+            pit_stop_analysis JSON,
+            source_id VARCHAR,
+            bronze_sha256 VARCHAR
+        )
+    """)
+
+    for source in sources:
+        bronze_path = (
+         project_directory
+            / "data"
+            / "bronze"
+            / source["source_id"]
+            / "document.parquet"
+        )
+
+        bronze_sha256 = hashlib.sha256(
+            bronze_path.read_bytes()
+        ).hexdigest()
+
+        connection.execute(
+            """
+            INSERT INTO bronze_document
+            SELECT session, pit_stop_analysis, ?, ?
+            FROM read_parquet(?)
+            """,
+            [
+                source["source_id"],
+                bronze_sha256,
+                str(bronze_path),
+            ],
+        )
+
+        print("Source chargée :", source["source_id"])
+
+def transform_sessions(connection, project_directory: Path):
+
+    sessions_query_path = (
+        project_directory / "sql" / "16_silver_sessions.sql"
+    )
+
+    sessions = connection.sql(
+        sessions_query_path.read_text(encoding="utf-8")
+    )
+    sessions.create_view("silver_sessions")
+
+    session_key_check_path = (
+        project_directory / "sql" / "17_check_session_keys.sql"
+    )
+
+    missing_session_keys, duplicate_session_keys = connection.sql(
+        session_key_check_path.read_text(encoding="utf-8")
+    ).fetchone()
+
+    if missing_session_keys > 0:
+        raise ValueError("Silver sessions rejected: missing key values")
+
+    if duplicate_session_keys > 0:
+        raise ValueError("Silver sessions rejected: duplicate keys")
+
+    return sessions
+
+def transform_car_entries(connection, project_directory: Path):
+
+    car_entries_query_path = (
+        project_directory / "sql" / "10_silver_car_entries.sql"
+    )
+
+    car_entries = connection.sql(
+        car_entries_query_path.read_text(encoding="utf-8")
+    )
+    car_entries.create_view("silver_car_entries")
+
+    car_entry_key_check_path = (
+        project_directory
+        / "sql"
+        / "11_check_missing_car_entry_keys.sql"
+    )
+
+    missing_car_entry_key_count = connection.sql(
+        car_entry_key_check_path.read_text(encoding="utf-8")
+    ).fetchone()[0]
+
+    if missing_car_entry_key_count > 0:
+        raise ValueError("Silver car entries rejected: missing key values")
+
+    car_entry_duplicate_check_path = (
+        project_directory
+        / "sql"
+        / "12_check_duplicate_car_entry_keys.sql"
+    )
+
+    duplicate_car_entry_key_count = connection.sql(
+        car_entry_duplicate_check_path.read_text(encoding="utf-8")
+    ).fetchone()[0]
+
+    if duplicate_car_entry_key_count > 0:
+        raise ValueError("Silver car entries rejected: duplicate keys")
+    return car_entries
+
+def transform_driver_entries(connection, project_directory: Path):
+
+    driver_entries_query_path = (
+        project_directory / "sql" / "14_silver_driver_entries.sql"
+    )
+
+    driver_entries = connection.sql(
+        driver_entries_query_path.read_text(encoding="utf-8")
+    )
+    driver_entries.create_view("silver_driver_entries")
+
+
+    driver_key_check_path = (
+        project_directory / "sql" / "15_check_driver_entry_keys.sql"
+    )
+
+    missing_driver_keys, duplicate_driver_keys = connection.sql(
+        driver_key_check_path.read_text(encoding="utf-8")
+    ).fetchone()
+
+    if missing_driver_keys > 0:
+        raise ValueError("Silver drivers rejected: missing key values")
+
+    if duplicate_driver_keys > 0:
+        raise ValueError("Silver drivers rejected: duplicate keys")
+
+    return driver_entries
+
+def transform_pit_stops(connection, project_directory: Path):
+    silver_query_path = (
+        project_directory / "sql" / "07_silver_pit_stops.sql"
+    )
+
+    converted = connection.sql(
+        silver_query_path.read_text(encoding="utf-8")
+    )
+    converted.create_view("silver_pit_stops")
+
+    key_check_path = (
+        project_directory / "sql" / "08_check_missing_pit_stop_keys.sql"
+    )
+
+    invalid_key_count = connection.sql(
+        key_check_path.read_text(encoding="utf-8")
+        ).fetchone()[0]
+
+    if invalid_key_count > 0:
+        raise ValueError("Silver rejected: missing key values")
+
+    duplicate_check_path = (
+        project_directory / "sql" / "09_check_duplicate_pit_stop_keys.sql"
+    )
+
+    duplicate_key_count = connection.sql(
+        duplicate_check_path.read_text(encoding="utf-8")
+        ).fetchone()[0]
+
+    if duplicate_key_count > 0:
+        raise ValueError("Silver rejected: duplicate keys")
+
+    return converted
+
+def validate_entry_links(connection, project_directory: Path):
+
+    matched_driver_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM silver_driver_entries AS drivers
+        JOIN silver_car_entries AS cars
+            ON drivers.source_id = cars.source_id
+            AND drivers.bronze_sha256 = cars.bronze_sha256
+            AND drivers.source_entry_index = cars.source_entry_index
+    """).fetchone()[0]
+
+    expected_driver_count = connection.table(
+        "silver_driver_entries"
+    ).count("*").fetchone()[0]
+
+    if matched_driver_count != expected_driver_count:
+        raise ValueError(
+            "Silver rejected: drivers do not match car entries"
+        )
+
+    matched_stops_query_path = (
+        project_directory
+        / "sql"
+        / "13_check_matched_pit_stops.sql"
+    )
+
+    matched_stop_count = connection.sql(
+        matched_stops_query_path.read_text(encoding="utf-8")
+    ).fetchone()[0]
+
+    expected_stop_count = connection.table(
+        "silver_pit_stops"
+    ).count("*").fetchone()[0]
+
+    if matched_stop_count != expected_stop_count:
+        raise ValueError(
+            "Silver rejected: pit stops do not match car entries"
+        )
+
+    return matched_driver_count, matched_stop_count
+
+def build_session_quality(connection, project_directory: Path):
+    query_path = (
+        project_directory / "sql" / "18_session_quality_summary.sql"
+    )
+
+    session_quality = connection.sql(
+        query_path.read_text(encoding="utf-8")
+    )
+    session_quality.create_view("session_quality_summary")
+
+    return session_quality
+
+def build_total_duration_quality(connection, project_directory: Path):
+    query_path = (
+        project_directory / "sql" / "23_total_pit_duration_quality.sql"
+    )
+
+    total_duration_quality = connection.sql(
+        query_path.read_text(encoding="utf-8")
+    )
+    total_duration_quality.create_view("total_pit_duration_quality")
+
+    return total_duration_quality
+
+def publish_run_outputs(
+    connection,
+    run_directory: Path,
+    outputs,
+    *,
+    verbose: bool = False,
+) -> None:
+    for relative_path, view_name in outputs:
+        relation = connection.table(view_name)
+
+        publish_silver(
+            connection,
+            relation,
+            run_directory / relative_path,
+            source_view=view_name,
+            verbose=verbose,
+        )
+
+def build_source_pairs(connection, project_directory: Path):
+    source_pairs_path = (
+        project_directory
+        / "sql"
+        / "29_classification_pit_stop_sources.sql"
+    )
+
+    source_pairs = connection.sql(
+        source_pairs_path.read_text(encoding="utf-8")
+    )
+    source_pairs.create_view("classification_pit_stop_sources")
+
+    ambiguous_pairs = connection.sql("""
+        SELECT
+            classification_source_id,
+            COUNT(*) AS candidate_count
+        FROM classification_pit_stop_sources
+        GROUP BY classification_source_id
+        HAVING COUNT(*) > 1
+    """).fetchall()
+
+    if ambiguous_pairs:
+        raise ValueError(
+            f"Source pairing rejected: multiple pit-stop reports "
+            f"for the same classification: {ambiguous_pairs}"
+        )
+    missing_pairs = connection.sql("""
+        SELECT sources.source_id
+        FROM source_sessions AS sources
+        LEFT JOIN classification_pit_stop_sources AS pairs
+            ON sources.source_id = pairs.classification_source_id
+        WHERE sources.document_type = 'classification'
+            AND pairs.classification_source_id IS NULL
+    """).fetchall()
+
+    if missing_pairs:
+        raise ValueError(
+            f"Source pairing rejected: missing pit-stop report "
+            f"for classifications: {missing_pairs}"
+        )
+    return source_pairs
 
 
 def main() -> None:
@@ -34,9 +364,31 @@ def main() -> None:
 
     selected_sources = select_pit_stop_sources(manifest["documents"])
 
+    classification_sources = select_classification_sources(
+        manifest["documents"]
+    )
+
+
+    if len(classification_sources) != 1:
+        raise ValueError(
+            "Expected exactly one enabled classification source, "
+            f"found {len(classification_sources)}"
+        )
+
     print("Sources sélectionnées :", len(selected_sources))
 
     with duckdb.connect() as connection:
+
+        # Prepare source metadata and SQL helpers
+
+        load_source_sessions(connection, manifest["documents"])
+
+        source_pairs = build_source_pairs(
+            connection,
+            Path(__file__).resolve().parent,
+        )
+        if args.verbose:
+            source_pairs.show()
 
         duration_parser_path = (
             Path(__file__).parent / "sql" / "21_create_duration_parser.sql"
@@ -53,102 +405,45 @@ def main() -> None:
                     parse_duration_seconds('00:75') AS invalid_seconds
             """).show()
 
-        connection.execute("""
-            CREATE TEMP TABLE bronze_document (
-                session JSON,
-                pit_stop_analysis JSON,
-                source_id VARCHAR,
-                bronze_sha256 VARCHAR
-            )
-        """)
+        # Load pit-stop Bronze documents
 
-        for source in selected_sources:
-            bronze_path = (
-                Path(__file__).parent
-                / "data"
-                / "bronze"
-                / source["source_id"]
-                / "document.parquet"
-            )
+        load_pit_stop_bronze(
+            connection,
+            selected_sources,
+            Path(__file__).resolve().parent,
+        )
 
-            bronze_sha256 = hashlib.sha256(
-                bronze_path.read_bytes()
-            ).hexdigest()
+        # Build Silver tables and validate their keys
 
-            connection.execute(
-                """
-                INSERT INTO bronze_document
-                SELECT session, pit_stop_analysis, ?, ?
-                FROM read_parquet(?)
-                """,
-                [
-                    source["source_id"],
-                    bronze_sha256,
-                    str(bronze_path),
-                ],
-            )
+        sessions = transform_sessions(
+            connection,
+            Path(__file__).resolve().parent,
+        )
 
-            print("Source chargée :", source["source_id"])
+        driver_entries = transform_driver_entries(
+            connection,
+            Path(__file__).resolve().parent,
+        )
+
+        car_entries = transform_car_entries(
+            connection,
+            Path(__file__).resolve().parent,
+        )
 
         saved = connection.table("bronze_document")
         print("Documents chargés :", saved.count("*").fetchone()[0])
 
-        sessions_query_path = (
-            Path(__file__).parent / "sql" / "16_silver_sessions.sql"
-        )
-
-        sessions = connection.sql(
-            sessions_query_path.read_text(encoding="utf-8")
-        )
-        sessions.create_view("silver_sessions")
-
-        session_key_check_path = (
-            Path(__file__).parent / "sql" / "17_check_session_keys.sql"
-        )
-
-        missing_session_keys, duplicate_session_keys = connection.sql(
-            session_key_check_path.read_text(encoding="utf-8")
-        ).fetchone()
-
-        if missing_session_keys > 0:
-            raise ValueError("Silver sessions rejected: missing key values")
-
-        if duplicate_session_keys > 0:
-            raise ValueError("Silver sessions rejected: duplicate keys")
-
         if args.verbose:
             sessions.show()
 
-        session_quality_query_path = (
-            Path(__file__).parent
-            / "sql"
-            / "18_session_quality_summary.sql"
+        session_quality = build_session_quality(
+            connection,
+            Path(__file__).resolve().parent,
         )
 
-        session_quality = connection.sql(
-            session_quality_query_path.read_text(encoding="utf-8")
-        )
-        session_quality.create_view("session_quality_summary")
         if args.verbose:
             session_quality.show()
 
-        car_entries_query_path = (
-            Path(__file__).parent / "sql" / "10_silver_car_entries.sql"
-        )
-
-        car_entries = connection.sql(
-            car_entries_query_path.read_text(encoding="utf-8")
-        )
-        car_entries.create_view("silver_car_entries")
-
-        driver_entries_query_path = (
-            Path(__file__).parent / "sql" / "14_silver_driver_entries.sql"
-        )
-
-        driver_entries = connection.sql(
-            driver_entries_query_path.read_text(encoding="utf-8")
-        )
-        driver_entries.create_view("silver_driver_entries")
         if args.verbose:
             connection.sql("""
                 SELECT
@@ -183,31 +478,7 @@ def main() -> None:
         if args.verbose:
             driver_entries.show()
 
-        car_entry_key_check_path = (
-            Path(__file__).parent
-            / "sql"
-            / "11_check_missing_car_entry_keys.sql"
-        )
 
-        missing_car_entry_key_count = connection.sql(
-            car_entry_key_check_path.read_text(encoding="utf-8")
-        ).fetchone()[0]
-
-        if missing_car_entry_key_count > 0:
-            raise ValueError("Silver car entries rejected: missing key values")
-
-        car_entry_duplicate_check_path = (
-            Path(__file__).parent
-            / "sql"
-            / "12_check_duplicate_car_entry_keys.sql"
-        )
-
-        duplicate_car_entry_key_count = connection.sql(
-            car_entry_duplicate_check_path.read_text(encoding="utf-8")
-        ).fetchone()[0]
-
-        if duplicate_car_entry_key_count > 0:
-            raise ValueError("Silver car entries rejected: duplicate keys")
 
         if args.verbose:
             connection.sql("""
@@ -277,22 +548,16 @@ def main() -> None:
                 CROSS JOIN json_each(pit_stop_analysis) AS entry
             """).show()
 
-        silver_query_path = (
-            Path(__file__).parent / "sql" / "07_silver_pit_stops.sql"
-        )
-
-        converted = connection.sql(
-            silver_query_path.read_text(encoding="utf-8")
+        converted = transform_pit_stops(
+            connection,
+            Path(__file__).resolve().parent,
         )
 
         converted.create_view("silver_pit_stops")
 
-        total_duration_quality_path = (
-            Path(__file__).parent / "sql" / "23_total_pit_duration_quality.sql"
-        )
-
-        total_duration_quality = connection.sql(
-            total_duration_quality_path.read_text(encoding="utf-8")
+        total_duration_quality = build_total_duration_quality(
+            connection,
+            Path(__file__).resolve().parent,
         )
 
         total_comparison_path = (
@@ -303,12 +568,6 @@ def main() -> None:
 
         total_comparison = connection.sql(
             total_comparison_path.read_text(encoding="utf-8")
-        )
-
-        total_comparison_output_path = (
-            run_directory
-            / "quality"
-            / "total_pit_duration_comparison.parquet"
         )
 
         total_comparison.create_view("total_pit_duration_comparison")
@@ -336,9 +595,6 @@ def main() -> None:
 
         if args.verbose:
             total_duration_quality.show()
-        total_duration_quality.create_view("total_pit_duration_quality")
-
-        total_duration_quality_output_path = run_directory / "quality" / "total_pit_duration_quality.parquet"
 
         total_duration_check_path = (
             Path(__file__).parent
@@ -429,6 +685,17 @@ def main() -> None:
         enriched_stops.create_view("enriched_pit_stops")
 
         enriched_stop_count = enriched_stops.count("*").fetchone()[0]
+
+        # Validate relationships between Silver tables
+
+        matched_driver_count, matched_stop_count = validate_entry_links(
+            connection,
+            Path(__file__).resolve().parent,
+        )
+
+        print("Matched driver entries:", matched_driver_count)
+        print("Matched pit stops:", matched_stop_count)
+
         expected_stop_count = converted.count("*").fetchone()[0]
 
         if enriched_stop_count != expected_stop_count:
@@ -484,57 +751,6 @@ def main() -> None:
                 WHERE drivers.source_driver_index IS NULL
             """).show()
 
-        driver_key_check_path = (
-            Path(__file__).parent / "sql" / "15_check_driver_entry_keys.sql"
-        )
-
-        missing_driver_keys, duplicate_driver_keys = connection.sql(
-            driver_key_check_path.read_text(encoding="utf-8")
-        ).fetchone()
-
-        if missing_driver_keys > 0:
-            raise ValueError("Silver drivers rejected: missing key values")
-
-        if duplicate_driver_keys > 0:
-            raise ValueError("Silver drivers rejected: duplicate keys")
-
-        matched_driver_count = connection.sql("""
-            SELECT COUNT(*)
-            FROM silver_driver_entries AS drivers
-            JOIN silver_car_entries AS cars
-                ON drivers.source_id = cars.source_id
-               AND drivers.bronze_sha256 = cars.bronze_sha256
-               AND drivers.source_entry_index = cars.source_entry_index
-        """).fetchone()[0]
-
-        expected_driver_count = driver_entries.count("*").fetchone()[0]
-
-        if matched_driver_count != expected_driver_count:
-            raise ValueError(
-                "Silver rejected: drivers do not match car entries"
-            )
-
-        print("Matched driver entries:", matched_driver_count)
-
-        matched_stops_query_path = (
-            Path(__file__).parent
-            / "sql"
-            / "13_check_matched_pit_stops.sql"
-        )
-
-        matched_stop_count = connection.sql(
-            matched_stops_query_path.read_text(encoding="utf-8")
-        ).fetchone()[0]
-
-        expected_stop_count = converted.count("*").fetchone()[0]
-
-        if matched_stop_count != expected_stop_count:
-            raise ValueError(
-                "Silver rejected: pit stops do not match car entries"
-            )
-
-        print("Matched pit stops:", matched_stop_count)
-
         if args.verbose:
             connection.sql("""
                 SELECT
@@ -580,102 +796,116 @@ def main() -> None:
                     OR pit_number IS NULL
             """).show()
 
-        key_check_path = (
-            Path(__file__).parent / "sql" / "08_check_missing_pit_stop_keys.sql"
+        # Count observed pit stops by source, version and car
+        pit_stop_counts_path = (
+            Path(__file__).resolve().parent
+            / "sql"
+            / "28_pit_stop_counts_by_car.sql"
         )
 
-        invalid_key_count = connection.sql(
-            key_check_path.read_text(encoding="utf-8")
-            ).fetchone()[0]
+        pit_stop_counts = connection.sql(
+            pit_stop_counts_path.read_text(encoding="utf-8")
+        )
+        pit_stop_counts.create_view("pit_stop_counts_by_car")
 
-        if invalid_key_count > 0:
-            raise ValueError("Silver rejected: missing key values")
+        if args.verbose:
+            pit_stop_counts.filter(
+                "source_id = 'imsa-2025-road-america-race-pit-stops' "
+                "AND car_number IN ('24', '25')"
+            ).show()
 
-        duplicate_check_path = (
-            Path(__file__).parent / "sql" / "09_check_duplicate_pit_stop_keys.sql"
+        project_directory = Path(__file__).resolve().parent
+
+        classification_source_id = classification_sources[0]["source_id"]
+        classification_bronze_path = (
+            project_directory
+            / "data"
+            / "bronze"
+            / classification_source_id
+            / "document.parquet"
         )
 
-        duplicate_key_count = connection.sql(
-            duplicate_check_path.read_text(encoding="utf-8")
-            ).fetchone()[0]
-
-        if duplicate_key_count > 0:
-            raise ValueError("Silver rejected: duplicate keys")
-
-        silver_output_path = run_directory / "silver" / "pit_stops.parquet"
-
-        publish_silver(
-            connection, converted, silver_output_path, verbose=args.verbose
-        )
-
-        car_entries_output_path = run_directory / "silver" / "car_entries.parquet"
-
-        publish_silver(
+        load_classification_bronze(
             connection,
-            car_entries,
-            car_entries_output_path,
-            source_view="silver_car_entries",
-            verbose=args.verbose,
+            classification_bronze_path,
+            classification_source_id,
         )
 
-        driver_entries_output_path = run_directory / "silver" / "driver_entries.parquet"
-
-        publish_silver(
+        classification = transform_classification(
             connection,
-            driver_entries,
-            driver_entries_output_path,
-            source_view="silver_driver_entries",
-            verbose=args.verbose,
+            project_directory,
         )
 
-        sessions_output_path = run_directory / "silver" / "sessions.parquet"
+        comparison_query_path = (
+            project_directory
+            / "sql"
+            / "30_classification_pit_stop_comparison.sql"
+        )
 
-        publish_silver(
+        classification_comparison = connection.sql(
+            comparison_query_path.read_text(encoding="utf-8")
+        )
+        classification_comparison.create_view(
+            "classification_pit_stop_comparison"
+        )
+
+        expected_participant_count = classification.count("*").fetchone()[0]
+        compared_participant_count = (
+            classification_comparison.count("*").fetchone()[0]
+        )
+
+        if compared_participant_count != expected_participant_count:
+            raise ValueError(
+                "Classification comparison rejected: participant count "
+                f"changed from {expected_participant_count} "
+                f"to {compared_participant_count}"
+            )
+
+        print(
+            "Classification comparison rows:",
+            classification_comparison.count("*").fetchone()[0],
+        )
+
+        if args.verbose:
+            classification_comparison.filter(
+                "car_number IN ('24', '25', '70')"
+            ).project("""
+                car_number,
+                reported_pit_stop_count,
+                observed_pit_stop_count,
+                comparison_status
+            """).show()
+
+        outputs = [
+            ("silver/pit_stops.parquet", "silver_pit_stops"),
+            ("silver/car_entries.parquet", "silver_car_entries"),
+            ("silver/driver_entries.parquet", "silver_driver_entries"),
+            ("silver/sessions.parquet", "silver_sessions"),
+            ("silver/classification.parquet", "silver_classification"),
+            (
+                "quality/classification_pit_stop_comparison.parquet",
+                "classification_pit_stop_comparison",
+            ),
+            (
+                "quality/total_pit_duration_quality.parquet",
+                "total_pit_duration_quality",
+            ),
+            (
+                "quality/total_pit_duration_comparison.parquet",
+                "total_pit_duration_comparison",
+            ),
+            (
+                "quality/session_quality_summary.parquet",
+                "session_quality_summary",
+            ),
+            ("marts/enriched_pit_stops.parquet", "enriched_pit_stops"),
+        ]
+
+        publish_run_outputs(
             connection,
-            sessions,
-            sessions_output_path,
-            source_view="silver_sessions",
+            run_directory,
+            outputs,
             verbose=args.verbose,
-        )
-
-        session_quality_output_path = run_directory / "quality" / "session_quality_summary.parquet"
-
-        publish_silver(
-            connection,
-            total_duration_quality,
-            total_duration_quality_output_path,
-            source_view="total_pit_duration_quality",
-            verbose=args.verbose,
-        )
-
-        publish_silver(
-            connection,
-            total_comparison,
-            total_comparison_output_path,
-            source_view="total_pit_duration_comparison",
-            verbose=args.verbose,
-        )
-
-        publish_silver(
-            connection,
-            session_quality,
-            session_quality_output_path,
-            source_view="session_quality_summary",
-            verbose=args.verbose,
-        )
-
-        enriched_stops_output_path = run_directory / "marts" / "enriched_pit_stops.parquet"
-
-        publish_silver(
-            connection,
-            enriched_stops,
-            enriched_stops_output_path,
-            source_view="enriched_pit_stops",
-            verbose=args.verbose,
-        )
-
-        summary_query_path = (
-            Path(__file__).parent / "sql" / "06_pit_stop_summary.sql"
         )
 
         summary_query_path = (
@@ -686,6 +916,8 @@ def main() -> None:
             connection.sql(
                 summary_query_path.read_text(encoding="utf-8")
             ).show()
+
+    # Activate the run after all required outputs are published
 
     current_path = activate_run(run_directory)
     print("Activated run:", run_id)
