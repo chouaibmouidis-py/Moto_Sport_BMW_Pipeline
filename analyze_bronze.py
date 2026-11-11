@@ -337,6 +337,60 @@ def build_source_pairs(connection, project_directory: Path):
         )
     return source_pairs
 
+def validate_race_car_summary(connection) -> None:
+    missing_key_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM race_car_summary
+        WHERE source_id IS NULL
+           OR bronze_sha256 IS NULL
+           OR car_number IS NULL
+    """).fetchone()[0]
+
+    if missing_key_count > 0:
+        raise ValueError(
+            "Race car summary rejected: missing key values"
+        )
+
+    duplicate_keys = connection.sql("""
+        SELECT
+            source_id,
+            bronze_sha256,
+            car_number,
+            COUNT(*) AS occurrence_count
+        FROM race_car_summary
+        GROUP BY source_id, bronze_sha256, car_number
+        HAVING COUNT(*) > 1
+    """).fetchall()
+
+    if duplicate_keys:
+        raise ValueError(
+            "Race car summary rejected: duplicate keys"
+        )
+
+    missing_participants, unexpected_participants = connection.sql("""
+        WITH missing AS (
+            SELECT source_id, bronze_sha256, car_number
+            FROM silver_classification
+            EXCEPT
+            SELECT source_id, bronze_sha256, car_number
+            FROM race_car_summary
+        ),
+        unexpected AS (
+            SELECT source_id, bronze_sha256, car_number
+            FROM race_car_summary
+            EXCEPT
+            SELECT source_id, bronze_sha256, car_number
+            FROM silver_classification
+        )
+        SELECT
+            (SELECT COUNT(*) FROM missing),
+            (SELECT COUNT(*) FROM unexpected)
+    """).fetchone()
+
+    if missing_participants > 0 or unexpected_participants > 0:
+        raise ValueError(
+            "Race car summary rejected: participant keys differ"
+        )
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -876,6 +930,39 @@ def main() -> None:
                 comparison_status
             """).show()
 
+        summary_query_path = (
+            project_directory / "sql" / "06_pit_stop_summary.sql"
+        )
+
+        pit_stop_summary = connection.sql(
+            summary_query_path.read_text(encoding="utf-8")
+        )
+        pit_stop_summary.create_view("pit_stop_summary")
+
+        race_car_summary_path = (
+            project_directory / "sql" / "31_race_car_summary.sql"
+        )
+
+        race_car_summary = connection.sql(
+            race_car_summary_path.read_text(encoding="utf-8")
+        )
+        race_car_summary.create_view("race_car_summary")
+        validate_race_car_summary(connection)
+
+        race_car_summary.filter(
+            "car_number IN ('24', '25', '70')"
+        ).project("""
+            car_number,
+            overall_position,
+            reported_pit_stop_count,
+            observed_pit_stop_count,
+            comparison_status,
+            average_pit_time_seconds
+        """).order("overall_position").show()
+
+        if args.verbose:
+            pit_stop_summary.show()
+
         outputs = [
             ("silver/pit_stops.parquet", "silver_pit_stops"),
             ("silver/car_entries.parquet", "silver_car_entries"),
@@ -899,6 +986,7 @@ def main() -> None:
                 "session_quality_summary",
             ),
             ("marts/enriched_pit_stops.parquet", "enriched_pit_stops"),
+            ("marts/race_car_summary.parquet", "race_car_summary"),
         ]
 
         publish_run_outputs(
@@ -907,15 +995,6 @@ def main() -> None:
             outputs,
             verbose=args.verbose,
         )
-
-        summary_query_path = (
-            Path(__file__).parent / "sql" / "06_pit_stop_summary.sql"
-        )
-
-        if args.verbose:
-            connection.sql(
-                summary_query_path.read_text(encoding="utf-8")
-            ).show()
 
     # Activate the run after all required outputs are published
 

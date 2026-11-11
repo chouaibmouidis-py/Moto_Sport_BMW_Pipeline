@@ -9,6 +9,8 @@ class SilverClassificationTests(unittest.TestCase):
         participants = [
             {
                 "number": " 04 ",
+                "manufacturer": " BMW ",
+                "vehicle": " BMW M4 GT3 EVO ",
                 "position": 48,
                 "class": " GTD ",
                 "pit_stops": "0",
@@ -44,8 +46,18 @@ class SilverClassificationTests(unittest.TestCase):
             self.assertEqual(
                 rows,
                 [
-                    ("test-source", "test-bronze-hash",
-                     "0", "04", 48, "GTD", 0, True)
+                    (
+                        "test-source",
+                        "test-bronze-hash",
+                        "0",
+                        "04",
+                        "BMW",
+                        "BMW M4 GT3 EVO",
+                        48,
+                        "GTD",
+                        0,
+                        True,
+                    )
                 ],
             )
 
@@ -90,8 +102,18 @@ class SilverClassificationTests(unittest.TestCase):
             self.assertEqual(
                 rows,
                 [
-                    ("test-source", "test-bronze-hash",
-                     "0", "04", 48, "GTD", None, True)
+                    (
+                        "test-source",
+                        "test-bronze-hash",
+                        "0",
+                        "04",
+                        None,
+                        None,
+                        48,
+                        "GTD",
+                        None,
+                        True,
+                    )
                 ],
             )
 
