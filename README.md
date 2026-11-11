@@ -58,7 +58,7 @@ La commande unique exécute dans cet ordre :
    du Raw existant ou téléchargement avec métadonnées.
 4. `build_classification_bronze.py` : conservation et comparaison des trois
    racines `session`, `fastest_lap` et `classification` dans une Bronze distincte.
-5. `analyze_bronze.py` : transformations, contrôles, écriture des dix résultats
+5. `analyze_bronze.py` : transformations, contrôles, écriture des onze résultats
    dans un nouveau dossier d'exécution, puis activation de cet ensemble.
 
 Si une étape termine en erreur, le lanceur s'arrête avant la suivante.
@@ -110,7 +110,9 @@ data/
 │   │   ├── total_pit_duration_quality.parquet
 │   │   ├── total_pit_duration_comparison.parquet
 │   │   └── classification_pit_stop_comparison.parquet
-│   └── marts/enriched_pit_stops.parquet
+│   └── marts/
+│       ├── enriched_pit_stops.parquet
+│       └── race_car_summary.parquet
 └── current.json
 ```
 
@@ -123,14 +125,15 @@ data/
 - **Silver** : contexte de session par document, entrées de voitures, entrées
   de pilotes, arrêts et participants au classement séparés. Les numéros textuels
   gardent leurs zéros. La Silver du classement ne projette pour l'instant que
-  les clés, le numéro, la position générale, la classe, le nombre d'arrêts
+  les clés, le numéro, le constructeur, le modèle, la position générale, la classe, le nombre d'arrêts
   déclaré et `not_finished` ; les autres champs restent conservés en Bronze.
 - **Qualité** : absence et échec de conversion distingués ; comparaison entre
   somme des durées et dernier cumul déclaré par source, version et numéro de
   voiture, avec les statuts `matched`, `incomplete` et `mismatch`.
   Un rapport distinct rapproche aussi les comptages du classement et des arrêts.
-- **Mart** : arrêts enrichis avec les noms des pilotes d'entrée et de sortie,
-  sans multiplier les lignes par le nombre de pilotes.
+- **Marts** : arrêts enrichis avec les noms des pilotes d'entrée et de sortie,
+  sans multiplier les lignes par le nombre de pilotes ; synthèse par participant
+  réunissant classement, comptages, statut de comparaison et statistiques de durée.
 
 `bronze_sha256` identifie les octets du fichier Bronze utilisé. Les relations
 vers les entrées de voitures utilisent aussi `source_id` et
@@ -149,6 +152,17 @@ voiture, tous fragments confondus. Un `LEFT JOIN` depuis le classement conserve
 les participants sans arrêt détaillé. La version du rapport chargé participe à
 la jointure ; les empreintes du classement et du rapport d'arrêts sont conservées
 séparément. Le nombre de participants avant et après jointure est contrôlé.
+
+La synthèse `race_car_summary` ajoute les statistiques du résumé des arrêts
+par source du rapport d'arrêts, empreinte Bronze et numéro de voiture.
+Elle conserve les participants sans détail ; leurs statistiques restent `NULL`.
+Avant publication, `validate_race_car_summary` refuse les clés manquantes ou
+dupliquées et compare les clés participantes au classement dans les deux sens.
+Sa granularité est une ligne par `source_id`, `bronze_sha256`, `car_number`
+du classement. Les tests couvrent notamment une substitution de participant
+à volume identique, les sources et versions concurrentes, et le cas valide.
+La durée moyenne décrit les valeurs disponibles dans le rapport ; elle ne
+mesure pas à elle seule la performance des mécaniciens.
 
 | `comparison_status` | Signification |
 | --- | --- |
@@ -200,6 +214,10 @@ puis utilise le dossier sélectionné pour ses fichiers.
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
 - Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
+- Il affiche aussi les cinq BMW du classement Road America : constructeur,
+  modèle, position, arrêts déclarés et retrouvés, moyenne et statut, sur neuf
+  colonnes. Les deux tableaux sont lus depuis le même run actif. La synthèse
+  sauvegardée contient tous les 48 participants ; le filtre BMW est propre au lecteur.
 
 Un tableau d'anomalies vide signifie qu'aucune ligne ne respecte le filtre
 considéré, pas que le fichier ne contient aucune donnée. Le rapport de
@@ -210,7 +228,7 @@ comparaison des cumuls est sauvegardé, mais n'est pas encore affiché par
 
 Chaque fichier est d'abord écrit dans un Parquet temporaire, relu et comparé
 aux données attendues avant remplacement dans le dossier candidat.
-Les dix fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
+Les onze fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
 vérifiée avant d'écrire une référence JSON temporaire et de remplacer
 `data/current.json`.
 

@@ -6,6 +6,14 @@ SELECT
         TRIM(json_extract_string(entry.value, '$.number')),
         ''
     ) AS car_number,
+    NULLIF(
+        TRIM(json_extract_string(entry.value, '$.manufacturer')),
+        ''
+    ) AS manufacturer,
+    NULLIF(
+        TRIM(json_extract_string(entry.value, '$.vehicle')),
+        ''
+    ) AS car_model,
     TRY_CAST(
         json_extract_string(entry.value, '$.position')
         AS INTEGER

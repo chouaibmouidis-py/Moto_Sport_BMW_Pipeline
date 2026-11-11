@@ -33,7 +33,7 @@ Les premiers résultats doivent permettre de répondre à trois questions : quel
 - Les trois documents produisent les volumes de référence : 145 entrées de voitures, 417 entrées de pilotes et 1 791 arrêts ; le filtre BMW retrouve 162 arrêts. Ces nombres sont des références de ce jeu, pas des constantes métier universelles.
 - Les numéros textuels, la provenance et la version sont conservés ; les jointures n'ajoutent ni ne suppriment involontairement des arrêts.
 - Les conversions, clés, liens parent/enfant et cumuls ont des scénarios valides et invalides testés. Absence et erreur de conversion sont distinguées.
-- Les dix fichiers d'une exécution sont préparés et vérifiés avant activation, dont le classement et sa comparaison avec les arrêts. Un échec simulé laisse l'ancienne référence exploitable. Les lecteurs choisissent une seule exécution par lecture.
+- Les onze fichiers d'une exécution sont préparés et vérifiés avant activation, dont le classement, sa comparaison avec les arrêts et la synthèse par participant. Cette synthèse refuse les clés manquantes ou dupliquées et les participants perdus ou ajoutés. Un échec simulé laisse l'ancienne référence exploitable. Les lecteurs choisissent une seule exécution par lecture.
 - La suite de tests passe ; la procédure de lancement et les lecteurs de qualité et de mart sont rejoués conformément au README.
 - Les limites sont explicites : sources encore peu nombreuses, dates sans fuseau confirmé, conditions de comparaison sportive, absence de validation de concurrence et de récupération après coupure machine.
 

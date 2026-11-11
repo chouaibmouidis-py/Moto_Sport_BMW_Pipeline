@@ -8,7 +8,10 @@ class PitStopSummaryTests(unittest.TestCase):
         with duckdb.connect() as connexion:
             connexion.execute("""
                 CREATE TEMP VIEW silver_pit_stops AS
-                SELECT 'test-source' AS source_id, *
+                SELECT
+                    'test-source' AS source_id,
+                    'version-1' AS bronze_sha256,
+                    *
                 FROM (VALUES
                     ('24', 60.0),
                     ('24', NULL),
@@ -22,13 +25,16 @@ class PitStopSummaryTests(unittest.TestCase):
             )
             query = query_path.read_text(encoding="utf-8")
             rows = connexion.sql(query).fetchall()
-            self.assertEqual(rows, [('test-source', '24', 3, 2, 1, 70.0, 66.67)])
+            self.assertEqual(
+                rows,
+                [('test-source', 'version-1', '24', 3, 2, 1, 70.0, 66.67)],
+            )
 
     def test_summary_with_only_missing_durations(self):
             with duckdb.connect() as connexion:
                 connexion.execute("""
                 CREATE TEMP VIEW silver_pit_stops AS
-                SELECT 'test-source' AS source_id, *
+                SELECT 'test-source' AS source_id, 'version-1' AS bronze_sha256, *
                     FROM (VALUES
                         ('25', NULL),
                         ('25', NULL)
@@ -41,7 +47,7 @@ class PitStopSummaryTests(unittest.TestCase):
                 )
                 query = query_path.read_text(encoding="utf-8")
                 rows = connexion.sql(query).fetchall()
-                self.assertEqual(rows, [('test-source', '25', 2, 0, 2, None, 0.0)])
+                self.assertEqual(rows, [('test-source', 'version-1', '25', 2, 0, 2, None, 0.0)])
 
     def test_keeps_sources_separate(self):
         with duckdb.connect() as connexion:
@@ -49,10 +55,10 @@ class PitStopSummaryTests(unittest.TestCase):
                 CREATE TEMP VIEW silver_pit_stops AS
                 SELECT *
                 FROM (VALUES
-                    ('course-a', '24', 60.0),
-                    ('course-a', '24', 80.0),
-                    ('course-b', '24', 100.0)
-                ) AS t(source_id, car_number, pit_time_in_seconds)
+                    ('course-a', 'version-1', '24', 60.0),
+                    ('course-a', 'version-1', '24', 80.0),
+                    ('course-b', 'version-1', '24', 100.0)
+                ) AS t(source_id, bronze_sha256, car_number, pit_time_in_seconds)
             """)
 
             query_path = (
@@ -63,7 +69,33 @@ class PitStopSummaryTests(unittest.TestCase):
             query = query_path.read_text(encoding="utf-8")
             rows = connexion.sql(query).fetchall()
             expected = [
-                ("course-a", "24", 2, 2, 0, 70.0, 100.0),
-                ("course-b", "24", 1, 1, 0, 100.0, 100.0),
+                ("course-a", "version-1", "24", 2, 2, 0, 70.0, 100.0),
+                ("course-b", "version-1", "24", 1, 1, 0, 100.0, 100.0),
+            ]
+            self.assertEqual(rows, expected)
+
+
+    def test_keeps_versions_separate(self):
+        with duckdb.connect() as connexion:
+            connexion.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT *
+            FROM (VALUES
+                ('course-a', 'version-1', '24', 60.0),
+                ('course-a', 'version-1', '24', 80.0),
+                ('course-a', 'version-2', '24', 100.0)
+            ) AS t(source_id, bronze_sha256, car_number, pit_time_in_seconds)
+            """)
+
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "06_pit_stop_summary.sql"
+            )
+            query = query_path.read_text(encoding="utf-8")
+            rows = connexion.sql(query).fetchall()
+            expected = [
+                ("course-a", "version-1", "24", 2, 2, 0, 70.0, 100.0),
+                ("course-a", "version-2", "24", 1, 1, 0, 100.0, 100.0),
             ]
             self.assertEqual(rows, expected)
