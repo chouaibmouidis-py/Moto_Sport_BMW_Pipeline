@@ -17,11 +17,11 @@ Les dates et sessions effectives seront vérifiées dans les rapports avant acti
 | VIR | Classement et arrêts validés localement | 2 terminé |
 | Daytona | Rapports finaux Hour 24 validés localement | 3 terminé |
 | Sebring | Rapports finaux Hour 12 validés localement | 3 terminé |
-| Watkins Glen | Répertoire repéré, rapports finaux à qualifier | 4 |
-| Indianapolis | WeatherTech identifié dans le dossier 17 ; rapport final Hour 6 | 4 |
-| Road Atlanta | Répertoire repéré, rapports finaux à qualifier | 4 |
+| Watkins Glen | Rapports finaux Hour 6 validés localement | 4 terminé |
+| Indianapolis | Rapports finaux Hour 6 validés localement | 4 terminé |
+| Road Atlanta | Rapports finaux Hour 10 validés localement | 4 terminé |
 
-Onze courses attendues ; huit intégrées, trois à qualifier. La présence d'un dossier
+Onze courses attendues et intégrées pour les classements et arrêts. La présence d'un dossier
 dans l'archive ne prouve pas la disponibilité de nos deux familles de JSON.
 L'index contient aussi des essais et d'autres séries : ne pas ingérer tous les
 dossiers comme des courses WeatherTech. Deux dossiers Indianapolis apparaissent
@@ -37,7 +37,16 @@ mêmes modèles ou numéros BMW. Les GT3 et GT3 EVO restent libellées selon la 
 Les rapports horaires seront sélectionnés selon leur portée, jamais concaténés
 comme des courses distinctes.
 
-## Référence du pilote
+## Bilan de couverture validé
+
+Chouaib a confirmé les résultats du dernier lot : avec 2025, 937 participations
+dont 86 BMW, 8 307 arrêts dont 711 BMW, 1 066 fragments voitures,
+2 877 entrées pilotes et 22 bilans qualité de comptage. Les 44 sources sont
+marquées `tested_locally`. La couverture concerne ces deux familles de rapports,
+pas l'ensemble des données IMSA. La suite complète n'a pas été rejouée par
+l'agent pour ce dernier ajout de configuration.
+
+### Référence historique du pilote
 
 Road America 2024 : 47 participants dont quatre BMW, 163 arrêts dont huit BMW,
 quatre écarts de comptage (8,51 %). Avec la saison 2025 intégrée :

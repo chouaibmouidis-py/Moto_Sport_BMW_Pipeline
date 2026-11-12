@@ -9,10 +9,10 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
-Trente-huit documents JSON du portail officiel
+Quarante-quatre documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
-[`config/sources.json`](config/sources.json) : dix-neuf rapports « Pit Stops Time
-Cards » et dix-neuf classements Official. Onze couples couvrent 2025 : Road America, Long Beach, Daytona,
+[`config/sources.json`](config/sources.json) : vingt-deux rapports « Pit Stops Time
+Cards » et vingt-deux classements Official. Onze couples couvrent 2025 : Road America, Long Beach, Daytona,
 Laguna Seca, Detroit, Sebring, Watkins Glen, Canadian Tire Motorsport Park et
 VIR, Indianapolis et Road Atlanta 2025. Les rapports finaux sont
 retenus pour Daytona (heure 24), Sebring (heure 12) et Watkins Glen (heure 6),
@@ -20,9 +20,10 @@ ainsi qu'Indianapolis (heure 6) et Road Atlanta (heure 10), sans additionner les
 états horaires. Les onze courses du calendrier sont intégrées pour ces deux
 familles de rapports ; le
 [suivi de couverture](docs/imsa_2025_season_coverage.fr.md) distingue les lots.
-Huit couples 2024 sont également validés localement : Road America, Laguna Seca,
-Detroit, Long Beach, Canadian Tire, VIR, Daytona et Sebring, avec les mêmes transformations.
-La saison 2024 complète n'est pas encore couverte ; voir son
+Onze couples 2024 sont également validés localement : Road America, Laguna Seca,
+Detroit, Long Beach, Canadian Tire, VIR, Daytona, Sebring, Watkins Glen,
+Indianapolis et Road Atlanta, avec les mêmes transformations.
+Les onze courses 2024 sont couvertes pour ces deux familles de rapports ; voir le
 [suivi de couverture](docs/imsa_2024_season_coverage.fr.md).
 
 | Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
@@ -66,10 +67,10 @@ sur l'ensemble des événements.
 
 Road America 2024 ajoute 47 participations, dont quatre BMW, 49 entrées de
 voitures, 98 entrées de pilotes et 163 arrêts détaillés, dont huit BMW.
-Avec les sept autres courses 2024 intégrées, le périmètre actif 2024–2025
-totalise **772 participations, dont 74 BMW**, **6 917 arrêts détaillés, dont
-600 BMW**, 874 entrées de voitures et 2 346 entrées de pilotes.
-Dix-neuf bilans sont séparés par source et version.
+Avec les dix autres courses 2024 intégrées, le périmètre actif 2024–2025
+totalise **937 participations, dont 86 BMW**, **8 307 arrêts détaillés, dont
+711 BMW**, 1 066 entrées de voitures et 2 877 entrées de pilotes.
+Vingt-deux bilans sont séparés par source et version.
 Road America 2024 présente quatre écarts sur 47 (8,51 %), distincts de ceux
 de 2025. Les modèles source `BMW M4 GT3` et `BMW M4 GT3 EVO` restent distincts.
 
@@ -273,19 +274,20 @@ puis utilise le dossier sélectionné pour ses fichiers.
   `missing_stop_details`. À Daytona, 14 participants présentent un
   `count_mismatch`, dont la BMW `48`. Les valeurs ont été relues dans les Raw ;
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
-- Le lecteur du mart affiche les 600 arrêts BMW et les pilotes associés, avec
+- Le lecteur du mart affiche les 711 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
-- Il affiche aussi les **74 participations BMW** des dix-neuf classements,
+- Il affiche aussi les **86 participations BMW** des vingt-deux classements,
   regroupées par source puis position. Les treize colonnes comprennent la source,
   le constructeur, le modèle, la position, la classe, les comptages d'arrêts,
   la moyenne, les compteurs de durées valides et invalides, la couverture et le
   statut. Les deux tableaux sont lus depuis le même run actif. La synthèse
-  sauvegardée contient les 772 participants ; le filtre BMW est propre au lecteur.
+  sauvegardée contient les 937 participants ; le filtre BMW est propre au lecteur.
 - Le lecteur qualité affiche aussi un bilan par source et version du classement :
   le nombre total de participants, le nombre de `count_mismatch` et leur
-  pourcentage. Dix-neuf lignes sont produites : les huit classements 2024,
+  pourcentage. Vingt-deux lignes sont produites : les onze classements 2024,
   Road America (47, 4, 8,51 %), Laguna Seca (34, 1, 2,94 %), Detroit (21, 2, 9,52 %),
-  Long Beach (27, 3, 11,11 %), Canadian Tire (34, 0, 0 %), VIR (23, 0, 0 %), Daytona (59, 16, 27,12 %) et Sebring (58, 4, 6,90 %),
+  Long Beach (27, 3, 11,11 %), Canadian Tire (34, 0, 0 %), VIR (23, 0, 0 %), Daytona (59, 16, 27,12 %), Sebring (58, 4, 6,90 %),
+  Watkins Glen (56, 7, 12,50 %), Indianapolis (56, 9, 16,07 %) et Road Atlanta (53, 6, 11,32 %),
   puis les onze classements 2025 : Road America (48, 2, 4,17 %),
   Long Beach (27, 0, 0 %), Daytona (61, 14, 22,95 %), Laguna Seca (36, 1, 2,78 %)
   Detroit (22, 0, 0 %), Sebring (56, 8, 14,29 %), Watkins Glen (55, 6, 10,91 %),
