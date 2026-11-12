@@ -164,6 +164,11 @@ d'arrêts candidat ; une correspondance absente ou multiple bloque le traitement
 Le traitement commun charge les classements activés dans une même table Bronze
 temporaire, en conservant l'identifiant et l'empreinte de chaque document.
 Les transformations et les jointures séparent les sources et leurs versions.
+Le lot doit comprendre tous les classements activés. Si un fichier Bronze est
+absent, le chargeur lève `FileNotFoundError` en indiquant la source et le chemin
+attendu. Le traitement s'arrête sans publier un lot partiel ni activer un
+nouveau run ; les documents déjà chargés restent dans la connexion temporaire.
+Un test couvre ce refus après le chargement d'un premier document valide.
 
 Les arrêts sont comptés par source, empreinte Bronze et numéro textuel de
 voiture, tous fragments confondus. Un `LEFT JOIN` depuis le classement conserve

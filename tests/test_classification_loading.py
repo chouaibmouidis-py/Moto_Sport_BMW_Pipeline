@@ -66,3 +66,38 @@ class ClassificationLoadingTests(unittest.TestCase):
                 """).fetchall()
 
                 self.assertCountEqual(rows, expected)
+
+    def test_rejects_batch_when_a_bronze_file_is_missing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project_directory = Path(directory)
+            sources = [
+                {"source_id": "classification-a"},
+                {"source_id": "classification-b"},
+            ]
+
+            bronze_path = (
+                project_directory
+                / "data"
+                / "bronze"
+                / "classification-a"
+                / "document.parquet"
+            )
+            bronze_path.parent.mkdir(parents=True)
+
+            with duckdb.connect() as connection:
+                connection.sql("""
+                    SELECT
+                        '{}'::JSON AS session,
+                        '{}'::JSON AS fastest_lap,
+                        '[]'::JSON AS classification
+                """).write_parquet(str(bronze_path))
+
+                with self.assertRaisesRegex(
+                    FileNotFoundError,
+                    "missing Bronze file for source 'classification-b'",
+                ):
+                    load_classification_sources(
+                        connection,
+                        sources,
+                        project_directory,
+                    )
