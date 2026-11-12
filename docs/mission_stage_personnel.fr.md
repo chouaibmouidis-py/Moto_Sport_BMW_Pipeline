@@ -16,7 +16,7 @@ Les premiers résultats doivent permettre de répondre à trois questions : quel
 - Socle de livraison initial : trois rapports officiels IMSA 2025, Road America, Long Beach et Daytona heure 24 ; tous les concurrents restent disponibles pour contextualiser les engagements BMW.
 - Données : préserver les documents sources et les champs vides dans Bronze ; représenter les champs renseignés dans Silver, avec les valeurs sources nécessaires au diagnostic.
 - Extension : qualifier puis intégrer une première source de structure différente. L'objectif à terme reste l'étude des participations BMW auto et moto sur les saisons 2022–2026 ; la couverture mondiale n'est pas encore démontrée et fera l'objet d'un inventaire vérifié.
-- Premier pilote intégré : classement Official de Road America, 48 participants, rapproché des rapports d'arrêts. Sa projection Silver reste partielle ; les champs non projetés demeurent en Bronze.
+- Premier pilote intégré : classement Official de Road America, 48 participants, rapproché des rapports d'arrêts. Extension validée localement : classement Official de Long Beach, 27 participants. Les deux classements totalisent 75 participations, dont huit BMW ; leur projection Silver reste partielle et les champs non projetés demeurent en Bronze.
 - Expérimentation stockage : émulation locale puis validation ciblée dans un cloud de test, avec budget convenu avant utilisation. Aucun déploiement cloud n'est nécessaire pour accepter le premier livrable local.
 
 ## Livrables

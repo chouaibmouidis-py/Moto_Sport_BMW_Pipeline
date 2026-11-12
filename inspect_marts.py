@@ -33,10 +33,9 @@ with duckdb.connect() as connection:
     summary = connection.read_parquet(str(summary_path))
 
     summary.filter(
-        "source_id = "
-        "'imsa-2025-road-america-race-classification-official' "
-        "AND manufacturer = 'BMW'"
+        "manufacturer = 'BMW'"
     ).project("""
+        source_id,
         car_number,
         manufacturer,
         car_model,
@@ -49,4 +48,4 @@ with duckdb.connect() as connection:
         invalid_duration_count,
         duration_coverage_percent,
         comparison_status
-    """).order("overall_position").show()
+    """).order("source_id, overall_position").show()

@@ -51,8 +51,52 @@ def load_classification_bronze(connection, bronze_path, source_id):
         params=[source_id, bronze_sha256],
     ).create_view("bronze_classification")
 
+def load_classification_sources(
+    connection,
+    sources,
+    project_directory: Path,
+) -> None:
+
+    connection.execute("""
+        CREATE TEMP TABLE bronze_classification (
+            session JSON,
+            fastest_lap JSON,
+            classification JSON,
+            source_id VARCHAR,
+            bronze_sha256 VARCHAR
+        )
+    """)
+
+    for source in sources:
+        bronze_path = (
+         project_directory
+            / "data"
+            / "bronze"
+            / source["source_id"]
+            / "document.parquet"
+        )
+
+        bronze_sha256 = hashlib.sha256(
+            bronze_path.read_bytes()
+        ).hexdigest()
+
+        connection.execute(
+            """
+            INSERT INTO bronze_classification
+            SELECT session, fastest_lap, classification, ?, ?
+            FROM read_parquet(?)
+            """,
+            [
+                source["source_id"],
+                bronze_sha256,
+                str(bronze_path),
+            ],
+        )
+
+        print("Source chargée :", source["source_id"])
 
 def main() -> None:
+
     project_directory = Path(__file__).resolve().parent
     source_id = "imsa-2025-road-america-race-classification-official"
 

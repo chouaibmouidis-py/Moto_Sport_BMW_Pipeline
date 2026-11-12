@@ -7,7 +7,7 @@ import hashlib
 import argparse
 from run_publication import activate_run
 from analyze_classification import (
-    load_classification_bronze,
+    load_classification_sources,
     transform_classification,
 )
 from build_classification_bronze import select_classification_sources
@@ -423,10 +423,9 @@ def main() -> None:
     )
 
 
-    if len(classification_sources) != 1:
+    if not classification_sources:
         raise ValueError(
-            "Expected exactly one enabled classification source, "
-            f"found {len(classification_sources)}"
+            "Expected at least one enabled classification source"
         )
 
     print("Sources sélectionnées :", len(selected_sources))
@@ -870,19 +869,10 @@ def main() -> None:
 
         project_directory = Path(__file__).resolve().parent
 
-        classification_source_id = classification_sources[0]["source_id"]
-        classification_bronze_path = (
-            project_directory
-            / "data"
-            / "bronze"
-            / classification_source_id
-            / "document.parquet"
-        )
-
-        load_classification_bronze(
+        load_classification_sources(
             connection,
-            classification_bronze_path,
-            classification_source_id,
+            classification_sources,
+            project_directory,
         )
 
         classification = transform_classification(
