@@ -43,10 +43,15 @@ La date `as_of_date` est celle de cet inventaire, pas la date de récupération
 de chaque fichier. Les résultats Silver conservent séparément l'empreinte du
 fichier Bronze utilisé.
 
-Avant de démarrer ses étapes, `run_pipeline.py` vérifie l'unicité des
-`source_id` dans toute la liste `documents`, y compris les entrées désactivées.
-Un doublon déclenche une `ValueError` qui nomme l'identifiant et empêche le
-démarrage des scripts. Les lancements isolés de ces scripts ne passent pas
+Avant de démarrer ses étapes, `run_pipeline.py` vérifie les `source_id` dans
+toute la liste `documents`, y compris les entrées désactivées. Chaque identifiant
+doit être présent, non nul, de type chaîne, non vide et non composé uniquement
+d'espaces. Une valeur invalide déclenche une `ValueError` qui indique la
+position du document dans la liste (index à partir de zéro) et la raison du refus.
+Les doublons sont également refusés avec un message qui nomme l'identifiant.
+Le validateur ne modifie pas les valeurs et ne vérifie pas le contenu des rapports.
+Ces erreurs empêchent le démarrage des scripts.
+Les lancements isolés de ces scripts ne passent pas
 automatiquement par ce contrôle du lanceur.
 La validation complète des champs obligatoires et des formats autorisés reste
 à ajouter. Les contrôles des données du pipeline sont distincts des statuts
