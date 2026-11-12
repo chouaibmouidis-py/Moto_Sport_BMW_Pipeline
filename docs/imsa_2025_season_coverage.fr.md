@@ -23,11 +23,15 @@ ne sont pas utilisées pour fabriquer les chemins de téléchargement.
 | Canadian Tire Motorsport Park | Intégrés et validés localement | LMP2 et GT ; trois BMW GT |
 | Road America | Intégrés et validés localement | Écarts de comptage conservés |
 | VIRginia International Raceway | Intégrés et validés localement | GT uniquement ; trois BMW |
-| Indianapolis | À qualifier | Identifier les rapports finaux de la course de 6 heures |
-| Road Atlanta / Petit Le Mans | À qualifier | Identifier les rapports finaux de la course de 10 heures |
+| Indianapolis | Intégrés et validés localement | Couple final heure 6 |
+| Road Atlanta / Petit Le Mans | Intégrés et validés localement | Couple final heure 10 |
 
-Neuf courses sont intégrées ; deux restent à qualifier. L'existence et la
-compatibilité des quatre documents supplémentaires ne sont pas encore établies.
+Les onze courses sont intégrées pour les deux familles : classement et arrêts.
+Le manifeste comporte vingt-deux documents activés. Le run actif
+`57425c9ee72947108831adc8aa6232ad` a été relu par l'agent : 469 participations,
+4 117 arrêts détaillés, dont 388 BMW, et onze bilans qualité. Chouaib confirme
+48 participations BMW. Ce périmètre ne couvre pas les autres familles de
+rapports ni les autres championnats IMSA.
 Une absence de rapport doit être documentée, pas assimilée à zéro arrêt ou à
 l'absence de BMW. Les engagements non BMW restent conservés.
 
@@ -44,8 +48,10 @@ l'absence de BMW. Les engagements non BMW restent conservés.
 3. Lot Canadian Tire Motorsport Park et VIR intégré. Volumes confirmés par
    Chouaib : 363 participations, dont 38 BMW ; 3 183 arrêts, dont 300 BMW ;
    neuf bilans qualité. Absence de GTP conforme aux catégories des rapports.
-4. Qualifier Indianapolis et Road Atlanta, puis rapprocher l'inventaire final
-   avec le référentiel des courses pour établir la couverture effective.
+4. Indianapolis et Road Atlanta intégrés. Les onze événements du référentiel
+   sont représentés, chacun par un classement et un rapport d'arrêts final.
+   Les écarts de comptage sont conservés et ne constituent pas une couverture
+   manquante. La suite de tests est à rejouer pour clôturer la livraison.
 
 Pour chaque lot : documents qualifiés, configuration explicite, exécution,
 contrôles par course, documentation des écarts et commit local. Aucun volume

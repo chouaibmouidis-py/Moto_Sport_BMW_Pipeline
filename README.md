@@ -9,14 +9,16 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
-Dix-huit documents JSON du portail officiel
+Vingt-deux documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
-[`config/sources.json`](config/sources.json) : neuf rapports « Pit Stops Time
-Cards » et neuf classements Official, pour Road America, Long Beach, Daytona,
+[`config/sources.json`](config/sources.json) : onze rapports « Pit Stops Time
+Cards » et onze classements Official, pour Road America, Long Beach, Daytona,
 Laguna Seca, Detroit, Sebring, Watkins Glen, Canadian Tire Motorsport Park et
-VIR 2025. Les rapports finaux sont
+VIR, Indianapolis et Road Atlanta 2025. Les rapports finaux sont
 retenus pour Daytona (heure 24), Sebring (heure 12) et Watkins Glen (heure 6),
-sans additionner leurs états horaires. Neuf courses sur onze sont intégrées ; le
+ainsi qu'Indianapolis (heure 6) et Road Atlanta (heure 10), sans additionner les
+états horaires. Les onze courses du calendrier sont intégrées pour ces deux
+familles de rapports ; le
 [suivi de couverture](docs/imsa_2025_season_coverage.fr.md) distingue les lots.
 
 | Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
@@ -30,14 +32,16 @@ sans additionner leurs états horaires. Neuf courses sur onze sont intégrées ;
 | Watkins Glen, Race, heure 6 | 57 | 151 | 387 | 34 |
 | Canadian Tire Motorsport Park, Race | 35 | 70 | 111 | 8 |
 | VIR, Race | 23 | 46 | 54 | 7 |
-| **Total** | **383** | **994** | **3 183** | **300** |
+| Indianapolis, Race, heure 6 | 63 | 167 | 376 | 31 |
+| Road Atlanta, Race, heure 10 | 61 | 183 | 558 | 57 |
+| **Total** | **507** | **1 344** | **4 117** | **388** |
 
 Ces volumes sont des références pour ce jeu de données, pas des constantes
 métier imposées aux prochaines courses. Une entrée source n'est pas forcément
 une voiture distincte : un même numéro peut apparaître dans plusieurs fragments.
 Tous les concurrents sont conservés ; le lecteur du mart filtre ensuite BMW.
 
-Les classements et la synthèse contiennent **363 participations, dont 38 BMW** :
+Les classements et la synthèse contiennent **469 participations, dont 48 BMW** :
 
 | Classement 2025 | Participants | Participations BMW | `count_mismatch` | Pourcentage |
 | --- | ---: | ---: | ---: | ---: |
@@ -50,6 +54,8 @@ Les classements et la synthèse contiennent **363 participations, dont 38 BMW** 
 | Watkins Glen, heure 6 | 55 | 5 | 6 | 10,91 % |
 | Canadian Tire Motorsport Park | 35 | 3 | 0 | 0 % |
 | VIR | 23 | 3 | 0 | 0 % |
+| Indianapolis, heure 6 | 53 | 5 | 4 | 7,55 % |
+| Road Atlanta, heure 10 | 53 | 5 | 3 | 5,66 % |
 
 Ces totaux comptent les participations par course, pas des voitures uniques
 sur l'ensemble des événements.
@@ -254,20 +260,21 @@ puis utilise le dossier sélectionné pour ses fichiers.
   `missing_stop_details`. À Daytona, 14 participants présentent un
   `count_mismatch`, dont la BMW `48`. Les valeurs ont été relues dans les Raw ;
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
-- Le lecteur du mart affiche les 300 arrêts BMW et les pilotes associés, avec
+- Le lecteur du mart affiche les 388 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
-- Il affiche aussi les **38 participations BMW** des neuf classements,
+- Il affiche aussi les **48 participations BMW** des onze classements,
   regroupées par source puis position. Les treize colonnes comprennent la source,
   le constructeur, le modèle, la position, la classe, les comptages d'arrêts,
   la moyenne, les compteurs de durées valides et invalides, la couverture et le
   statut. Les deux tableaux sont lus depuis le même run actif. La synthèse
-  sauvegardée contient les 363 participants ; le filtre BMW est propre au lecteur.
+  sauvegardée contient les 469 participants ; le filtre BMW est propre au lecteur.
 - Le lecteur qualité affiche aussi un bilan par source et version du classement :
   le nombre total de participants, le nombre de `count_mismatch` et leur
-  pourcentage. Neuf lignes sont produites : Road America (48, 2, 4,17 %),
+  pourcentage. Onze lignes sont produites : Road America (48, 2, 4,17 %),
   Long Beach (27, 0, 0 %), Daytona (61, 14, 22,95 %), Laguna Seca (36, 1, 2,78 %)
   Detroit (22, 0, 0 %), Sebring (56, 8, 14,29 %), Watkins Glen (55, 6, 10,91 %),
-  Canadian Tire Motorsport Park (35, 0, 0 %) et VIR (23, 0, 0 %).
+  Canadian Tire Motorsport Park (35, 0, 0 %), VIR (23, 0, 0 %),
+  Indianapolis (53, 4, 7,55 %) et Road Atlanta (53, 3, 5,66 %).
   Cet indicateur mesure uniquement les écarts de comptage. Les autres statuts
   restent inclus dans le total des participants, sans être comptés comme
   `count_mismatch`. Le bilan à 0 % de Long Beach ne signifie donc pas
