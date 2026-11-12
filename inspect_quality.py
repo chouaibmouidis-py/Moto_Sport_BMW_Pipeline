@@ -38,6 +38,7 @@ with duckdb.connect() as connection:
     comparison.filter(
         "comparison_status != 'matched'"
     ).project("""
+        source_id,
         car_number,
         reported_pit_stop_count,
         observed_pit_stop_count,

@@ -9,10 +9,10 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
-Quatre documents JSON du portail officiel
+Cinq documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
 [`config/sources.json`](config/sources.json) : trois rapports « Pit Stops Time
-Cards » et le classement Official de Road America 2025.
+Cards » et les classements Official de Road America et Long Beach 2025.
 
 | Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
 | --- | ---: | ---: | ---: | ---: |
@@ -31,6 +31,13 @@ Le rapport d'arrêts de cette course décrit 50 fragments pour 47 numéros
 distincts. La comparaison conserve les 48 participants : la voiture `70`
 déclare zéro arrêt mais n'a aucune ligne d'arrêt détaillé ; ce cas est signalé
 par `zero_reported_no_detail`, sans remplacer son comptage observé `NULL` par zéro.
+
+Le classement de Long Beach contient **27 participants**, dont trois BMW.
+La voiture `34` déclare un arrêt mais n'apparaît pas dans le rapport détaillé :
+elle est conservée avec le statut `missing_stop_details`.
+Les deux classements réunissent ainsi **75 participants, dont huit BMW**.
+Ces totaux regroupent des participations par course, pas des voitures uniques
+sur l'ensemble des événements.
 
 Une durée d'arrêt publiée ne mesure pas nécessairement un ravitaillement, le
 travail des mécaniciens ou une perte nette de temps en piste. La couverture
@@ -146,7 +153,10 @@ pas un identifiant permanent de voiture.
 Les documents sont associés via le manifeste sur `championship`, `season`,
 `event_id` et `session_id`. Chaque classement doit avoir exactement un rapport
 d'arrêts candidat ; une correspondance absente ou multiple bloque le traitement.
-Le constructeur commun accepte actuellement **un seul classement activé**.
+Le constructeur commun charge les classements activés dans une même table
+Bronze temporaire, en conservant la source et l'empreinte de chaque document.
+Les transformations et les jointures traitent ensuite les différentes courses
+sans mélanger leurs rapports.
 
 Les arrêts sont comptés par source, empreinte Bronze et numéro textuel de
 voiture, tous fragments confondus. Un `LEFT JOIN` depuis le classement conserve
@@ -210,18 +220,27 @@ puis utilise le dossier sélectionné pour ses fichiers.
 - Il affiche aussi les comparaisons classement/arrêts autres que `matched`.
   Dans le jeu local vérifié, les voitures `22` et `88` apparaissent avec
   `count_mismatch` : respectivement 1 arrêt déclaré contre 2 détaillés, et
-  4 déclarés contre 3 détaillés. La voiture `70` apparaît avec
-  `zero_reported_no_detail`. Les valeurs ont été relues dans les deux Raw ;
+  4 déclarés contre 3 détaillés. La voiture `70` de Road America apparaît avec
+  `zero_reported_no_detail`. À Long Beach, la voiture `34` apparaît avec
+  `missing_stop_details` : un arrêt déclaré, aucun détail retrouvé.
+  Les valeurs ont été relues dans les rapports sources ;
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
 - Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
-- Il affiche les cinq BMW du classement Road America : constructeur,
-  modèle, position, arrêts déclarés et retrouvés, moyenne et statut, sur douze
-  colonnes. Les deux tableaux sont lus depuis le même run actif. La synthèse
-  sauvegardée contient tous les 48 participants ; le filtre BMW est propre au lecteur.
+- Il affiche les huit participations BMW des classements chargés : cinq à
+  Road America et trois à Long Beach. Les treize colonnes comprennent la source,
+  le constructeur, le modèle, la position, la classe, les comptages d'arrêts,
+  la moyenne, les compteurs de durées valides et invalides, la couverture et le
+  statut. Les lignes sont triées par source puis position. Les deux tableaux
+  sont lus depuis le même run actif. La synthèse sauvegardée contient les
+  75 participants ; le filtre BMW est propre au lecteur.
 - Le lecteur qualité affiche aussi un bilan par source et version du classement :
   le nombre total de participants, le nombre de `count_mismatch` et leur
-  pourcentage. Dans le jeu actuel : **48 participants, 2 écarts, soit 4,17 %**.
+  pourcentage. Deux lignes sont produites dans le jeu actuel :
+  **Road America : 48 participants, 2 écarts, soit 4,17 %** ;
+  **Long Beach : 27 participants, aucun `count_mismatch`, soit 0 %**.
+  Le cas `missing_stop_details` de Long Beach reste signalé dans le détail :
+  0 % ne signifie pas l'absence de toute anomalie.
   Cet indicateur mesure uniquement les écarts de comptage. Les autres statuts
   restent inclus dans le total des participants, sans être comptés comme
   `count_mismatch`.
