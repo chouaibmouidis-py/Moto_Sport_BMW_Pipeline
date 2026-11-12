@@ -963,6 +963,17 @@ def main() -> None:
         if args.verbose:
             pit_stop_summary.show()
 
+        count_quality_path = (
+            project_directory
+            / "sql"
+            / "32_classification_count_quality.sql"
+        )
+
+        count_quality = connection.sql(
+            count_quality_path.read_text(encoding="utf-8")
+        )
+        count_quality.create_view("classification_count_quality")
+
         outputs = [
             ("silver/pit_stops.parquet", "silver_pit_stops"),
             ("silver/car_entries.parquet", "silver_car_entries"),
@@ -987,6 +998,10 @@ def main() -> None:
             ),
             ("marts/enriched_pit_stops.parquet", "enriched_pit_stops"),
             ("marts/race_car_summary.parquet", "race_car_summary"),
+            (
+                "quality/classification_count_quality.parquet",
+                "classification_count_quality",
+            ),
         ]
 
         publish_run_outputs(

@@ -58,7 +58,7 @@ La commande unique exécute dans cet ordre :
    du Raw existant ou téléchargement avec métadonnées.
 4. `build_classification_bronze.py` : conservation et comparaison des trois
    racines `session`, `fastest_lap` et `classification` dans une Bronze distincte.
-5. `analyze_bronze.py` : transformations, contrôles, écriture des onze résultats
+5. `analyze_bronze.py` : transformations, contrôles, écriture des douze résultats
    dans un nouveau dossier d'exécution, puis activation de cet ensemble.
 
 Si une étape termine en erreur, le lanceur s'arrête avant la suivante.
@@ -109,7 +109,8 @@ data/
 │   │   ├── session_quality_summary.parquet
 │   │   ├── total_pit_duration_quality.parquet
 │   │   ├── total_pit_duration_comparison.parquet
-│   │   └── classification_pit_stop_comparison.parquet
+│   │   ├── classification_pit_stop_comparison.parquet
+│   │   └── classification_count_quality.parquet
 │   └── marts/
 │       ├── enriched_pit_stops.parquet
 │       └── race_car_summary.parquet
@@ -214,10 +215,16 @@ puis utilise le dossier sélectionné pour ses fichiers.
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
 - Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
-- Il affiche aussi les cinq BMW du classement Road America : constructeur,
-  modèle, position, arrêts déclarés et retrouvés, moyenne et statut, sur neuf
+- Il affiche les cinq BMW du classement Road America : constructeur,
+  modèle, position, arrêts déclarés et retrouvés, moyenne et statut, sur douze
   colonnes. Les deux tableaux sont lus depuis le même run actif. La synthèse
   sauvegardée contient tous les 48 participants ; le filtre BMW est propre au lecteur.
+- Le lecteur qualité affiche aussi un bilan par source et version du classement :
+  le nombre total de participants, le nombre de `count_mismatch` et leur
+  pourcentage. Dans le jeu actuel : **48 participants, 2 écarts, soit 4,17 %**.
+  Cet indicateur mesure uniquement les écarts de comptage. Les autres statuts
+  restent inclus dans le total des participants, sans être comptés comme
+  `count_mismatch`.
 
 Un tableau d'anomalies vide signifie qu'aucune ligne ne respecte le filtre
 considéré, pas que le fichier ne contient aucune donnée. Le rapport de
@@ -228,7 +235,7 @@ comparaison des cumuls est sauvegardé, mais n'est pas encore affiché par
 
 Chaque fichier est d'abord écrit dans un Parquet temporaire, relu et comparé
 aux données attendues avant remplacement dans le dossier candidat.
-Les onze fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
+Les douze fichiers sont écrits dans `data/runs/<run_id>/`. Leur présence est
 vérifiée avant d'écrire une référence JSON temporaire et de remplacer
 `data/current.json`.
 

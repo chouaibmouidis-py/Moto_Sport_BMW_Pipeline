@@ -45,5 +45,8 @@ with duckdb.connect() as connection:
         reported_pit_stop_count,
         observed_pit_stop_count,
         average_pit_time_seconds,
+        valid_duration_count,
+        invalid_duration_count,
+        duration_coverage_percent,
         comparison_status
     """).order("overall_position").show()
