@@ -15,6 +15,7 @@ REQUIRED_OUTPUTS = (
     "quality/session_quality_summary.parquet",
     "marts/enriched_pit_stops.parquet",
     "marts/race_car_summary.parquet",
+    "quality/classification_count_quality.parquet",
 )
 
 

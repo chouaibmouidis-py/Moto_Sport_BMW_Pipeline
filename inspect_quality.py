@@ -43,3 +43,19 @@ with duckdb.connect() as connection:
         observed_pit_stop_count,
         comparison_status
     """).show()
+
+count_quality_path = (
+    run_directory
+    / "quality"
+    / "classification_count_quality.parquet"
+)
+
+with duckdb.connect() as connection:
+    count_quality = connection.read_parquet(str(count_quality_path))
+
+    count_quality.project("""
+        source_id,
+        participant_count,
+        count_mismatch_count,
+        count_mismatch_percent
+    """).show()
