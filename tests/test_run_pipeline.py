@@ -1,8 +1,7 @@
 import subprocess
 import unittest
 from pathlib import Path
-from unittest.mock import patch
-
+from unittest.mock import mock_open, patch
 from run_pipeline import main
 
 
@@ -63,3 +62,28 @@ class RunPipelineTests(unittest.TestCase):
                     "build_classification_bronze.py",
                 ],
             )
+
+    def test_rejects_duplicate_sources_before_starting_steps(self):
+        manifest = """
+        {
+            "documents": [
+                {"source_id": "duplicate-source"},
+                {"source_id": "duplicate-source"}
+            ]
+        }
+        """
+
+        with patch(
+            "run_pipeline.Path.open",
+            mock_open(read_data=manifest),
+        ):
+            with patch(
+                "run_pipeline.subprocess.run"
+            ) as mocked_run:
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "Duplicate source_id: duplicate-source",
+                ):
+                    main()
+
+                mocked_run.assert_not_called()
