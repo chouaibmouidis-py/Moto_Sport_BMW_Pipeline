@@ -15,13 +15,13 @@ Les dates et sessions effectives seront vérifiées dans les rapports avant acti
 | Long Beach | Classement et arrêts validés localement | 2 terminé |
 | Canadian Tire Motorsport Park | Classement et arrêts validés localement | 2 terminé |
 | VIR | Classement et arrêts validés localement | 2 terminé |
-| Daytona | Répertoire repéré, rapports finaux à qualifier | 3 |
-| Sebring | Répertoire repéré, rapports finaux à qualifier | 3 |
+| Daytona | Rapports finaux Hour 24 validés localement | 3 terminé |
+| Sebring | Rapports finaux Hour 12 validés localement | 3 terminé |
 | Watkins Glen | Répertoire repéré, rapports finaux à qualifier | 4 |
 | Indianapolis | WeatherTech identifié dans le dossier 17 ; rapport final Hour 6 | 4 |
 | Road Atlanta | Répertoire repéré, rapports finaux à qualifier | 4 |
 
-Onze courses attendues ; six intégrées, cinq à qualifier. La présence d'un dossier
+Onze courses attendues ; huit intégrées, trois à qualifier. La présence d'un dossier
 dans l'archive ne prouve pas la disponibilité de nos deux familles de JSON.
 L'index contient aussi des essais et d'autres séries : ne pas ingérer tous les
 dossiers comme des courses WeatherTech. Deux dossiers Indianapolis apparaissent
