@@ -160,3 +160,50 @@ class RaceCarSummaryTests(unittest.TestCase):
             """)
 
             validate_race_car_summary(connection)
+
+    def test_keeps_same_car_separate_between_races(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW classification_pit_stop_comparison AS
+                SELECT *
+                FROM (VALUES
+                    ('classification-a', 'pits-a', 'version-a', '24'),
+                    ('classification-b', 'pits-b', 'version-b', '24')
+                ) AS t(
+                    source_id,
+                    pit_stop_source_id,
+                    pit_stop_bronze_sha256,
+                    car_number
+                )
+            """)
+
+            connection.execute("""
+                CREATE TEMP VIEW pit_stop_summary AS
+                SELECT *
+                FROM (VALUES
+                    ('pits-a', 'version-a', '24', 2, 0, 60.0, 100.0),
+                    ('pits-b', 'version-b', '24', 3, 0, 90.0, 100.0)
+                ) AS t(
+                    source_id,
+                    bronze_sha256,
+                    car_number,
+                    valid_duration_count,
+                    invalid_duration_count,
+                    average_pit_time_seconds,
+                    duration_coverage_percent
+                )
+            """)
+
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "31_race_car_summary.sql"
+            )
+
+            rows = connection.sql(
+                query_path.read_text(encoding="utf-8")
+            ).project("""
+                source_id,
+                car_number,
+                average_pit_time_seconds
+            """).fetchall()

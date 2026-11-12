@@ -15,7 +15,9 @@ class ClassificationCountQualityTests(unittest.TestCase):
                     ('course-a', 'version-1', 'count_mismatch'),
                     ('course-a', 'version-1', 'zero_reported_no_detail'),
                     ('course-a', 'version-1', 'missing_stop_details'),
-                    ('course-a', 'version-2', 'matched')
+                    ('course-a', 'version-2', 'matched'),
+                    ('course-b', 'version-1', 'count_mismatch'),
+                    ('course-b', 'version-1', 'matched')
                 ) AS t(
                     source_id,
                     bronze_sha256,
@@ -36,6 +38,7 @@ class ClassificationCountQualityTests(unittest.TestCase):
             expected = [
                 ("course-a", "version-1", 4, 1, 25.0),
                 ("course-a", "version-2", 1, 0, 0.0),
+                ("course-b", "version-1", 2, 1, 50.0),
             ]
 
             self.assertCountEqual(rows, expected)

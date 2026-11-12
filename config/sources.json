@@ -3,6 +3,24 @@
   "target_seasons": [2022, 2023, 2024, 2025, 2026],
   "as_of_date": "2026-11-06",
   "documents": [
+    {
+      "source_id": "imsa-2025-daytona-race-hour24-classification-official",
+      "enabled": true,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2025,
+      "event_id": "daytona",
+      "session_id": "202501251340-race",
+      "document_type": "classification",
+      "report_period": "hour_24",
+      "publication_status": "official",
+      "format": "json",
+      "filename": "03_Results_Race_Official.JSON",
+      "url": "https://imsa.results.alkamelcloud.com/Results/25_2025/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202501251340_Race/24_Hour%2024/03_Results_Race_Official.JSON",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "tested_locally"
+    },
       {
       "source_id": "imsa-2025-long-beach-race-classification-official",
       "enabled": true,
