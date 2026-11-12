@@ -15,19 +15,19 @@ ne sont pas utilisées pour fabriquer les chemins de téléchargement.
 | Événement / circuit | Classement + arrêts | Prochaine vérification |
 | --- | --- | --- |
 | Daytona | Intégrés et validés localement | Conserver le couple de rapports heure 24 |
-| Sebring | À qualifier | Identifier les rapports finaux de la course de 12 heures |
+| Sebring | Intégrés et validés localement | Couple final heure 12, écarts conservés |
 | Long Beach | Intégrés et validés localement | Cas sans détail conservé |
 | Laguna Seca | Intégrés et validés localement | Voiture 70 : écart de comptage conservé |
 | Detroit | Intégrés et validés localement | Aucun écart de comptage dans le lot inspecté |
-| Watkins Glen | À qualifier | Identifier les rapports finaux de la course de 6 heures |
+| Watkins Glen | Intégrés et validés localement | Couple final heure 6, écarts conservés |
 | Canadian Tire Motorsport Park | À qualifier | Vérifier les classes présentes et les participants BMW |
 | Road America | Intégrés et validés localement | Écarts de comptage conservés |
 | VIRginia International Raceway | À qualifier | Vérifier le périmètre GT et les participants BMW |
 | Indianapolis | À qualifier | Identifier les rapports finaux de la course de 6 heures |
 | Road Atlanta / Petit Le Mans | À qualifier | Identifier les rapports finaux de la course de 10 heures |
 
-Cinq courses sont intégrées ; six restent à qualifier. L'existence et la
-compatibilité des douze documents supplémentaires ne sont pas encore établies.
+Sept courses sont intégrées ; quatre restent à qualifier. L'existence et la
+compatibilité des huit documents supplémentaires ne sont pas encore établies.
 Une absence de rapport doit être documentée, pas assimilée à zéro arrêt ou à
 l'absence de BMW. Les engagements non BMW restent conservés.
 
@@ -37,8 +37,10 @@ l'absence de BMW. Les engagements non BMW restent conservés.
    et lecture des sorties confirmées par Chouaib le 12 novembre 2026. Les cinq
    courses réunissent 194 participations classées, dont 22 BMW, et 1 915 arrêts
    détaillés. Laguna Seca : un écart sur 36 (2,78 %) ; Detroit : aucun sur 22.
-2. Qualifier Sebring et Watkins Glen, en vérifiant la portée des rapports horaires
-   pour ne pas additionner des états cumulés d'une même course.
+2. Lot Sebring et Watkins Glen intégré : rapports finaux heure 12 et heure 6,
+   sans addition des cumuls horaires. Chouaib confirme le run
+   `cf43b04e5ef849e38aafe0f07c16aec2` : 305 participations, dont 32 BMW,
+   3 018 arrêts rattachés et enrichis, dont 285 BMW.
 3. Qualifier Canadian Tire Motorsport Park et VIR, avec vérification des classes.
 4. Qualifier Indianapolis et Road Atlanta, puis rapprocher l'inventaire final
    avec le référentiel des courses pour établir la couverture effective.
