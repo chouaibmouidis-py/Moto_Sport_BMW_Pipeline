@@ -4,6 +4,26 @@ from pathlib import Path
 import duckdb
 
 class PitStopSummaryTests(unittest.TestCase):
+    def test_rounds_average_at_half_millisecond(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT 'test-source' AS source_id,
+                       'version-1' AS bronze_sha256,
+                       '24' AS car_number,
+                       CAST(duration AS DOUBLE) AS pit_time_in_seconds
+                FROM (VALUES (86.140), (86.141)) AS t(duration)
+            """)
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql" / "06_pit_stop_summary.sql"
+            )
+            result = connection.sql(query_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                result.project("average_pit_time_seconds").fetchall(),
+                [(86.141,)],
+            )
+
     def test_summary_with_missing_duration(self):
         with duckdb.connect() as connexion:
             connexion.execute("""
