@@ -76,6 +76,12 @@ def load_classification_sources(
             / "document.parquet"
         )
 
+        if not bronze_path.is_file():
+            raise FileNotFoundError(
+                "Classification loading rejected: missing Bronze file "
+                f"for source '{source['source_id']}': {bronze_path}"
+            )
+
         bronze_sha256 = hashlib.sha256(
             bronze_path.read_bytes()
         ).hexdigest()
