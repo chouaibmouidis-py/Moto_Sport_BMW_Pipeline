@@ -5,6 +5,35 @@ import duckdb
 
 
 class TotalPitDurationComparisonTests(unittest.TestCase):
+    def test_rounds_calculated_total_to_milliseconds(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW silver_pit_stops AS
+                SELECT
+                    'test-source' AS source_id,
+                    'version-1' AS bronze_sha256,
+                    '24' AS car_number,
+                    pit_number,
+                    CAST(duration AS DOUBLE) AS pit_time_in_seconds,
+                    CAST(total AS DOUBLE) AS total_pit_time_seconds
+                FROM (VALUES
+                    (1, 0.1, 0.1),
+                    (2, 0.2, 0.3)
+                ) AS t(pit_number, duration, total)
+            """)
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "24_compare_total_pit_durations.sql"
+            )
+            result = connection.sql(query_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                result.project(
+                    "calculated_total_seconds, comparison_status"
+                ).fetchall(),
+                [(0.3, "matched")],
+            )
+
     def test_combines_entries_and_uses_last_pit_number(self):
         with duckdb.connect() as connection:
             connection.execute("""

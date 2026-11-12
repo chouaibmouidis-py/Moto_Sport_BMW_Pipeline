@@ -5,7 +5,7 @@ WITH calculated_totals AS (
         car_number,
         COUNT(*) AS stop_count,
         COUNT(pit_time_in_seconds) AS converted_duration_count,
-        SUM(pit_time_in_seconds) AS calculated_total_seconds
+        ROUND(SUM(pit_time_in_seconds), 3) AS calculated_total_seconds
     FROM silver_pit_stops
     GROUP BY source_id, bronze_sha256, car_number
 ),

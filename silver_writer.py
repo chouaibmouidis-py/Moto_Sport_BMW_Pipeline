@@ -40,7 +40,9 @@ def publish_silver(
     """).fetchall()
 
     if missing_rows:
-        raise ValueError("Silver rejected: saved content differs")
+        raise ValueError(
+            f"Silver rejected: saved content differs ({source_view}: {silver_output_path})"
+        )
 
     silver_temporary_path.replace(silver_output_path)
     print(f"Published: {silver_output_path} ({saved_count} rows)")
