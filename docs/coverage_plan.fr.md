@@ -13,7 +13,7 @@ ci-dessous ont été recensées ou testées, ni que BMW est présent à chaque m
 
 | Discipline | Famille | Source de départ | État |
 | --- | --- | --- | --- |
-| Auto | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Fichiers d'arrêts de trois courses 2025 inspectés ; pipeline local testé sur Road America seulement |
+| Auto | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Classements et arrêts de trois courses 2025 intégrés ; extension à la saison dans [le suivi dédié](imsa_2025_season_coverage.fr.md) |
 | Auto | IMSA Michelin Pilot Challenge, GT4 | Même portail IMSA | Archives par saison et participation à inventorier |
 | Auto | FIA WEC | https://fiawec.alkamelsystems.com/ | Portail repéré ; accès actuel aux archives à résoudre |
 | Auto | GT World Challenge Europe, Sprint et Endurance | https://www.gt-world-challenge-europe.com/results | Résultats publics repérés ; collecte et schémas à tester |

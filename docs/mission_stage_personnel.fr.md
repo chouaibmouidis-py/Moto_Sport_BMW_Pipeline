@@ -30,7 +30,7 @@ Les premiers résultats doivent permettre de répondre à trois questions : quel
 ## Critères d'acceptation du premier livrable local
 
 - Une procédure documentée permet de restaurer l'environnement et d'exécuter les cinq étapes du lanceur depuis un autre dossier.
-- Les trois rapports d'arrêts produisent les volumes de référence : 145 entrées de voitures, 417 entrées de pilotes et 1 791 arrêts ; le filtre BMW retrouve 162 arrêts. Les trois classements produisent 136 participations, dont 13 BMW. Ces nombres sont des références de ce jeu, pas des constantes métier universelles.
+- Les cinq rapports d'arrêts intégrés produisent les volumes de référence : 204 entrées de voitures, 535 entrées de pilotes et 1 915 arrêts ; le filtre BMW retrouve 185 arrêts. Les cinq classements produisent 194 participations, dont 22 BMW. Ces nombres sont des références de ce jeu, pas des constantes métier universelles.
 - Le bilan de comptage est distinct pour chaque classement et version : Road America, 2 écarts sur 48 (4,17 %) ; Long Beach, aucun `count_mismatch` sur 27 ; Daytona, 14 écarts sur 61 (22,95 %). Le cas sans détail de Long Beach reste signalé séparément ; cet indicateur ne mesure pas toutes les anomalies.
 - Les numéros textuels, la provenance et la version sont conservés ; les jointures n'ajoutent ni ne suppriment involontairement des arrêts.
 - Les conversions, clés, liens parent/enfant et cumuls ont des scénarios valides et invalides testés. Absence et erreur de conversion sont distinguées.

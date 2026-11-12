@@ -9,31 +9,37 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
-Six documents JSON du portail officiel
+Dix documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
-[`config/sources.json`](config/sources.json) : trois rapports « Pit Stops Time
-Cards » et trois classements Official, pour Road America, Long Beach et Daytona
-2025. Les documents Daytona proviennent du répertoire « heure 24 ».
+[`config/sources.json`](config/sources.json) : cinq rapports « Pit Stops Time
+Cards » et cinq classements Official, pour Road America, Long Beach, Daytona,
+Laguna Seca et Detroit 2025. Les documents Daytona proviennent du répertoire
+« heure 24 ». Cinq courses sur les onze du calendrier sont intégrées ; le
+[suivi de couverture](docs/imsa_2025_season_coverage.fr.md) distingue les lots.
 
 | Rapport 2025 | Entrées de voitures | Entrées de pilotes | Arrêts | Arrêts BMW |
 | --- | ---: | ---: | ---: | ---: |
 | Road America, Race | 50 | 100 | 137 | 15 |
 | Long Beach, Race | 26 | 52 | 32 | 3 |
 | Daytona, Race, heure 24 | 69 | 265 | 1 622 | 144 |
-| **Total** | **145** | **417** | **1 791** | **162** |
+| Laguna Seca, Race | 37 | 74 | 88 | 13 |
+| Detroit, Race | 22 | 44 | 36 | 10 |
+| **Total** | **204** | **535** | **1 915** | **185** |
 
 Ces volumes sont des références pour ce jeu de données, pas des constantes
 métier imposées aux prochaines courses. Une entrée source n'est pas forcément
 une voiture distincte : un même numéro peut apparaître dans plusieurs fragments.
 Tous les concurrents sont conservés ; le lecteur du mart filtre ensuite BMW.
 
-Les classements et la synthèse contiennent **136 participations, dont 13 BMW** :
+Les classements et la synthèse contiennent **194 participations, dont 22 BMW** :
 
 | Classement 2025 | Participants | Participations BMW | `count_mismatch` | Pourcentage |
 | --- | ---: | ---: | ---: | ---: |
 | Road America | 48 | 5 | 2 | 4,17 % |
 | Long Beach | 27 | 3 | 0 | 0 % |
 | Daytona, heure 24 | 61 | 5 | 14 | 22,95 % |
+| Laguna Seca | 36 | 5 | 1 | 2,78 % |
+| Detroit | 22 | 4 | 0 | 0 % |
 
 Ces totaux comptent les participations par course, pas des voitures uniques
 sur l'ensemble des événements.
@@ -46,6 +52,7 @@ voiture `70` déclare zéro arrêt mais n'a aucun détail ; son statut est
 reste présente avec `missing_stop_details`. À Daytona, les 61 numéros sont
 présents dans les deux rapports ; les 69 entrées du rapport d'arrêts sont des
 fragments. La BMW `48` présente 29 arrêts déclarés contre 30 détaillés.
+À Laguna Seca, la voiture `70` déclare quatre arrêts contre trois détaillés.
 
 Une durée d'arrêt publiée ne mesure pas nécessairement un ravitaillement, le
 travail des mécaniciens ou une perte nette de temps en piste. La couverture
@@ -237,18 +244,19 @@ puis utilise le dossier sélectionné pour ses fichiers.
   `missing_stop_details`. À Daytona, 14 participants présentent un
   `count_mismatch`, dont la BMW `48`. Les valeurs ont été relues dans les Raw ;
   la cause des écarts n'est pas établie et aucune correction n'est appliquée.
-- Le lecteur du mart affiche les 162 arrêts BMW et les pilotes associés, avec
+- Le lecteur du mart affiche les 185 arrêts BMW et les pilotes associés, avec
   un arrondi d'affichage à trois décimales.
-- Il affiche aussi les **13 participations BMW** des trois classements,
+- Il affiche aussi les **22 participations BMW** des cinq classements,
   regroupées par source puis position. Les treize colonnes comprennent la source,
   le constructeur, le modèle, la position, la classe, les comptages d'arrêts,
   la moyenne, les compteurs de durées valides et invalides, la couverture et le
   statut. Les deux tableaux sont lus depuis le même run actif. La synthèse
-  sauvegardée contient les 136 participants ; le filtre BMW est propre au lecteur.
+  sauvegardée contient les 194 participants ; le filtre BMW est propre au lecteur.
 - Le lecteur qualité affiche aussi un bilan par source et version du classement :
   le nombre total de participants, le nombre de `count_mismatch` et leur
-  pourcentage. Trois lignes sont produites : Road America (48, 2, 4,17 %),
-  Long Beach (27, 0, 0 %) et Daytona (61, 14, 22,95 %).
+  pourcentage. Cinq lignes sont produites : Road America (48, 2, 4,17 %),
+  Long Beach (27, 0, 0 %), Daytona (61, 14, 22,95 %), Laguna Seca (36, 1, 2,78 %)
+  et Detroit (22, 0, 0 %).
   Cet indicateur mesure uniquement les écarts de comptage. Les autres statuts
   restent inclus dans le total des participants, sans être comptés comme
   `count_mismatch`. Le bilan à 0 % de Long Beach ne signifie donc pas
