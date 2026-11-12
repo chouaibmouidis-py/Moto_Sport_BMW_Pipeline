@@ -20,14 +20,14 @@ ne sont pas utilisées pour fabriquer les chemins de téléchargement.
 | Laguna Seca | Intégrés et validés localement | Voiture 70 : écart de comptage conservé |
 | Detroit | Intégrés et validés localement | Aucun écart de comptage dans le lot inspecté |
 | Watkins Glen | Intégrés et validés localement | Couple final heure 6, écarts conservés |
-| Canadian Tire Motorsport Park | À qualifier | Vérifier les classes présentes et les participants BMW |
+| Canadian Tire Motorsport Park | Intégrés et validés localement | LMP2 et GT ; trois BMW GT |
 | Road America | Intégrés et validés localement | Écarts de comptage conservés |
-| VIRginia International Raceway | À qualifier | Vérifier le périmètre GT et les participants BMW |
+| VIRginia International Raceway | Intégrés et validés localement | GT uniquement ; trois BMW |
 | Indianapolis | À qualifier | Identifier les rapports finaux de la course de 6 heures |
 | Road Atlanta / Petit Le Mans | À qualifier | Identifier les rapports finaux de la course de 10 heures |
 
-Sept courses sont intégrées ; quatre restent à qualifier. L'existence et la
-compatibilité des huit documents supplémentaires ne sont pas encore établies.
+Neuf courses sont intégrées ; deux restent à qualifier. L'existence et la
+compatibilité des quatre documents supplémentaires ne sont pas encore établies.
 Une absence de rapport doit être documentée, pas assimilée à zéro arrêt ou à
 l'absence de BMW. Les engagements non BMW restent conservés.
 
@@ -41,7 +41,9 @@ l'absence de BMW. Les engagements non BMW restent conservés.
    sans addition des cumuls horaires. Chouaib confirme le run
    `cf43b04e5ef849e38aafe0f07c16aec2` : 305 participations, dont 32 BMW,
    3 018 arrêts rattachés et enrichis, dont 285 BMW.
-3. Qualifier Canadian Tire Motorsport Park et VIR, avec vérification des classes.
+3. Lot Canadian Tire Motorsport Park et VIR intégré. Volumes confirmés par
+   Chouaib : 363 participations, dont 38 BMW ; 3 183 arrêts, dont 300 BMW ;
+   neuf bilans qualité. Absence de GTP conforme aux catégories des rapports.
 4. Qualifier Indianapolis et Road Atlanta, puis rapprocher l'inventaire final
    avec le référentiel des courses pour établir la couverture effective.
 
