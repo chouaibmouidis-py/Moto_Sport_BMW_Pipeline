@@ -43,6 +43,11 @@ La date `as_of_date` est celle de cet inventaire, pas la date de récupération
 de chaque fichier. Les résultats Silver conservent séparément l'empreinte du
 fichier Bronze utilisé.
 
-La validation complète du manifeste — champs obligatoires, unicité des
-identifiants et formats autorisés — reste à ajouter. Les contrôles des données
-du pipeline sont distincts des statuts descriptifs renseignés dans ce fichier.
+Avant de démarrer ses étapes, `run_pipeline.py` vérifie l'unicité des
+`source_id` dans toute la liste `documents`, y compris les entrées désactivées.
+Un doublon déclenche une `ValueError` qui nomme l'identifiant et empêche le
+démarrage des scripts. Les lancements isolés de ces scripts ne passent pas
+automatiquement par ce contrôle du lanceur.
+La validation complète des champs obligatoires et des formats autorisés reste
+à ajouter. Les contrôles des données du pipeline sont distincts des statuts
+descriptifs renseignés dans ce fichier.
