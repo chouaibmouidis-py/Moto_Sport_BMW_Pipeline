@@ -1,8 +1,10 @@
 # Contrat initial de la couche Gold
 
 Ébauche du 12 novembre 2026, à éprouver avant toute promesse de livraison.
-La couverture historique visée reste 2022–2026 ; seule la saison WeatherTech
-2025 est intégrée à ce stade pour classements et arrêts.
+La couverture historique visée reste 2022–2026. Au 13 novembre 2026,
+les saisons WeatherTech 2024 et 2025 sont intégrées pour classements et arrêts.
+Les onze courses 2023 disposent de synthèses CSV/PDF exploratoires séparées,
+sans intégration dans le run actif. Les saisons 2022 et 2026 restent à qualifier.
 
 ## Tables et granularités
 
