@@ -53,3 +53,24 @@ l'exploration PDF ; les deux scripts ont été exécutés sur les sources locale
 Ces contrôles ne prouvent pas l'exhaustivité sur d'autres PDF. Les fichiers
 sources temporaires ne sont pas inclus dans Git. Aucune source 2023 n'a été
 activée dans le pipeline, et aucune publication n'est déclenchée par ces scripts.
+
+## Synthèse exploratoire et contrôles — 13 novembre 2026
+
+Le script PDF reçoit désormais deux chemins : PDF d'arrêts puis CSV de
+classement. Les deux fichiers doivent exister avant toute extraction.
+`convert_extracted_stops` réutilise la macro SQL de durée et conserve le texte
+brut, avec un résultat arrondi à la milliseconde. `build_pdf_car_summary`
+regroupe les arrêts par voiture avant la jointure gauche avec le classement.
+
+Résultats consignés : la synthèse de 45 participants. La voiture 57, absente du
+rapport PDF inspecté, est conservée avec un comptage observé NULL, sans
+affirmer qu'elle a effectué zéro arrêt. Le classement ne fournit pas de
+comptage déclaré indépendant permettant une comparaison similaire à 2024–2025.
+
+Contrôles : refus des numéros de classement NULL/vides/blancs ou répétés,
+préservation de la distinction textuelle entre 01 et 1, refus des arrêts sans
+participant correspondant. Un participant sans détail reste accepté.
+La revue a détecté un contrôle de rattachement testé isolément mais absent de
+`main()` : l'appel a été ajouté et un test de `main()` vérifie désormais le refus
+avant construction de la synthèse. Ces ajouts restent exploratoires ; aucune
+source 2023 n'est activée ou publiée par le pipeline principal.
