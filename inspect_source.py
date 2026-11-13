@@ -1,11 +1,18 @@
+"""Inspect a local pit-stop JSON document without publishing derived data."""
+
+from pathlib import Path
 import argparse
 import json
-from pathlib import Path
+import logging
 
 from download import RAW_DIR, SOURCE_FILENAME
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+
+logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_source")
 
 
 def main() -> None:
+    configure_logging()
     parser = argparse.ArgumentParser(description="Inspect a locally downloaded IMSA source.")
     parser.add_argument("path", nargs="?", type=Path, default=Path(RAW_DIR) / SOURCE_FILENAME)
     args = parser.parse_args()
@@ -14,14 +21,14 @@ def main() -> None:
         data = json.load(file)
 
     cars = data["pit_stop_analysis"]
-    print("event_name:", data["session"]["event_name"])
-    print("session_name:", data["session"]["session_name"])
-    print("Number of cars:", len(cars))
+    logger.info('%s %s', "event_name:", data["session"]["event_name"])
+    logger.info('%s %s', "session_name:", data["session"]["session_name"])
+    logger.info('%s %s', "Number of cars:", len(cars))
 
     for car in cars:
         if car["manufacturer"] == "BMW":
-            print("Team:", car["team"])
-            print("Car number:", car["number"])
+            logger.info('%s %s', "Team:", car["team"])
+            logger.info('%s %s', "Car number:", car["number"])
 
 
 if __name__ == "__main__":

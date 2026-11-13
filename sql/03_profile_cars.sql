@@ -1,3 +1,5 @@
+-- Profile car attributes and nested driver and pit-stop counts in raw_document.
+
 SELECT
     car.number AS car_number,
     car.vehicle AS car_model,

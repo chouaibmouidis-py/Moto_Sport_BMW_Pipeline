@@ -1,3 +1,5 @@
+"""Verify rejection of invalid and duplicate source identifiers in the manifest."""
+
 import unittest
 
 from manifest_validation import validate_unique_source_ids

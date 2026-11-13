@@ -1,3 +1,5 @@
+"""Verify observed stop counts remain separate across sources and versions."""
+
 import unittest
 from pathlib import Path
 import duckdb

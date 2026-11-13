@@ -3,13 +3,23 @@
 Sources must already be present locally. No main pipeline run is activated.
 """
 
-import json
 from pathlib import Path
+import argparse
+import json
+import logging
 
-from explore_pit_stop_pdf import explore_source_pair
+from moto_sport_bmw_pipeline.exploration import explore_source_pair
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+
+logger = logging.getLogger("moto_sport_bmw_pipeline.explore_2023_season")
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--verbose", action="store_true", help="Display tables and DEBUG logs.")
+    parser.add_argument("--log-file", help="Append UTF-8 operational logs to this file.")
+    args = parser.parse_args()
+    configure_logging(verbose=args.verbose, log_file=args.log_file)
     project_directory = Path(__file__).resolve().parent
     catalog_path = project_directory / "config" / "exploration_2023.json"
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -42,16 +52,17 @@ def main() -> None:
             project_directory / event["classification_path"],
             context,
             output_path,
+            show_tables=args.verbose,
         )
         results.append(result)
-        print(f"{result['event_id']}: {result['participants']} entries, {result['stops']} stops")
+        logger.info('%s', f"{result['event_id']}: {result['participants']} entries, {result['stops']} stops")
 
     totals = {
         field: sum(result[field] for result in results)
         for field in ("participants", "bmw_participants", "stops", "bmw_stops")
     }
-    print("Exploratory season totals:", totals)
-    print("Main pipeline current.json is unchanged.")
+    logger.info('%s %s', "Exploratory season totals:", totals)
+    logger.info('%s', "Main pipeline current.json is unchanged.")
 
 
 if __name__ == "__main__":

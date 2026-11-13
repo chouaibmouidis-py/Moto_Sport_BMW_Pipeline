@@ -1,3 +1,5 @@
+-- Count classification entries with missing required key values.
+
 SELECT
     COUNT(*) AS missing_key_count
 FROM silver_classification

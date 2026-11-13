@@ -1,3 +1,5 @@
+-- Count duplicated Silver car-entry key groups.
+
 WITH duplicate_keys AS (
     SELECT
         source_id,

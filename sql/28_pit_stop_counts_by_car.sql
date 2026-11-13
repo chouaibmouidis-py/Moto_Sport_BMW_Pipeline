@@ -1,3 +1,5 @@
+-- Count observed pit stops by source, Bronze version and car number.
+
 SELECT
     source_id,
     bronze_sha256,

@@ -1,3 +1,5 @@
+"""Verify safe imports, source loading, transformation guards and source pairing."""
+
 import runpy
 import unittest
 from pathlib import Path
@@ -195,7 +197,7 @@ class AnalyzeBronzeTests(unittest.TestCase):
                 "SELECT 1 AS value"
             ).create_view("test_output")
 
-            with patch("analyze_bronze.publish_silver") as mocked_publish:
+            with patch("moto_sport_bmw_pipeline.publication.publish_silver") as mocked_publish:
                 mocked_publish.side_effect = [
                     None,
                     OSError("Simulated write failure"),

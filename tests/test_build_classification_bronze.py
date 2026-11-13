@@ -1,3 +1,5 @@
+"""Verify classification Bronze conversion and failure-safe publication."""
+
 import tempfile
 import unittest
 from pathlib import Path

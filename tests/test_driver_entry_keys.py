@@ -1,3 +1,5 @@
+"""Verify detection of missing and duplicate driver-entry keys."""
+
 import unittest
 from pathlib import Path
 

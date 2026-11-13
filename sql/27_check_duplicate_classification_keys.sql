@@ -1,3 +1,5 @@
+-- Count duplicated classification key groups.
+
 WITH duplicate_count AS (
     SELECT
         source_id,

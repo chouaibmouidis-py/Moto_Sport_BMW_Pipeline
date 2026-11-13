@@ -1,3 +1,5 @@
+-- Summarize count mismatches and their percentage by classification source and version.
+
 SELECT
     source_id,
     bronze_sha256,

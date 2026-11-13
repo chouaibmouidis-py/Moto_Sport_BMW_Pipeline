@@ -1,3 +1,5 @@
+-- Flatten Bronze car entries while retaining source, version and entry index.
+
 SELECT
     bronze_document.source_id,
     bronze_document.bronze_sha256,

@@ -1,3 +1,5 @@
+"""Verify pit-stop duration conversion, invalid ranges and midnight clock handling."""
+
 import json
 import unittest
 from pathlib import Path

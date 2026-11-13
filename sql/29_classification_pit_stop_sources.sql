@@ -1,3 +1,5 @@
+-- Pair classification and pit-stop sources using shared session metadata.
+
 SELECT
     classification.source_id AS classification_source_id,
     pits.source_id AS pit_stop_source_id

@@ -1,3 +1,5 @@
+"""Verify pit-stop Bronze round trips and preservation of previous files on failure."""
+
 import json
 import tempfile
 import unittest

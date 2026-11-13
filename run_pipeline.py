@@ -1,42 +1,10 @@
-import subprocess
-import sys
+"""CLI compatibility entry point for the five-stage JSON workflow."""
+
 from pathlib import Path
-import json
+import subprocess
 
-from manifest_validation import validate_unique_source_ids
-
-
-PROJECT_DIR = Path(__file__).resolve().parent
-
-
-def main() -> None:
-    manifest_path = PROJECT_DIR / "config" / "sources.json"
-
-    with manifest_path.open("r", encoding="utf-8") as file:
-        manifest = json.load(file)
-
-    validate_unique_source_ids(manifest["documents"])
-    scripts = [
-        "inspect_manifest.py",
-        "build_bronze.py",
-        "inspect_classification.py",
-        "build_classification_bronze.py",
-        "analyze_bronze.py",
-    ]
-
-    for script in scripts:
-        print(f"Starting: {script}", flush=True)
-
-        subprocess.run(
-            [sys.executable, str(PROJECT_DIR / script)],
-            cwd=PROJECT_DIR,
-            check=True,
-        )
-
-        print(f"Completed: {script}", flush=True)
-
-    print("Pipeline completed successfully.")
+from moto_sport_bmw_pipeline.orchestration import PROJECT_DIR, SCRIPTS, main
 
 
 if __name__ == "__main__":
-    main()
+    main(None)

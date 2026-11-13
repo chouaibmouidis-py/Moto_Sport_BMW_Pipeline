@@ -9,6 +9,12 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
+Le code partagé est organisé dans `src/moto_sport_bmw_pipeline/` ; les commandes
+historiques restent disponibles. Le [guide d'architecture et de logs](docs/architecture_et_logs.fr.md)
+indique le rôle des modules, les règles de journalisation et les limites du fail fast.
+Pour conserver les messages du parcours complet :
+`uv run python run_pipeline.py --log-file data/logs/pipeline.log`.
+
 En complément du pipeline JSON 2024–2025 décrit ci-dessous, une exploration
 CSV/PDF couvre les onze courses WeatherTech 2023 : 455 entrées au classement
 (dont deux non-partants), 51 engagements BMW, 3 953 arrêts extraits dont 367 BMW.

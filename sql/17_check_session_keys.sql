@@ -1,3 +1,5 @@
+-- Report missing and duplicate Silver session keys.
+
 WITH duplicate_keys AS (
     SELECT
         source_id,

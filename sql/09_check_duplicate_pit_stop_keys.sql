@@ -1,3 +1,5 @@
+-- Count duplicated pit-stop key groups in Silver.
+
 WITH duplicate_keys AS (
     SELECT
         source_id,

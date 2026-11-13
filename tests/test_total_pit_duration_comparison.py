@@ -1,3 +1,5 @@
+"""Verify cumulative duration comparisons, incomplete sums and millisecond rounding."""
+
 import unittest
 from pathlib import Path
 

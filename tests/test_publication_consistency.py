@@ -1,3 +1,5 @@
+"""Demonstrate how separate file publications can expose mixed versions."""
+
 import tempfile
 import unittest
 from pathlib import Path

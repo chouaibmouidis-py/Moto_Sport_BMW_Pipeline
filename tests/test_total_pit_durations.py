@@ -1,3 +1,5 @@
+"""Verify selection and classification of unconverted cumulative durations."""
+
 import unittest
 from pathlib import Path
 import duckdb

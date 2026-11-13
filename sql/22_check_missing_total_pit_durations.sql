@@ -1,3 +1,5 @@
+-- List unconverted total pit durations and distinguish missing from invalid values.
+
 SELECT
     source_id,
     car_number,

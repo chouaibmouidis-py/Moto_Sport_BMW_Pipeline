@@ -1,3 +1,5 @@
+"""Verify duration statistics, missing values and separation of source versions."""
+
 import unittest
 from pathlib import Path
 

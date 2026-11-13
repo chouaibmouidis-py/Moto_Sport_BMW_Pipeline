@@ -1,3 +1,5 @@
+-- Summarize stop counts, duration averages and coverage by source, version and car.
+
 SELECT
     source_id,
     bronze_sha256,

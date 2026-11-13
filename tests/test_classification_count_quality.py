@@ -1,3 +1,5 @@
+"""Verify participant totals, count mismatches and percentages by source and version."""
+
 import unittest
 from pathlib import Path
 

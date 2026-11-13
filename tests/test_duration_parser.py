@@ -1,3 +1,5 @@
+"""Verify valid duration conversions and rejection of invalid formats."""
+
 import unittest
 from pathlib import Path
 

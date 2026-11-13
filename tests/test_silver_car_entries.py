@@ -1,3 +1,5 @@
+"""Verify car-entry extraction and detection of missing and duplicate keys."""
+
 import json
 import unittest
 from pathlib import Path

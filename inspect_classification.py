@@ -1,11 +1,18 @@
-import json
-from pathlib import Path
-import hashlib
+"""Download or reuse enabled classification Raw documents with version metadata."""
+
 from datetime import datetime, timezone
-from download import download
+from pathlib import Path
 import argparse
-from file_integrity import verify_local_file
+import hashlib
+import json
+import logging
+
 from build_classification_bronze import select_classification_sources
+from download import download
+from file_integrity import verify_local_file
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+
+logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_classification")
 
 
 SOURCE_URL = (
@@ -56,8 +63,8 @@ def prepare_classification_raw(
     return downloaded_path
 
 
-
 def main() -> None:
+    configure_logging()
     parser = argparse.ArgumentParser(
         description="Download or reuse the classification document."
     )
@@ -91,36 +98,23 @@ def main() -> None:
         )
         metadata_path = destination / "metadata.json"
 
-        print("Raw document:", downloaded_path)
-        print("Metadata:", metadata_path)
+        logger.info('%s %s', "Raw document:", downloaded_path)
+        logger.info('%s %s', "Metadata:", metadata_path)
 
         with downloaded_path.open("r", encoding="utf-8-sig") as file:
             document = json.load(file)
 
-        print("Root keys:", list(document))
-        print("Report status:", document["session"]["report_mark"])
-        print("Classification entries:", len(document["classification"]))
+        logger.debug('%s %s', "Root keys:", list(document))
+        logger.info('%s %s', "Report status:", document["session"]["report_mark"])
+        logger.info('%s %s', "Classification entries:", len(document["classification"]))
 
         for participant in document["classification"]:
             if participant["manufacturer"] == "BMW":
-                print(
-                    participant["number"],
-                    participant["position"],
-                    participant["class"],
-                    participant["pit_stops"],
-                    sep=" | ",
-                )
+                logger.debug('%s | %s | %s | %s', participant["number"], participant["position"], participant["class"], participant["pit_stops"])
 
         for participant in document["classification"]:
             if participant["number"] == "70":
-                print(
-                    participant["number"],
-                    participant["laps"],
-                    participant["pit_stops"],
-                    participant["status"],
-                    participant["not_finished"],
-                    sep=" | ",
-                )
+                logger.debug('%s | %s | %s | %s | %s', participant["number"], participant["laps"], participant["pit_stops"], participant["status"], participant["not_finished"])
 
 
 if __name__ == "__main__":

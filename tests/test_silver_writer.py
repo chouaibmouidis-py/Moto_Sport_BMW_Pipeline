@@ -1,3 +1,5 @@
+"""Verify validated Parquet replacement and preservation of previous files on failure."""
+
 import tempfile
 import unittest
 from pathlib import Path

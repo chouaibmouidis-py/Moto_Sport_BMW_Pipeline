@@ -1,3 +1,5 @@
+-- Summarize session field quality by source, Bronze version and field.
+
 WITH field_statuses AS (
     SELECT
         sessions.source_id,

@@ -1,3 +1,5 @@
+-- Define the shared duration parser; return seconds or NULL for invalid input.
+
 CREATE OR REPLACE TEMP MACRO parse_duration_seconds(duration_text) AS (
     SELECT
         CASE

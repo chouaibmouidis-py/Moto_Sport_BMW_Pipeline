@@ -1,3 +1,5 @@
+-- Flatten Bronze classification entries and normalize fields while retaining provenance.
+
 SELECT
     source_id,
     bronze_sha256,

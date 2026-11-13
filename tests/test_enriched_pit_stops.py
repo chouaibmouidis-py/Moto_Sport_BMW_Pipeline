@@ -1,3 +1,5 @@
+"""Verify versioned driver-name enrichment without losing stops lacking driver references."""
+
 import unittest
 from pathlib import Path
 

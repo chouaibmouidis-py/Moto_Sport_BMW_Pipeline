@@ -1,3 +1,5 @@
+"""Verify missing and invalid cumulative duration counts."""
+
 import unittest
 import duckdb
 from pathlib import Path

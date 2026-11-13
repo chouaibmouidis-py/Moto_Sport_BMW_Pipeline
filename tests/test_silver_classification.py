@@ -1,3 +1,5 @@
+"""Verify classification field normalization, invalid counts and key checks."""
+
 import json
 import unittest
 from pathlib import Path
