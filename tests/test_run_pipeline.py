@@ -1,3 +1,5 @@
+"""Verify orchestration stops on stage failures and rejects duplicate sources before execution."""
+
 import subprocess
 import unittest
 from pathlib import Path

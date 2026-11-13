@@ -161,3 +161,72 @@ def load_classification_sources(
         )
 
         logger.info("Bronze source loaded: %s", source["source_id"])
+
+def load_classification_csv_bronze(
+    connection,
+    bronze_path: Path,
+    source_id: str,
+) -> None:
+    """Load classification CSV Bronze with its source ID and file fingerprint."""
+    bronze_sha256 = hashlib.sha256(
+        bronze_path.read_bytes()
+    ).hexdigest()
+
+    document = connection.read_parquet(str(bronze_path))
+    document.create_view("classification_csv_input")
+
+    connection.sql(
+        """
+        SELECT
+            *,
+            ? AS source_id,
+            ? AS bronze_sha256
+        FROM classification_csv_input
+        """,
+        params=[source_id, bronze_sha256],
+    ).create_view("bronze_classification_csv")
+
+def load_pdf_pit_stop_bronze(
+    connection,
+    bronze_path: Path,
+) -> None:
+    """Load extracted PDF stops and identify the exact Bronze file version."""
+    bronze_sha256 = hashlib.sha256(
+        bronze_path.read_bytes()
+    ).hexdigest()
+
+    document = connection.read_parquet(str(bronze_path))
+    document.create_view("pdf_pit_stop_input")
+
+    connection.sql(
+        """
+        SELECT
+            *,
+            ? AS bronze_sha256
+        FROM pdf_pit_stop_input
+        """,
+        params=[bronze_sha256],
+    ).create_view("bronze_pdf_pit_stops")
+
+def load_exploration_source_sessions(connection, catalog: dict) -> None:
+    """Map exploratory source documents to their declared race sessions."""
+    documents = []
+
+    for event in catalog["events"]:
+        for path_field, document_type in (
+            ("classification_path", "classification"),
+            ("pdf_path", "pit_stops"),
+        ):
+            source_id = Path(event[path_field]).parent.name
+
+            documents.append({
+                "source_id": source_id,
+                "championship": catalog["championship"],
+                "season": catalog["season"],
+                "event_id": event["event_id"],
+                "session_id": event["session_id"],
+                "document_type": document_type,
+                "enabled": True,
+            })
+
+    load_source_sessions(connection, documents)

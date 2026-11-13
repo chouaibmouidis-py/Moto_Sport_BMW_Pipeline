@@ -1,4 +1,4 @@
-"""Preserve classification JSON roots in Bronze Parquet and verify their content."""
+"""Preserve classification JSON roots or raw CSV fields in validated Bronze Parquet."""
 
 from pathlib import Path
 import json
@@ -6,7 +6,7 @@ import logging
 import uuid
 
 import duckdb
-
+from moto_sport_bmw_pipeline.parquet_writer import publish_parquet
 from file_integrity import verify_local_file
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 from moto_sport_bmw_pipeline.source_loading import select_classification_sources
@@ -68,6 +68,35 @@ def build_classification_document(
 
     temporary_path.replace(output_path)
     logger.info('%s %s', "Bronze published:", output_path)
+
+def read_classification_csv(connection, source_path: Path):
+    """Read classification CSV fields as text without applying Silver cleaning."""
+    return connection.read_csv(
+        str(source_path),
+        delimiter=";",
+        header=True,
+        all_varchar=True,
+        null_padding=True,
+    )
+
+def build_classification_csv(
+    source_path: Path,
+    output_path: Path,
+) -> None:
+    """Publish raw classification CSV fields as validated Bronze Parquet."""
+    if output_path.suffix != ".parquet":
+        raise ValueError(f"Unexpected file format {output_path}")
+
+    with duckdb.connect() as connection:
+        document = read_classification_csv(connection, source_path)
+        document.create_view("bronze_classification_csv")
+
+        publish_parquet(
+            connection,
+            document,
+            output_path,
+            source_view="bronze_classification_csv",
+        )
 
 def main() -> None:
     configure_logging()

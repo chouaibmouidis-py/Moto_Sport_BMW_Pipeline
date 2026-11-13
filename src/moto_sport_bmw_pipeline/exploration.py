@@ -5,7 +5,7 @@ import hashlib
 import logging
 
 import duckdb
-
+from .quality import validate_classification_keys
 from .parquet_writer import publish_silver
 from .paths import PROJECT_DIR
 from .pdf_parser import extract_stops
@@ -15,22 +15,33 @@ logger = logging.getLogger(__name__)
 
 def convert_extracted_stops(
     connection: duckdb.DuckDBPyConnection,
-    rows: list[tuple[str, int, str]],
+    rows: list[dict],
     project_directory: Path,
 ) -> duckdb.DuckDBPyRelation:
-    """Stage extracted rows and reuse the duration macro in this connection."""
+    """Convert durations while preserving all raw stop fields and location metadata."""
     connection.execute("""
         CREATE TEMP TABLE extracted_pit_stops (
             car_number VARCHAR,
             pit_number INTEGER,
-            pit_time_raw VARCHAR
+            pit_time_raw VARCHAR,
+            page_number INTEGER,
+            column_number INTEGER,
+            block_line_number INTEGER,
+            source_line VARCHAR
         )
     """)
 
     if rows:
         connection.executemany(
-            "INSERT INTO extracted_pit_stops VALUES (?, ?, ?)",
-            rows,
+            "INSERT INTO extracted_pit_stops VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    row["car_number"], row["pit_number"], row["pit_time_raw"],
+                    row["page_number"], row["column_number"],
+                    row["block_line_number"], row["source_line"],
+                )
+                for row in rows
+            ],
         )
 
     parser_path = project_directory / "sql" / "21_create_duration_parser.sql"
@@ -41,45 +52,22 @@ def convert_extracted_stops(
             car_number,
             pit_number,
             pit_time_raw,
-            ROUND(parse_duration_seconds(pit_time_raw), 3) AS pit_time_seconds
+            ROUND(parse_duration_seconds(pit_time_raw), 3) AS pit_time_seconds,
+            page_number,
+            column_number,
+            block_line_number,
+            source_line
         FROM extracted_pit_stops
         ORDER BY car_number, pit_number
     """)
 
-def validate_classification_keys(connection):
-    missing_count = connection.sql("""
-        SELECT COUNT(*)
-        FROM classification_csv
-        WHERE NULLIF(TRIM(NUMBER), '') IS NULL
-    """).fetchone()[0]
-
-    if missing_count > 0:
-        raise ValueError(
-            "Classification CSV rejected: missing car number"
-        )
-
-    duplicate_count = connection.sql("""
-        WITH duplicate_numbers AS (
-            SELECT NUMBER
-            FROM classification_csv
-            GROUP BY NUMBER
-            HAVING COUNT(*) > 1
-        )
-        SELECT COUNT(*)
-        FROM duplicate_numbers
-    """).fetchone()[0]
-
-    if duplicate_count > 0:
-        raise ValueError(
-            "Classification CSV rejected: duplicate car numbers"
-        )
 
 def validate_pdf_stop_links(connection):
     unknown_car_count = connection.sql("""
         SELECT COUNT(DISTINCT s.car_number)
         FROM pdf_stops AS s
         LEFT JOIN classification_csv AS c
-            ON s.car_number = c.NUMBER
+            ON s.car_number = NULLIF(TRIM(c.NUMBER), '')
         WHERE c.NUMBER IS NULL
     """).fetchone()[0]
 
@@ -104,9 +92,9 @@ def build_pdf_car_summary(
             GROUP BY car_number
         )
         SELECT
-            c.NUMBER AS car_number,
+            NULLIF(TRIM(c.NUMBER), '') AS car_number,
             TRY_CAST(c.POSITION AS INTEGER) AS overall_position,
-            c.VEHICLE AS car_model,
+            NULLIF(TRIM(c.VEHICLE), '') AS car_model,
             s.observed_pit_stop_count,
             ? AS pdf_sha256,
             ? AS classification_sha256,
@@ -114,11 +102,11 @@ def build_pdf_car_summary(
             ? AS season,
             ? AS event_id,
             ? AS session_id,
-            c.STATUS AS classification_status
+            NULLIF(TRIM(c.STATUS), '') AS classification_status
         FROM classification_csv AS c
         LEFT JOIN stop_counts AS s
-            ON c.NUMBER = s.car_number
-        ORDER BY overall_position NULLS LAST, car_number
+            ON NULLIF(TRIM(c.NUMBER), '') = s.car_number
+            ORDER BY overall_position NULLS LAST, car_number
     """, params=[
         pdf_sha256,
         classification_sha256,

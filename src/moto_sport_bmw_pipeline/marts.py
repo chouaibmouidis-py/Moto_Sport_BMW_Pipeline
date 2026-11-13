@@ -2,7 +2,7 @@
 
 import logging
 
-from .quality import validate_entry_links, validate_race_car_summary
+from .quality import build_source_pairs, validate_entry_links, validate_race_car_summary
 from .queries import build_view
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,19 @@ def build_enriched_stops(connection, project_directory):
     return enriched
 
 
+def build_pit_stop_counts(connection, project_directory, stops):
+    """Apply the shared count query to the supplied Silver stop relation."""
+    stops.create_view("pit_stop_count_input")
+    return build_view(
+        connection, project_directory, "28_pit_stop_counts_by_car.sql",
+        "pit_stop_counts_by_car",
+    )
+
+
 def build_classification_marts(connection, project_directory):
-    build_view(connection, project_directory, "28_pit_stop_counts_by_car.sql", "pit_stop_counts_by_car")
+    build_pit_stop_counts(
+        connection, project_directory, connection.table("silver_pit_stops"),
+    )
     comparison = build_view(
         connection, project_directory, "30_classification_pit_stop_comparison.sql",
         "classification_pit_stop_comparison",
@@ -57,4 +68,55 @@ def build_classification_marts(connection, project_directory):
     mismatches = quality.aggregate("SUM(count_mismatch_count)").fetchone()[0] or 0
     if mismatches:
         logger.warning("Classification count mismatches reported: %s (non-blocking)", mismatches)
+    return summary
+
+
+def build_csv_pdf_race_summary(connection, project_directory):
+    """Pair loaded Silver reports and preserve classification participants.
+
+    A source must have exactly one loaded version; callers select the intended
+    files before building this mart. Catalog metadata declares the session pair.
+    """
+    build_source_pairs(connection, project_directory)
+    for view_name, version_fields in (
+        ("silver_classification_csv", "source_id, bronze_sha256"),
+        ("silver_pdf_pit_stops", "source_id, bronze_sha256, pdf_sha256"),
+    ):
+        ambiguous = connection.sql(f"""
+            SELECT source_id
+            FROM (SELECT DISTINCT {version_fields} FROM {view_name})
+            GROUP BY source_id
+            HAVING COUNT(*) > 1
+        """).fetchall()
+        if ambiguous:
+            raise ValueError(f"CSV/PDF summary rejected: multiple source versions: {ambiguous}")
+
+    build_pit_stop_counts(
+        connection, project_directory, connection.table("silver_pdf_pit_stops"),
+    )
+    orphan_stops = connection.sql("""
+        SELECT DISTINCT counts.source_id, counts.car_number
+        FROM pit_stop_counts_by_car AS counts
+        LEFT JOIN classification_pit_stop_sources AS pairs
+            ON counts.source_id = pairs.pit_stop_source_id
+        LEFT JOIN silver_classification_csv AS classification
+            ON classification.source_id = pairs.classification_source_id
+            AND classification.car_number = counts.car_number
+        WHERE classification.source_id IS NULL
+    """).fetchall()
+    if orphan_stops:
+        raise ValueError(f"CSV/PDF summary rejected: stops without classification: {orphan_stops}")
+
+    summary = build_view(
+        connection, project_directory, "35_csv_pdf_race_summary.sql",
+        "csv_pdf_race_summary",
+    )
+    expected = connection.table("silver_classification_csv").count("*").fetchone()[0]
+    if summary.count("*").fetchone()[0] != expected:
+        raise ValueError("CSV/PDF summary rejected: participant count changed")
+    unmatched = summary.filter(
+        "pit_stop_source_id IS NULL OR session_id IS NULL"
+    ).count("*").fetchone()[0]
+    if unmatched:
+        raise ValueError("CSV/PDF summary rejected: missing source pairing or context")
     return summary

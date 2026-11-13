@@ -8,6 +8,8 @@ from build_classification_bronze import build_classification_document
 from unittest.mock import patch
 import duckdb
 from build_classification_bronze import select_classification_sources
+from build_classification_bronze import read_classification_csv
+from build_classification_bronze import build_classification_csv
 
 class BuildClassificationBronzeTests(unittest.TestCase):
     def test_invalid_json_preserves_previous_file(self):
@@ -114,3 +116,45 @@ class BuildClassificationBronzeTests(unittest.TestCase):
 
         selected = select_classification_sources(documents)
         self.assertEqual(selected, [documents[0]])
+
+    def test_csv_reader_preserves_raw_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source_path = Path(directory) / "classification.csv"
+            source_path.write_text(
+                "NUMBER;POSITION;VEHICLE\n"
+                " 04 ;inconnue; BMW M4 GT3 \n",
+                encoding="utf-8",
+            )
+
+            with duckdb.connect() as connection:
+                result = read_classification_csv(connection, source_path)
+                rows = result.fetchall()
+
+            self.assertEqual(
+                rows,
+                [(" 04 ", "inconnue", " BMW M4 GT3 ")],
+            )
+
+    def test_csv_builder_preserves_raw_fields_in_parquet(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source_path = Path(directory) / "classification.csv"
+            output_path = Path(directory) / "bronze" / "document.parquet"
+            original_content = (
+                "NUMBER;POSITION;VEHICLE\n"
+                " 04 ;inconnue; BMW M4 GT3 \n"
+            )
+            source_path.write_text(original_content, encoding="utf-8")
+
+            build_classification_csv(source_path, output_path)
+
+            with duckdb.connect() as connection:
+                rows = connection.read_parquet(str(output_path)).fetchall()
+
+            self.assertEqual(
+                rows,
+                [(" 04 ", "inconnue", " BMW M4 GT3 ")],
+            )
+            self.assertEqual(
+                source_path.read_text(encoding="utf-8"),
+                original_content,
+            )

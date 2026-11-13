@@ -3,6 +3,7 @@
 import unittest
 from pathlib import Path
 import duckdb
+from moto_sport_bmw_pipeline.marts import build_pit_stop_counts
 
 class PitStopCountsByCarTests(unittest.TestCase):
     def test_counts_stops_separately_by_source_and_version(self):
@@ -18,14 +19,10 @@ class PitStopCountsByCarTests(unittest.TestCase):
             ) AS t(source_id, bronze_sha256, car_number)
             """)
 
-            query_path = (
-                Path(__file__).resolve().parent.parent
-                / "sql"
-                / "28_pit_stop_counts_by_car.sql"
-            )
-
-            rows = connection.sql(
-                query_path.read_text(encoding="utf-8")
+            rows = build_pit_stop_counts(
+                connection,
+                Path(__file__).resolve().parent.parent,
+                connection.table("silver_pit_stops"),
             ).fetchall()
 
             expected = [

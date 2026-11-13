@@ -4,13 +4,23 @@ from pathlib import Path
 import json
 import logging
 import uuid
-
+from .parquet_writer import publish_parquet
+from .silver import transform_classification_csv, transform_pdf_pit_stops
+from .source_loading import (
+    load_classification_csv_bronze,
+    load_exploration_source_sessions,
+    load_pdf_pit_stop_bronze,
+)
 import duckdb
 
 from .diagnostics import show_pipeline_tables
 from .duration_quality import build_duration_reports
 from .logging_config import log_context
-from .marts import build_classification_marts, build_enriched_stops
+from .marts import (
+    build_classification_marts,
+    build_csv_pdf_race_summary,
+    build_enriched_stops,
+)
 from .publication import OUTPUT_VIEWS, publish_run_outputs
 from .quality import build_session_quality, build_source_pairs
 from .run_reference import activate_run
@@ -79,3 +89,87 @@ def build_candidate_run(project_directory: Path, *, verbose=False) -> Path:
             logger.exception("Candidate run failed; previous current reference retained")
             raise
     return run_directory
+
+def publish_classification_csv_from_bronze(
+    project_directory: Path,
+    bronze_path: Path,
+    source_id: str,
+    output_path: Path,
+) -> Path:
+    """Load, validate, transform and publish one classification CSV Bronze."""
+    with duckdb.connect() as connection:
+        load_classification_csv_bronze(
+            connection,
+            bronze_path,
+            source_id,
+        )
+
+        classification = transform_classification_csv(
+            connection,
+            project_directory,
+        )
+
+        publish_parquet(
+            connection,
+            classification,
+            output_path,
+            source_view="silver_classification_csv",
+        )
+
+    return output_path
+
+
+def publish_pdf_pit_stops_from_bronze(
+    project_directory: Path,
+    bronze_path: Path,
+    output_path: Path,
+) -> Path:
+    """Load, validate, transform and publish one PDF pit stop Bronze."""
+    with duckdb.connect() as connection:
+        load_pdf_pit_stop_bronze(
+            connection,
+            bronze_path,
+        )
+
+        stops = transform_pdf_pit_stops(
+            connection,
+            project_directory,
+        )
+
+        publish_parquet(
+            connection,
+            stops,
+            output_path,
+            source_view="silver_pdf_pit_stops",
+        )
+
+    return output_path
+
+
+def publish_csv_pdf_race_summary(
+    project_directory: Path,
+    catalog: dict,
+    classification_silver_path: Path,
+    pit_stops_silver_path: Path,
+    output_path: Path,
+) -> Path:
+    """Pair loaded Silver CSV and PDF relations, validate consistency and publish Mart."""
+    with duckdb.connect() as connection:
+        load_exploration_source_sessions(connection, catalog)
+
+        classification = connection.read_parquet(str(classification_silver_path))
+        classification.create_view("silver_classification_csv")
+
+        stops = connection.read_parquet(str(pit_stops_silver_path))
+        stops.create_view("silver_pdf_pit_stops")
+
+        summary = build_csv_pdf_race_summary(connection, project_directory)
+
+        publish_parquet(
+            connection,
+            summary,
+            output_path,
+            source_view="csv_pdf_race_summary",
+        )
+
+    return output_path
