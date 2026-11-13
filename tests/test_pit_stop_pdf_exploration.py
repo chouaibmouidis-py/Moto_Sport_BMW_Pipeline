@@ -2,9 +2,9 @@ import unittest
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
-
+import hashlib
 import duckdb
-
+from silver_writer import publish_silver
 from explore_pit_stop_pdf import (
     classify_token,
     convert_extracted_stops,
@@ -13,11 +13,42 @@ from explore_pit_stop_pdf import (
     build_pdf_car_summary,
     main,
     validate_classification_keys,
-    validate_pdf_stop_links
+    validate_pdf_stop_links,
+    compute_source_hash,
+    explore_source_pair,
 )
 
 
 class PitStopPdfExplorationTests(unittest.TestCase):
+    def test_source_pairs_publish_to_separate_contexts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "stops.pdf"
+            csv = root / "classification.csv"
+            pdf.write_bytes(b"PDF extraction is mocked")
+            csv.write_text(
+                "NUMBER;POSITION;VEHICLE;STATUS\n24;1;BMW M Hybrid V8;Classified\n",
+                encoding="utf-8",
+            )
+            for event, session in (("course-a", "session-a"), ("course-b", "session-b")):
+                output = root / event / "car_summary.parquet"
+                context = {
+                    "championship": "test-championship", "season": 2023,
+                    "event_id": event, "session_id": session,
+                }
+                with patch(
+                    "explore_pit_stop_pdf.extract_stops",
+                    return_value=[("24", 1, "1:00.000")],
+                ):
+                    result = explore_source_pair(pdf, csv, context, output)
+                self.assertEqual(result["stops"], 1)
+                with duckdb.connect() as connection:
+                    saved = connection.read_parquet(str(output))
+                    self.assertEqual(saved.project(
+                        "event_id, session_id, pdf_sha256, classification_sha256"
+                    ).fetchall(), [(event, session, compute_source_hash(pdf), compute_source_hash(csv))])
+            self.assertTrue((root / "course-a" / "car_summary.parquet").is_file())
+
     def test_main_rejects_unknown_car_before_building_summary(self):
         with tempfile.TemporaryDirectory() as directory:
             pdf_path = Path(directory) / "stops.pdf"
@@ -71,9 +102,10 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 CREATE TEMP VIEW classification_csv AS
                 SELECT *
                 FROM (VALUES
-                    ('24', '1', 'BMW M Hybrid V8'),
-                    ('57', '2', 'Mercedes-AMG GT3')
-                ) AS t(NUMBER, POSITION, VEHICLE)
+                    ('24', '1', 'BMW M Hybrid V8', 'Classified'),
+                    ('57', '2', 'Mercedes-AMG GT3', 'Classified'),
+                    ('80', NULL, 'Porsche 911 GT3 R (992)', 'Not started')
+                ) AS t(NUMBER, POSITION, VEHICLE, STATUS)
             """)
             connection.execute("""
                 CREATE TEMP VIEW pdf_stops AS
@@ -84,10 +116,36 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 ) AS t(car_number, pit_number)
             """)
 
-            rows = build_pdf_car_summary(connection).fetchall()
+            rows = build_pdf_car_summary(
+                connection,
+                "test-pdf-hash",
+                "test-classification-hash",
+                source_context={
+                    "championship": "test-championship",
+                    "season": 2022,
+                    "event_id": "test-event",
+                    "session_id": "test-session",
+                },
+            ).fetchall()
             self.assertEqual(rows, [
-                ('24', 1, 'BMW M Hybrid V8', 2),
-                ('57', 2, 'Mercedes-AMG GT3', None),
+                (
+                    '24', 1, 'BMW M Hybrid V8', 2,
+                    'test-pdf-hash', 'test-classification-hash',
+                    'test-championship', 2022, 'test-event', 'test-session',
+                    'Classified',
+                ),
+                (
+                    '57', 2, 'Mercedes-AMG GT3', None,
+                    'test-pdf-hash', 'test-classification-hash',
+                    'test-championship', 2022, 'test-event', 'test-session',
+                    'Classified',
+                ),
+                (
+                    '80', None, 'Porsche 911 GT3 R (992)', None,
+                    'test-pdf-hash', 'test-classification-hash',
+                    'test-championship', 2022, 'test-event', 'test-session',
+                    'Not started',
+                ),
             ])
 
     def test_converts_extracted_durations_and_preserves_raw_values(self):
@@ -292,3 +350,28 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             """)
 
             validate_pdf_stop_links(connection)
+
+    def test_source_hash_changes_when_content_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "pit_stop_pdf"
+
+            output_path.write_bytes(b"version-1")
+            first_hash = compute_source_hash(output_path)
+
+            output_path.write_bytes(b"version-2")
+            second_hash = compute_source_hash(output_path)
+
+            self.assertNotEqual(first_hash, second_hash)
+
+    def test_same_content_has_same_hash_in_different_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "first.pdf"
+            output_path_1 = Path(directory) / "second.pdf"
+
+            output_path.write_bytes(b"same content")
+            first_hash = compute_source_hash(output_path)
+
+            output_path_1.write_bytes(b"same content")
+            second_hash = compute_source_hash(output_path_1)
+
+            self.assertEqual(first_hash, second_hash)

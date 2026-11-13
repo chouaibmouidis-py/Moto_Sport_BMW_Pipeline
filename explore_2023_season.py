@@ -1,0 +1,58 @@
+"""Build separate exploratory summaries for the eleven configured 2023 races.
+
+Sources must already be present locally. No main pipeline run is activated.
+"""
+
+import json
+from pathlib import Path
+
+from explore_pit_stop_pdf import explore_source_pair
+
+
+def main() -> None:
+    project_directory = Path(__file__).resolve().parent
+    catalog_path = project_directory / "config" / "exploration_2023.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    events = catalog["events"]
+    event_ids = [event["event_id"] for event in events]
+    if len(event_ids) != len(set(event_ids)):
+        raise ValueError("Exploration rejected: duplicate event IDs")
+
+    # Check the complete local batch before beginning any extraction.
+    for event in events:
+        for field in ("pdf_path", "classification_path"):
+            path = project_directory / event[field]
+            if not path.is_file():
+                raise FileNotFoundError(f"Exploration rejected: source file not found: {path}")
+
+    results = []
+    for event in events:
+        context = {
+            "championship": catalog["championship"],
+            "season": catalog["season"],
+            "event_id": event["event_id"],
+            "session_id": event["session_id"],
+        }
+        output_path = (
+            project_directory / "data" / "exploration"
+            / f"{event['event_id']}-{catalog['season']}" / "car_summary.parquet"
+        )
+        result = explore_source_pair(
+            project_directory / event["pdf_path"],
+            project_directory / event["classification_path"],
+            context,
+            output_path,
+        )
+        results.append(result)
+        print(f"{result['event_id']}: {result['participants']} entries, {result['stops']} stops")
+
+    totals = {
+        field: sum(result[field] for result in results)
+        for field in ("participants", "bmw_participants", "stops", "bmw_stops")
+    }
+    print("Exploratory season totals:", totals)
+    print("Main pipeline current.json is unchanged.")
+
+
+if __name__ == "__main__":
+    main()
