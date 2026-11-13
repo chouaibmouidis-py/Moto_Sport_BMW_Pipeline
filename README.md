@@ -10,7 +10,8 @@ les livrables et les critères d'acceptation.
 ## Ce que le projet traite aujourd'hui
 
 Le code partagé est organisé dans `src/moto_sport_bmw_pipeline/` ; les commandes
-historiques restent disponibles. Le [guide d'architecture et de logs](docs/architecture_et_logs.fr.md)
+historiques restent disponibles. La [CI du dépôt](docs/ci.fr.md) vérifie les changements
+à chaque push et pull request. Le [guide d'architecture et de logs](docs/architecture_et_logs.fr.md)
 indique le rôle des modules, les règles de journalisation et les limites du fail fast.
 Pour conserver les messages du parcours complet :
 `uv run python run_pipeline.py --log-file data/logs/pipeline.log`.
