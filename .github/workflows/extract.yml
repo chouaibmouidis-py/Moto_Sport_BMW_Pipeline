@@ -1,4 +1,5 @@
-name: Validate and extract IMSA source
+# Manual network smoke check for the historical source; independent of code CI.
+name: Manual IMSA source smoke check
 
 on:
   workflow_dispatch:
@@ -28,7 +29,7 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --python 3.12
 
-      - name: Test download failure handling without network access
+      - name: Run unit and local integration tests
         run: uv run --locked python -m unittest discover -s tests -v
 
       - name: Download and validate the historical source
