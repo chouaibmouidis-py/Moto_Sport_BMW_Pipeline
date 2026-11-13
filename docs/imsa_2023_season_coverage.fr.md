@@ -144,7 +144,41 @@ Les huit tests de lots Bronze/Silver PDF passent. Après correction du bloc
 parasite dans silver_writer.py et renforcement du scénario Silver avec deux
 courses, Chouaib confirme 170 tests réussis sur la suite complète.
 
-## Point de reprise : rapprochement Silver du pilote
+## Rapprochement mart des onze courses
+
+```bash
+uv run python explore_2023_season.py --mart-only
+```
+
+Ce mode exclusif utilise les deux Silver déjà publiés pour chaque course et
+appelle `publish_csv_pdf_race_summary` avec le contexte de cette seule course.
+Il vérifie tous les chemins et refuse les identifiants dupliqués avant de
+publier dans `data/exploration/<event_id>-2023/marts/race_car_summary.parquet`.
+Il ne relit pas les Raw et ne reconstruit pas Bronze ou Silver.
+
+Validation sur les onze sorties : 455 participations, dont 51 BMW, 3 953 arrêts
+observés, dont 367 BMW. Les clés des participants sont identiques à celles des
+classements Silver (EXCEPT ALL dans les deux sens). Les sessions et versions
+CSV/PDF correspondent aux entrées ; les Silver et `data/current.json` sont
+inchangés. Suite complète : 173 tests réussis.
+
+Onze participations sont conservées sans détail d'arrêt, avec comptage observé
+NULL : Long Beach (01, 80, 93), Laguna Seca (94), Watkins Glen (24, 51), Lime
+Rock (91, 94), Road America (57), VIR (92) et Indianapolis (93).
+Cette absence n'établit ni un zéro arrêt ni une cause sportive.
+
+Tous les comptages déclarés restent NULL ; `comparison_status` vaut
+`unavailable_reported_count`. Le champ indépendant `stop_detail_status`
+distingue `available` de `no_stop_details`.
+
+Trois tests de lot vérifient la séparation de deux courses ayant la même
+voiture, le refus d'une entrée manquante avant publication et la préservation
+d'un mart précédent si un Silver d'une autre source est placé dans le mauvais
+dossier. La publication reste individuelle : une erreur tardive peut laisser
+les courses précédentes actualisées. Le lot n'est pas activé atomiquement et
+n'est pas intégré aux lecteurs du run principal.
+
+### Historique du pilote Road America
 
 La synthèse du pilote est publiée dans
 `data/exploration/road-america-2023/marts/race_car_summary.parquet` : 45
@@ -161,8 +195,8 @@ La même voiture dans deux sessions ne mélange pas leurs comptages.
 
 Validation : 158 tests réussis ; comptages partagés vérifiés sur les 8 307 arrêts
 JSON actifs, entrées Silver et référence active inchangées lors du pilote.
-Prochaine étape : expliquer ces deux fonctions et SQL 35 avant de généraliser
-le rapprochement mart aux autres courses 2023 ; leurs Bronze/Silver sont prêts.
+Ce pilote est désormais généralisé par `build_mart_batch` sans recopier la
+logique SQL ; les limites de lecture PDF décrites plus haut restent applicables.
 
 ## Classements CSV : parcours Bronze/Silver isolé
 

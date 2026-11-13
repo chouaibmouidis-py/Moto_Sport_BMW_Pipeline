@@ -38,7 +38,10 @@ uv run python explore_2023_season.py --pdf-bronze-only
 uv run python explore_2023_season.py --pdf-silver-only
 ```
 
-Le rapprochement mart depuis ces Silver reste validé sur Road America uniquement.
+Les onze marts sont générés depuis ces Silver avec :
+`uv run python explore_2023_season.py --mart-only`.
+Ils conservent les 455 participations, dont onze sans détail d'arrêt (comptage
+observé NULL). Le comptage déclaré reste NULL, car absent des CSV 2023.
 Les lots 2023 ne modifient pas la référence du run principal.
 
 Quarante-quatre documents JSON du portail officiel
