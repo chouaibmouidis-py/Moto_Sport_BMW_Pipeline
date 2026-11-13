@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "scope": "exploration_only",
+  "championship": "imsa-weathertech",
+  "season": 2023,
+  "events": [
+    {
+      "event_id": "daytona",
+      "session_id": "202301281340-race",
+      "report_period": "hour_24",
+      "pdf_path": "data/raw/imsa-2023-daytona-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-daytona-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202301281340_Race/24_Hour%2024/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202301281340_Race/24_Hour%2024/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "sebring",
+      "session_id": "202303181010-race",
+      "report_period": "hour_12",
+      "pdf_path": "data/raw/imsa-2023-sebring-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-sebring-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/07_Sebring%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202303181010_Race/12_Hour%2012/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/07_Sebring%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202303181010_Race/12_Hour%2012/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "long-beach",
+      "session_id": "202304151405-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-long-beach-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-long-beach-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/08_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202304151405_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/08_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202304151405_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "laguna-seca",
+      "session_id": "202305141210-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-laguna-seca-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-laguna-seca-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/10_Weathertech%20Raceway%20Laguna%20Seca/01_IMSA%20WeatherTech%20SportsCar%20Championship/202305141210_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/10_Weathertech%20Raceway%20Laguna%20Seca/01_IMSA%20WeatherTech%20SportsCar%20Championship/202305141210_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "watkins-glen",
+      "session_id": "202306251040-race",
+      "report_period": "hour_6",
+      "pdf_path": "data/raw/imsa-2023-watkins-glen-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-watkins-glen-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/12_Watkins%20Glen%20International/01_IMSA%20WeatherTech%20SportsCar%20Championship/202306251040_Race/06_Hour%206/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/12_Watkins%20Glen%20International/01_IMSA%20WeatherTech%20SportsCar%20Championship/202306251040_Race/06_Hour%206/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "canadian-tire-motorsport-park",
+      "session_id": "202307091205-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-canadian-tire-motorsport-park-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-canadian-tire-motorsport-park-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/13_Canadian%20Tire%20Motorsport%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202307091205_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/13_Canadian%20Tire%20Motorsport%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202307091205_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "lime-rock",
+      "session_id": "202307221210-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-lime-rock-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-lime-rock-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/14_Lime%20Rock%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202307221210_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/14_Lime%20Rock%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202307221210_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "road-america",
+      "session_id": "202308061010-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-road-america-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/17_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308061010_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/17_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308061010_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "vir",
+      "session_id": "202308271410-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-vir-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-vir-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/18_VIRginia%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308271410_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/18_VIRginia%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308271410_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "indianapolis",
+      "session_id": "202309171310-race",
+      "report_period": "session",
+      "pdf_path": "data/raw/imsa-2023-indianapolis-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-indianapolis-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/19_Indianapolis%20Motor%20Speedway%20RC/01_IMSA%20WeatherTech%20SportsCar%20Championship/202309171310_Race/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/19_Indianapolis%20Motor%20Speedway%20RC/01_IMSA%20WeatherTech%20SportsCar%20Championship/202309171310_Race/03_Results_Race_Official.CSV"
+    },
+    {
+      "event_id": "road-atlanta",
+      "session_id": "202310141140-race",
+      "report_period": "hour_10",
+      "pdf_path": "data/raw/imsa-2023-road-atlanta-race-pit-stops/20_Pit Stops Time Cards_Race.PDF",
+      "classification_path": "data/raw/imsa-2023-road-atlanta-race-classification-official/03_Results_Race_Official.CSV",
+      "pdf_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/21_Road%20Atlanta/01_IMSA%20WeatherTech%20SportsCar%20Championship/202310141140_Race/10_Hour%2010/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "classification_url": "https://imsa.results.alkamelcloud.com/Results/23_2023/21_Road%20Atlanta/01_IMSA%20WeatherTech%20SportsCar%20Championship/202310141140_Race/10_Hour%2010/03_Results_Race_Official.CSV"
+    }
+  ]
+}

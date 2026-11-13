@@ -1,14 +1,16 @@
-"""Explore the two-column layout of the Road America 2023 pit-stop PDF.
+"""Explore the observed two-column layout of IMSA 2023 pit-stop PDFs.
 
-Column positions and body bounds are specific to this report, not other layouts.
+Column positions and body bounds are specific to the inspected layout.
 """
 
 import argparse
 from pathlib import Path
 import re
-
+import hashlib
 from pypdf import PdfReader
 import duckdb
+from silver_writer import publish_silver
+
 
 
 CAR_HEADER = re.compile(r"^(\d+)(?:\s+[A-Za-z]|$)")
@@ -188,7 +190,12 @@ def validate_pdf_stop_links(connection):
             "PDF stops rejected: car absent from classification"
         )
 
-def build_pdf_car_summary(connection):
+def build_pdf_car_summary(
+    connection,
+    pdf_sha256: str,
+    classification_sha256: str,
+    source_context: dict,
+):
 
     return connection.sql("""
         WITH stop_counts AS (
@@ -202,31 +209,54 @@ def build_pdf_car_summary(connection):
             c.NUMBER AS car_number,
             TRY_CAST(c.POSITION AS INTEGER) AS overall_position,
             c.VEHICLE AS car_model,
-            s.observed_pit_stop_count
+            s.observed_pit_stop_count,
+            ? AS pdf_sha256,
+            ? AS classification_sha256,
+            ? AS championship,
+            ? AS season,
+            ? AS event_id,
+            ? AS session_id,
+            c.STATUS AS classification_status
         FROM classification_csv AS c
         LEFT JOIN stop_counts AS s
             ON c.NUMBER = s.car_number
-        ORDER BY overall_position
-    """)
+        ORDER BY overall_position NULLS LAST, car_number
+    """, params=[
+        pdf_sha256,
+        classification_sha256,
+        source_context["championship"],
+        source_context["season"],
+        source_context["event_id"],
+        source_context["session_id"],
+    ])
+
+def compute_source_hash(source_path: Path) -> str:
+    return hashlib.sha256(source_path.read_bytes()).hexdigest()
 
 
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source_path", type=Path)
-    parser.add_argument("classification_path", type=Path)
-    args = parser.parse_args()
-
-    for source_path in (
-        args.source_path,
-        args.classification_path,
-    ):
+def explore_source_pair(
+    pdf_path: Path,
+    classification_path: Path,
+    source_context: dict,
+    output_path: Path,
+    *,
+    show_tables: bool = False,
+) -> dict:
+    """Validate and publish one exploratory pair, without activating a main run."""
+    for source_path in (pdf_path, classification_path):
         if not source_path.is_file():
             raise FileNotFoundError(
                 f"Exploration rejected: source file not found: {source_path}"
             )
 
-    rows = extract_stops(args.source_path)
+    pdf_sha256 = compute_source_hash(pdf_path)
+    classification_sha256 = compute_source_hash(classification_path)
+
+    if show_tables:
+        print("PDF SHA-256:", pdf_sha256)
+        print("Classification SHA-256:", classification_sha256)
+
+    rows = extract_stops(pdf_path)
     project_directory = Path(__file__).resolve().parent
 
     with duckdb.connect() as connection:
@@ -234,7 +264,7 @@ def main() -> None:
         converted.create_view("pdf_stops")
 
         classification = connection.read_csv(
-            str(args.classification_path),
+            str(classification_path),
             delimiter=";",
             header=True,
             all_varchar=True,
@@ -242,11 +272,58 @@ def main() -> None:
         )
         classification.create_view("classification_csv")
         validate_classification_keys(connection)
-        validate_pdf_stop_links(connection)
-        converted.show()
+        if show_tables:
+            converted.show()
 
-        summary = build_pdf_car_summary(connection)
-        summary.show()
+        validate_pdf_stop_links(connection)
+        summary = build_pdf_car_summary(
+            connection,
+            pdf_sha256,
+            classification_sha256,
+            source_context=source_context,
+        )
+        if show_tables:
+            summary.show()
+
+        summary.create_view("pdf_car_summary")
+
+        publish_silver(
+            connection,
+            summary,
+            output_path,
+            source_view="pdf_car_summary",
+        )
+        return {
+            "event_id": source_context["event_id"],
+            "participants": summary.count("*").fetchone()[0],
+            "bmw_participants": summary.filter("car_model LIKE 'BMW%'").count("*").fetchone()[0],
+            "stops": len(rows),
+            "bmw_stops": connection.sql("""
+                SELECT COUNT(*) FROM pdf_stops s
+                JOIN classification_csv c ON s.car_number = c.NUMBER
+                WHERE c.VEHICLE LIKE 'BMW%'
+            """).fetchone()[0],
+        }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source_path", type=Path)
+    parser.add_argument("classification_path", type=Path)
+    args = parser.parse_args()
+    project_directory = Path(__file__).resolve().parent
+    explore_source_pair(
+        args.source_path,
+        args.classification_path,
+        {
+            "championship": "imsa-weathertech",
+            "season": 2023,
+            "event_id": "road-america",
+            "session_id": "202308061010-race",
+        },
+        project_directory / "data" / "exploration" / "road-america-2023" / "car_summary.parquet",
+        show_tables=True,
+    )
 
 
 if __name__ == "__main__":

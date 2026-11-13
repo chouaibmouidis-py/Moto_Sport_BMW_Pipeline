@@ -9,6 +9,13 @@ les livrables et les critères d'acceptation.
 
 ## Ce que le projet traite aujourd'hui
 
+En complément du pipeline JSON 2024–2025 décrit ci-dessous, une exploration
+CSV/PDF couvre les onze courses WeatherTech 2023 : 455 entrées au classement
+(dont deux non-partants), 51 engagements BMW, 3 953 arrêts extraits dont 367 BMW.
+Les onze synthèses restent dans `data/exploration`, hors du run actif.
+Voir le [bilan et les limites 2023](docs/imsa_2023_season_coverage.fr.md).
+Lancement sur les fichiers Raw locaux : `uv run python explore_2023_season.py`.
+
 Quarante-quatre documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
 [`config/sources.json`](config/sources.json) : vingt-deux rapports « Pit Stops Time

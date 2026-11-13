@@ -78,3 +78,32 @@ La revue a détecté un contrôle de rattachement testé isolément mais absent 
 `main()` : l'appel a été ajouté et un test de `main()` vérifie désormais le refus
 avant construction de la synthèse. Ces ajouts restent exploratoires ; aucune
 source 2023 n'est activée ou publiée par le pipeline principal.
+
+## Sources locales et traçabilité de la sortie exploratoire
+
+Le PDF et le CSV de classement déjà inspectés ont été copiés, sans conversion
+ni écrasement de fichier existant, depuis `/tmp` vers les dossiers Raw suivants.
+L'égalité des empreintes entre chaque source temporaire et sa copie a été vérifiée.
+
+- `data/raw/imsa-2023-road-america-race-pit-stops/20_Pit Stops Time Cards_Race.PDF`
+- `data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV`
+
+Ces fichiers locaux, ignorés par Git, doivent être conservés pour reproduire
+l'exploration. Cette copie n'est pas encore un téléchargement automatisé ni un
+archivage immuable. Les liens officiels restent ceux du répertoire indiqué plus haut.
+
+La synthèse exploratoire est publiée dans
+`data/exploration/road-america-2023/car_summary.parquet`, avec vérification de
+contenu par `publish_silver`, sans activation dans `current.json`.
+Sa version courante produit 45 lignes et onze colonnes : les quatre colonnes
+métier, les deux empreintes sources, championship/season/event_id/session_id
+et classification_status (statut source, ajouté après qualification de Long Beach).
+Le fichier existant doit être régénéré pour recevoir cette nouvelle colonne.
+Les valeurs de contexte sont déclarées dans le script ; elles ne sont pas
+automatiquement déduites ou validées contre le contenu des deux documents.
+
+```bash
+uv run python explore_pit_stop_pdf.py \
+  "data/raw/imsa-2023-road-america-race-pit-stops/20_Pit Stops Time Cards_Race.PDF" \
+  data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV
+```
