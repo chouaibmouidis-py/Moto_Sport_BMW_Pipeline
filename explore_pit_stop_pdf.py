@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 
 from pypdf import PdfReader
+import duckdb
 
 
 CAR_HEADER = re.compile(r"^(\d+)(?:\s+[A-Za-z]|$)")
@@ -112,13 +113,140 @@ def extract_selected_stops(source_path: Path) -> list[tuple[str, int, str]]:
     return [row for row in extract_stops(source_path) if row[0] in {"24", "25"}]
 
 
+def convert_extracted_stops(
+    connection: duckdb.DuckDBPyConnection,
+    rows: list[tuple[str, int, str]],
+    project_directory: Path,
+) -> duckdb.DuckDBPyRelation:
+    """Stage extracted rows and reuse the duration macro in this connection."""
+    connection.execute("""
+        CREATE TEMP TABLE extracted_pit_stops (
+            car_number VARCHAR,
+            pit_number INTEGER,
+            pit_time_raw VARCHAR
+        )
+    """)
+
+    if rows:
+        connection.executemany(
+            "INSERT INTO extracted_pit_stops VALUES (?, ?, ?)",
+            rows,
+        )
+
+    parser_path = project_directory / "sql" / "21_create_duration_parser.sql"
+    connection.execute(parser_path.read_text(encoding="utf-8"))
+
+    return connection.sql("""
+        SELECT
+            car_number,
+            pit_number,
+            pit_time_raw,
+            ROUND(parse_duration_seconds(pit_time_raw), 3) AS pit_time_seconds
+        FROM extracted_pit_stops
+        ORDER BY car_number, pit_number
+    """)
+
+def validate_classification_keys(connection):
+    missing_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM classification_csv
+        WHERE NULLIF(TRIM(NUMBER), '') IS NULL
+    """).fetchone()[0]
+
+    if missing_count > 0:
+        raise ValueError(
+            "Classification CSV rejected: missing car number"
+        )
+
+    duplicate_count = connection.sql("""
+        WITH duplicate_numbers AS (
+            SELECT NUMBER
+            FROM classification_csv
+            GROUP BY NUMBER
+            HAVING COUNT(*) > 1
+        )
+        SELECT COUNT(*)
+        FROM duplicate_numbers
+    """).fetchone()[0]
+
+    if duplicate_count > 0:
+        raise ValueError(
+            "Classification CSV rejected: duplicate car numbers"
+        )
+
+def validate_pdf_stop_links(connection):
+    unknown_car_count = connection.sql("""
+        SELECT COUNT(DISTINCT s.car_number)
+        FROM pdf_stops AS s
+        LEFT JOIN classification_csv AS c
+            ON s.car_number = c.NUMBER
+        WHERE c.NUMBER IS NULL
+    """).fetchone()[0]
+
+    if unknown_car_count > 0:
+        raise ValueError(
+            "PDF stops rejected: car absent from classification"
+        )
+
+def build_pdf_car_summary(connection):
+
+    return connection.sql("""
+        WITH stop_counts AS (
+            SELECT
+                car_number,
+                COUNT(*) AS observed_pit_stop_count
+            FROM pdf_stops
+            GROUP BY car_number
+        )
+        SELECT
+            c.NUMBER AS car_number,
+            TRY_CAST(c.POSITION AS INTEGER) AS overall_position,
+            c.VEHICLE AS car_model,
+            s.observed_pit_stop_count
+        FROM classification_csv AS c
+        LEFT JOIN stop_counts AS s
+            ON c.NUMBER = s.car_number
+        ORDER BY overall_position
+    """)
+
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source_path", type=Path)
+    parser.add_argument("classification_path", type=Path)
     args = parser.parse_args()
 
-    for row in extract_selected_stops(args.source_path):
-        print(*row, sep=" | ")
+    for source_path in (
+        args.source_path,
+        args.classification_path,
+    ):
+        if not source_path.is_file():
+            raise FileNotFoundError(
+                f"Exploration rejected: source file not found: {source_path}"
+            )
+
+    rows = extract_stops(args.source_path)
+    project_directory = Path(__file__).resolve().parent
+
+    with duckdb.connect() as connection:
+        converted = convert_extracted_stops(connection, rows, project_directory)
+        converted.create_view("pdf_stops")
+
+        classification = connection.read_csv(
+            str(args.classification_path),
+            delimiter=";",
+            header=True,
+            all_varchar=True,
+            null_padding=True,
+        )
+        classification.create_view("classification_csv")
+        validate_classification_keys(connection)
+        validate_pdf_stop_links(connection)
+        converted.show()
+
+        summary = build_pdf_car_summary(connection)
+        summary.show()
 
 
 if __name__ == "__main__":
