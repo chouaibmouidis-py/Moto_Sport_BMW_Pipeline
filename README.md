@@ -29,6 +29,18 @@ Il conserve les 455 participations et leur provenance ; ses sorties Silver sont
 dans `data/exploration/<event_id>-2023/silver/classification.parquet`, sans
 activation dans le run principal.
 
+Les onze rapports d'arrêts PDF disposent également de leurs Bronze et Silver :
+3 953 arrêts, dont 367 BMW, avec durées converties et repères d'extraction conservés.
+Relance séparée depuis les fichiers locaux :
+
+```bash
+uv run python explore_2023_season.py --pdf-bronze-only
+uv run python explore_2023_season.py --pdf-silver-only
+```
+
+Le rapprochement mart depuis ces Silver reste validé sur Road America uniquement.
+Les lots 2023 ne modifient pas la référence du run principal.
+
 Quarante-quatre documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
 [`config/sources.json`](config/sources.json) : vingt-deux rapports « Pit Stops Time

@@ -111,7 +111,7 @@ du parseur ou d'écriture préserve une éventuelle sortie précédente.
 Une extraction vide produit un schéma typé vide, sans inventer d'arrêt ; cela
 ne prouve pas qu'un PDF inconnu a été correctement interprété.
 
-Seule cette course pilote a été publiée en Bronze PDF à ce stade. Son chargement
+Les onze courses disposent maintenant d'un Bronze et d'un Silver PDF. Le chargement
 ajoute `bronze_sha256`, puis `34_silver_pdf_pit_stops.sql` ajoute
 `pit_time_in_seconds` en réutilisant la macro de durée existante.
 Le contrôle partagé de qualité refuse une provenance absente ou une clé répétée
@@ -121,8 +121,28 @@ Le Silver pilote est sauvegardé dans
 `data/exploration/road-america-2023/silver/pit_stops.parquet` : 116 lignes,
 onze colonnes, aucune durée non convertie. Les champs Bronze et leurs repères
 ont été comparés à la sortie ; les schémas et contenus ont été contrôlés après
-publication. Le Bronze et la référence active restent inchangés. Aucun parcours
-PDF par lot ni activation du run principal n'est encore branché.
+publication. Le traitement par lot est disponible avec deux modes exclusifs :
+
+```bash
+uv run python explore_2023_season.py --pdf-bronze-only
+uv run python explore_2023_season.py --pdf-silver-only
+```
+
+Le premier construit les onze Bronze depuis les PDF Raw locaux ; le second
+construit les Silver depuis les Bronze existants. Vérification des sorties :
+3 953 arrêts, dont 367 BMW, zéro durée non convertie. Les champs extraits et
+repères sont identiques entre Bronze et Silver ; les empreintes PDF et Bronze
+correspondent aux fichiers locaux. Aucun arrêt orphelin n'a été détecté face
+aux classements Silver correspondants. La référence active reste inchangée.
+
+Les modes `--classification-only`, `--pdf-bronze-only` et `--pdf-silver-only`
+sont mutuellement exclusifs. La présence des entrées est vérifiée avant chaque
+lot, mais une erreur tardive de contenu peut laisser les sorties précédentes
+actualisées : aucune activation atomique de saison n'est fournie.
+
+Les huit tests de lots Bronze/Silver PDF passent. Après correction du bloc
+parasite dans silver_writer.py et renforcement du scénario Silver avec deux
+courses, Chouaib confirme 170 tests réussis sur la suite complète.
 
 ## Point de reprise : rapprochement Silver du pilote
 
@@ -140,9 +160,9 @@ arrêts sans participant correspondant, puis applique le LEFT JOIN de SQL 35.
 La même voiture dans deux sessions ne mélange pas leurs comptages.
 
 Validation : 158 tests réussis ; comptages partagés vérifiés sur les 8 307 arrêts
-JSON actifs, entrées Silver et référence active inchangées. Aucun commit ni push.
+JSON actifs, entrées Silver et référence active inchangées lors du pilote.
 Prochaine étape : expliquer ces deux fonctions et SQL 35 avant de généraliser
-le rapprochement et le parcours PDF aux autres courses 2023.
+le rapprochement mart aux autres courses 2023 ; leurs Bronze/Silver sont prêts.
 
 ## Classements CSV : parcours Bronze/Silver isolé
 
@@ -175,4 +195,4 @@ chaque course, sans numéros manquants ou dupliqués. Les CSV Raw et la référe
 
 Cette commande publie les fichiers individuellement : un échec tardif peut
 laisser des sorties de courses précédentes actualisées. Elle ne fournit ni
-activation atomique de saison ni parcours Bronze/Silver des arrêts PDF par lot.
+activation atomique de saison ni intégration aux sorties du run principal.
