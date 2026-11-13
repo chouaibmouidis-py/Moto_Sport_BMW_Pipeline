@@ -16,6 +16,7 @@ from moto_sport_bmw_pipeline.logging_config import configure_logging
 from moto_sport_bmw_pipeline.pipeline import (
     publish_classification_csv_from_bronze,
     publish_pdf_pit_stops_from_bronze,
+    publish_csv_pdf_race_summary,
 )
 
 logger = logging.getLogger("moto_sport_bmw_pipeline.explore_2023_season")
@@ -156,6 +157,70 @@ def build_pdf_silver_batch(project_directory: Path, catalog: dict) -> list[dict]
         logger.info("PDF Silver batch result: %s", result)
     return results
 
+def build_mart_batch(project_directory: Path, catalog: dict) -> list[dict]:
+    """Publish isolated per-event marts from existing CSV and PDF Silver files.
+
+    All paths and catalog identifiers are checked first. Publication is per
+    file, not an atomic season activation; current.json is never updated.
+    """
+    events = catalog["events"]
+    event_ids = [event["event_id"] for event in events]
+    if len(event_ids) != len(set(event_ids)):
+        raise ValueError("Mart batch rejected: duplicate event IDs")
+    source_ids = [
+        Path(event[field]).parent.name
+        for event in events
+        for field in ("classification_path", "pdf_path")
+    ]
+    if len(source_ids) != len(set(source_ids)):
+        raise ValueError("Mart batch rejected: duplicate source IDs")
+
+    inputs = []
+    for event in events:
+        directory = (
+            project_directory / "data" / "exploration"
+            / f"{event['event_id']}-{catalog['season']}"
+        )
+        classification_path = directory / "silver" / "classification.parquet"
+        stops_path = directory / "silver" / "pit_stops.parquet"
+        for path in (classification_path, stops_path):
+            if not path.is_file():
+                raise FileNotFoundError(f"Mart batch rejected: Silver file not found: {path}")
+        inputs.append((event, directory, classification_path, stops_path))
+
+    results = []
+    for event, directory, classification_path, stops_path in inputs:
+        # Limit context to this event: misplaced files cannot acquire another
+        # event's session metadata merely because it exists in the full catalog.
+        event_catalog = {**catalog, "events": [event]}
+        output_path = directory / "marts" / "race_car_summary.parquet"
+        publish_csv_pdf_race_summary(
+            project_directory, event_catalog, classification_path,
+            stops_path, output_path,
+        )
+        with duckdb.connect() as connection:
+            saved = connection.read_parquet(str(output_path))
+            result = {
+                "event_id": event["event_id"],
+                "participants": saved.count("*").fetchone()[0],
+                "bmw_participants": saved.filter(
+                    "car_model LIKE 'BMW%'"
+                ).count("*").fetchone()[0],
+                "observed_stops": saved.aggregate(
+                    "SUM(observed_pit_stop_count)"
+                ).fetchone()[0] or 0,
+                "bmw_stops": saved.filter("car_model LIKE 'BMW%'").aggregate(
+                    "SUM(observed_pit_stop_count)"
+                ).fetchone()[0] or 0,
+                "participants_without_stop_details": saved.filter(
+                    "observed_pit_stop_count IS NULL"
+                ).count("*").fetchone()[0],
+            }
+        results.append(result)
+        logger.info("Mart batch result: %s", result)
+    return results
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--verbose", action="store_true", help="Display tables and DEBUG logs.")
@@ -174,6 +239,10 @@ def main() -> None:
         "--pdf-silver-only", action="store_true",
         help="Build pit-stop PDF Silver Parquet from existing Bronze without Mart generation.",
     )
+    mode.add_argument(
+        "--mart-only", action="store_true",
+        help="Build per-event CSV/PDF marts from existing Silver files.",
+    )
     args = parser.parse_args()
     configure_logging(verbose=args.verbose, log_file=args.log_file)
     project_directory = Path(__file__).resolve().parent
@@ -183,6 +252,18 @@ def main() -> None:
     event_ids = [event["event_id"] for event in events]
     if len(event_ids) != len(set(event_ids)):
         raise ValueError("Exploration rejected: duplicate event IDs")
+
+    if args.mart_only:
+        results = build_mart_batch(project_directory, catalog)
+        fields = (
+            "participants", "bmw_participants", "observed_stops", "bmw_stops",
+            "participants_without_stop_details",
+        )
+        logger.info("Mart season totals: %s", {
+            field: sum(result[field] for result in results) for field in fields
+        })
+        logger.info("Main pipeline current.json is unchanged.")
+        return
 
     if args.classification_only:
         results = build_classification_batch(project_directory, catalog)
