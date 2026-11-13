@@ -1,7 +1,8 @@
 """Transform Bronze documents and reject invalid Silver keys using existing SQL."""
 
 from pathlib import Path
-
+from .quality import validate_classification_keys
+from .quality import validate_pdf_pit_stop_keys
 
 def transform_sessions(connection, project_directory: Path):
 
@@ -158,3 +159,47 @@ def transform_classification(connection, project_directory):
             raise ValueError(error_message)
 
     return classification
+
+
+def transform_classification_csv(connection, project_directory: Path):
+    """Normalize fields from the loaded classification CSV Bronze relation."""
+
+    validate_classification_keys(
+        connection,
+        source_view="bronze_classification_csv",
+    )
+
+    query_path = (
+        project_directory
+        / "sql"
+        / "33_silver_classification_csv.sql"
+    )
+
+    classification = connection.sql(
+        query_path.read_text(encoding="utf-8")
+    )
+    classification.create_view("silver_classification_csv")
+
+    return classification
+
+def transform_pdf_pit_stops(connection, project_directory: Path):
+    """Convert Bronze PDF stop durations while retaining provenance and locations."""
+    parser_path = (
+        project_directory
+        / "sql"
+        / "21_create_duration_parser.sql"
+    )
+    connection.execute(parser_path.read_text(encoding="utf-8"))
+
+    query_path = (
+        project_directory
+        / "sql"
+        / "34_silver_pdf_pit_stops.sql"
+    )
+    stops = connection.sql(
+        query_path.read_text(encoding="utf-8")
+    )
+    stops.create_view("silver_pdf_pit_stops")
+    validate_pdf_pit_stop_keys(connection)
+
+    return stops

@@ -164,3 +164,66 @@ def validate_race_car_summary(connection) -> None:
         raise ValueError(
             "Race car summary rejected: participant keys differ"
         )
+
+def validate_classification_keys(connection, source_view="classification_csv"):
+    """Reject missing or duplicate cleaned car numbers in one classification."""
+    quoted_view = '"' + source_view.replace('"', '""') + '"'
+    missing_count = connection.sql(f"""
+        SELECT COUNT(*)
+        FROM {quoted_view}
+        WHERE NULLIF(TRIM(NUMBER), '') IS NULL
+    """).fetchone()[0]
+
+    if missing_count > 0:
+        raise ValueError(
+            "Classification CSV rejected: missing car number"
+        )
+
+    duplicate_count = connection.sql(f"""
+        WITH duplicate_numbers AS (
+            SELECT NULLIF(TRIM(NUMBER), '') AS car_number
+            FROM {quoted_view}
+            GROUP BY car_number
+            HAVING COUNT(*) > 1
+        )
+        SELECT COUNT(*)
+        FROM duplicate_numbers
+    """).fetchone()[0]
+
+    if duplicate_count > 0:
+        raise ValueError(
+            "Classification CSV rejected: duplicate car numbers"
+        )
+
+def validate_pdf_pit_stop_keys(connection):
+    """Reject missing provenance or duplicate versioned PDF stop keys."""
+    missing_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM silver_pdf_pit_stops
+        WHERE NULLIF(TRIM(source_id), '') IS NULL
+           OR NULLIF(TRIM(pdf_sha256), '') IS NULL
+           OR NULLIF(TRIM(bronze_sha256), '') IS NULL
+           OR NULLIF(TRIM(car_number), '') IS NULL
+           OR pit_number IS NULL
+    """).fetchone()[0]
+
+    if missing_count > 0:
+        raise ValueError("PDF Silver rejected: missing key or provenance")
+
+    duplicate_count = connection.sql("""
+        WITH duplicate_keys AS (
+            SELECT
+                source_id,
+                bronze_sha256,
+                car_number,
+                pit_number
+            FROM silver_pdf_pit_stops
+            GROUP BY source_id, bronze_sha256, car_number, pit_number
+            HAVING COUNT(*) > 1
+        )
+        SELECT COUNT(*)
+        FROM duplicate_keys
+    """).fetchone()[0]
+
+    if duplicate_count > 0:
+        raise ValueError("PDF Silver rejected: duplicate stop keys")

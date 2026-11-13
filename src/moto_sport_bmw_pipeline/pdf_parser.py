@@ -1,4 +1,4 @@
-"""Extract raw pit-stop tuples from the inspected two-column IMSA PDF layouts.
+"""Extract uniformly structured, traceable stops from inspected IMSA PDF layouts.
 
 Coordinates and sequence checks are explicit; this is not a universal PDF parser.
 """
@@ -19,14 +19,20 @@ STOP_ROW = re.compile(
 )
 
 
-def parse_stop_blocks(blocks: list[str]) -> list[tuple[str, int, str]]:
-    """Read ordered columns/pages without losing the last car's context."""
+def parse_stop_blocks(
+    blocks: list[tuple[int | None, int | None, str]],
+) -> list[dict]:
+    """Parse ordered blocks while retaining each stop's extracted location.
+
+    block_line_number counts retained text lines, not visual PDF lines.
+    Text-only test inputs supply None for unavailable page/column metadata.
+    """
     current_car = None
     expected_stop_number = 1
     rows = []
 
-    for block in blocks:
-        for line in block.splitlines():
+    for page_number, column_number, block in blocks:
+        for block_line_number, line in enumerate(block.splitlines(), start=1):
             header = CAR_HEADER.match(line)
             if header:
                 current_car = header.group(1)
@@ -48,12 +54,18 @@ def parse_stop_blocks(blocks: list[str]) -> list[tuple[str, int, str]]:
                         f"for car {current_car} (expected {expected_stop_number})"
                     )
                 expected_stop_number += 1
-                rows.append((current_car, stop_number, stop.group(2)))
+                rows.append({
+                    "car_number": current_car,
+                    "pit_number": stop_number,
+                    "pit_time_raw": stop.group(2),
+                    "page_number": page_number,
+                    "column_number": column_number,
+                    "block_line_number": block_line_number,
+                    "source_line": line,
+                })
 
     return rows
 
-def parse_selected_stops(text: str) -> list[tuple[str, int, str]]:
-    return [row for row in parse_stop_blocks([text]) if row[0] in {"24", "25"}]
 
 def classify_token(x: float, y: float, value: str, size: float):
     """Keep a stop row or a car header from this report's two columns.
@@ -81,27 +93,36 @@ def classify_token(x: float, y: float, value: str, size: float):
 
     return None
 
-def extract_stops(source_path: Path) -> list[tuple[str, int, str]]:
+def extract_stop_blocks(
+    source_path: Path,
+) -> list[tuple[int, int, str]]:
+    """Extract ordered text blocks with one-based page and column numbers."""
     blocks = []
-    for page in PdfReader(source_path).pages:
+
+    for page_number, page in enumerate(PdfReader(source_path).pages, start=1):
         columns = [[], []]
 
         def collect(text, cm, tm, font, size):
-            # Transform text coordinates into page coordinates.
             x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
             y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
             classified = classify_token(x, y, text.strip(), size or 0)
+
             if classified is not None:
                 column, value = classified
                 columns[column].append((y, value))
 
         page.extract_text(visitor_text=collect)
-        for column in columns:
-            blocks.append("\n".join(value for _, value in sorted(
-                column, key=lambda item: -item[0]
-            )))
 
-    return parse_stop_blocks(blocks)
+        for column_number, column in enumerate(columns, start=1):
+            ordered_text = "\n".join(
+                value
+                for _, value in sorted(column, key=lambda item: -item[0])
+            )
+            blocks.append((page_number, column_number, ordered_text))
 
-def extract_selected_stops(source_path: Path) -> list[tuple[str, int, str]]:
-    return [row for row in extract_stops(source_path) if row[0] in {"24", "25"}]
+    return blocks
+
+
+def extract_stops(source_path: Path) -> list[dict]:
+    """Extract raw stop fields and their page, column and retained text line."""
+    return parse_stop_blocks(extract_stop_blocks(source_path))

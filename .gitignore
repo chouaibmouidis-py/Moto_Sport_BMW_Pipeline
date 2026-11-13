@@ -16,3 +16,13 @@ data/
 !.env.example
 *.part
 .DS_Store
+
+# Local working copies and unpublished communication drafts
+/sql/07_silver_pit_stops 2.sql
+/tests/test_silver_pit_stops 2.py
+/tests/test_silver_pit_stops 3.py
+/docs/communication/
+
+# Keep future experiments outside maintained source and test directories
+/scratch/
+.aider*

@@ -10,8 +10,8 @@ from moto_sport_bmw_pipeline.exploration import (
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 from moto_sport_bmw_pipeline.paths import PROJECT_DIR
 from moto_sport_bmw_pipeline.pdf_parser import (
-    CAR_HEADER, STOP_CANDIDATE, STOP_ROW, classify_token, extract_selected_stops,
-    extract_stops, parse_selected_stops, parse_stop_blocks,
+    CAR_HEADER, STOP_CANDIDATE, STOP_ROW, classify_token,
+    extract_stops, parse_stop_blocks,
 )
 
 

@@ -136,6 +136,15 @@ ont été exécutés sur le même run actif. Les commandes d'aide du point d'ent
 console et du module Python sont fonctionnelles. Une installation vierge et
 un téléchargement réseau initial n'ont pas été rejoués pour ce changement.
 
+## Construction Bronze des arrêts PDF
+
+Le module `bronze.py` construit les Parquet Bronze à partir de champs extraits
+des sources. Son premier constructeur, `build_pdf_pit_stop_bronze`, réutilise
+`pdf_parser.extract_stops` et la publication sécurisée de `parquet_writer`.
+Il conserve les sept champs de chaque arrêt avec l'identifiant de source et
+l'empreinte du PDF, sans conversion de durée. Il ne lance pas de saison et
+n'active pas de run. Cette séparation évite de faire écrire le parseur lui-même.
+
 ## Langue et descriptions des fichiers
 
 Les modules Python, les tests et les requêtes SQL maintenus portent un en-tête

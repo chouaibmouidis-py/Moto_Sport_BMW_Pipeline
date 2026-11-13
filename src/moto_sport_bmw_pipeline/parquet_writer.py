@@ -9,7 +9,7 @@ import duckdb
 logger = logging.getLogger(__name__)
 
 
-def publish_silver(
+def publish_parquet(
     connection: duckdb.DuckDBPyConnection,
     converted: duckdb.DuckDBPyRelation,
     silver_output_path: Path,
@@ -51,3 +51,6 @@ def publish_silver(
 
     silver_temporary_path.replace(silver_output_path)
     logger.info('%s', f"Published: {silver_output_path} ({saved_count} rows)")
+
+# Preserve existing imports while callers migrate to the generic name.
+publish_silver = publish_parquet

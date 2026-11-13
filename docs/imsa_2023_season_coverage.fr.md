@@ -65,8 +65,10 @@ d'exploration ; utiliser le catalogue pour les autres courses.
 
 ## Limites d'intégration
 
-Cette couverture est **exploratoire**, pas une intégration aux sorties Silver,
-Gold ou aux lecteurs du run actif 2024–2025. Les CSV ne fournissent pas de
+Cette couverture reste **hors du run actif 2024–2025** et de ses lecteurs.
+Les classements ont un parcours Bronze/Silver isolé décrit ci-dessous ; les
+synthèses CSV/PDF ne sont pas encore intégrées à ses sorties Gold.
+Les CSV ne fournissent pas de
 comptage déclaré indépendant ; les bilans count_mismatch du pipeline JSON
 ne sont donc pas transposés. Noms de pilotes, heures d'entrée/sortie et totaux
 cumulés du PDF ne sont pas encore exposés par ce lecteur.
@@ -76,3 +78,101 @@ atomique de l'ensemble exploratoire : un échec tardif peut laisser un lot
 partiellement actualisé. `data/current.json` n'est jamais modifié.
 Les empreintes identifient les versions lues ; le contexte du catalogue est
 déclaratif, pas une vérification automatique de la course contenue dans le PDF.
+
+## Structure commune des arrêts extraits du PDF
+
+Tous les appels à `extract_stops` renvoient une liste de dictionnaires portant
+les mêmes sept champs : `car_number`, `pit_number`, `pit_time_raw`,
+`page_number`, `column_number`, `block_line_number` et `source_line`.
+Les variantes retournant seulement trois valeurs et les filtres de voitures
+codés dans le parseur ont été retirés. Le filtrage métier appartient aux lecteurs.
+
+`extract_stop_blocks` organise les fragments en pages/colonnes ;
+`parse_stop_blocks` est l'unique logique de reconnaissance des voitures et arrêts.
+`convert_extracted_stops` conserve les sept champs et ajoute `pit_time_seconds`.
+Les tests textuels sans document peuvent utiliser des repères page/colonne NULL ;
+l'extraction d'un vrai PDF fournit des numéros à partir de 1.
+
+`block_line_number` compte les lignes retenues du bloc extrait, pas les lignes
+visuelles du PDF. `source_line` est le texte fourni par l'extraction, après les
+opérations de sélection et de retrait des espaces externes ; il ne remplace pas
+le PDF Raw. Ce schéma commun ne rend pas les coordonnées de lecture universelles.
+Le constructeur `build_pdf_pit_stop_bronze`, dans `bronze.py`, publie ces sept
+champs avec `source_id` et `pdf_sha256`, soit neuf colonnes. Le PDF Raw demeure
+la référence ; Bronze conserve les champs sélectionnés par l'extracteur, pas
+l'intégralité du contenu du document. Les durées restent textuelles.
+
+Le pilote Road America est publié dans
+`data/bronze/imsa-2023-road-america-race-pit-stops/document.parquet` : 116 arrêts,
+repères et provenance relus et comparés à l'extraction. L'empreinte PDF est
+distincte de celle du Parquet Bronze, qui sera calculée lors de son chargement.
+Le constructeur refuse une source modifiée pendant l'extraction ; une erreur
+du parseur ou d'écriture préserve une éventuelle sortie précédente.
+Une extraction vide produit un schéma typé vide, sans inventer d'arrêt ; cela
+ne prouve pas qu'un PDF inconnu a été correctement interprété.
+
+Seule cette course pilote a été publiée en Bronze PDF à ce stade. Son chargement
+ajoute `bronze_sha256`, puis `34_silver_pdf_pit_stops.sql` ajoute
+`pit_time_in_seconds` en réutilisant la macro de durée existante.
+Le contrôle partagé de qualité refuse une provenance absente ou une clé répétée
+(`source_id`, `bronze_sha256`, `car_number`, `pit_number`).
+
+Le Silver pilote est sauvegardé dans
+`data/exploration/road-america-2023/silver/pit_stops.parquet` : 116 lignes,
+onze colonnes, aucune durée non convertie. Les champs Bronze et leurs repères
+ont été comparés à la sortie ; les schémas et contenus ont été contrôlés après
+publication. Le Bronze et la référence active restent inchangés. Aucun parcours
+PDF par lot ni activation du run principal n'est encore branché.
+
+## Point de reprise : rapprochement Silver du pilote
+
+La synthèse du pilote est publiée dans
+`data/exploration/road-america-2023/marts/race_car_summary.parquet` : 45
+participations conservées, 116 arrêts retrouvés, voiture 57 conservée avec
+comptage observé NULL. Les comptages déclarés restent NULL et le statut vaut
+`unavailable_reported_count` ; `stop_detail_status` distingue les détails
+disponibles de leur absence. Les versions CSV et PDF sont conservées séparément.
+
+`build_pit_stop_counts` alimente une vue commune `pit_stop_count_input` pour
+réutiliser SQL 28 sur les deux formats. `build_csv_pdf_race_summary` réutilise
+l'appariement SQL 29, refuse les versions multiples d'une même source et les
+arrêts sans participant correspondant, puis applique le LEFT JOIN de SQL 35.
+La même voiture dans deux sessions ne mélange pas leurs comptages.
+
+Validation : 158 tests réussis ; comptages partagés vérifiés sur les 8 307 arrêts
+JSON actifs, entrées Silver et référence active inchangées. Aucun commit ni push.
+Prochaine étape : expliquer ces deux fonctions et SQL 35 avant de généraliser
+le rapprochement et le parcours PDF aux autres courses 2023.
+
+## Classements CSV : parcours Bronze/Silver isolé
+
+```bash
+uv run python explore_2023_season.py --classification-only
+```
+
+Cette option lit les onze `classification_path` du catalogue existant, sans
+relire les PDF. Elle vérifie tous les chemins avant publication et refuse les
+identifiants de course ou de source dupliqués. L'identifiant de source reprend
+le nom du dossier Raw, conformément aux dossiers existants.
+
+Pour chaque course :
+
+1. Le CSV est lu en texte (`;`, en-tête, complétion des champs finaux absents
+   par NULL), sans nettoyage des valeurs Bronze.
+2. Le Parquet Bronze est publié dans `data/bronze/<source_id>/document.parquet`.
+3. Le chargement ajoute `source_id` et l'empreinte SHA-256 du Parquet Bronze.
+4. Les numéros manquants ou dupliqués après nettoyage bloquent la transformation.
+5. La requête `33_silver_classification_csv.sql` normalise cinq champs.
+6. Les sept colonnes Silver sont publiées et relues avec contrôle du contenu dans
+   `data/exploration/<event_id>-2023/silver/classification.parquet`.
+
+Validation réelle des onze classements : 455 participations, dont 51 BMW ;
+seules les positions de 80 et 93 à Long Beach sont NULL (`Not started`).
+Les schémas et contenus Bronze ont été comparés aux lectures CSV dans les deux
+sens avec EXCEPT ALL. Les volumes et provenances Silver ont été vérifiés pour
+chaque course, sans numéros manquants ou dupliqués. Les CSV Raw et la référence
+`data/current.json` sont restés inchangés.
+
+Cette commande publie les fichiers individuellement : un échec tardif peut
+laisser des sorties de courses précédentes actualisées. Elle ne fournit ni
+activation atomique de saison ni parcours Bronze/Silver des arrêts PDF par lot.

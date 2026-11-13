@@ -23,6 +23,12 @@ Les onze synthèses restent dans `data/exploration`, hors du run actif.
 Voir le [bilan et les limites 2023](docs/imsa_2023_season_coverage.fr.md).
 Lancement sur les fichiers Raw locaux : `uv run python explore_2023_season.py`.
 
+Les onze classements CSV disposent aussi d'un parcours Bronze → Silver séparé :
+`uv run python explore_2023_season.py --classification-only`.
+Il conserve les 455 participations et leur provenance ; ses sorties Silver sont
+dans `data/exploration/<event_id>-2023/silver/classification.parquet`, sans
+activation dans le run principal.
+
 Quarante-quatre documents JSON du portail officiel
 [IMSA / Al Kamel](https://imsa.results.alkamelcloud.com/) sont configurés dans
 [`config/sources.json`](config/sources.json) : vingt-deux rapports « Pit Stops Time

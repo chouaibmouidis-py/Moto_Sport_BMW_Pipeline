@@ -14,8 +14,8 @@ import duckdb
 from silver_writer import publish_silver
 from explore_pit_stop_pdf import (
     classify_token,
+    extract_stops,
     convert_extracted_stops,
-    parse_selected_stops,
     parse_stop_blocks,
     build_pdf_car_summary,
     main,
@@ -26,7 +26,83 @@ from explore_pit_stop_pdf import (
 )
 
 
+def raw_stop(car_number, pit_number, duration, *, page_number=1, line_number=1):
+    """Build a synthetic record using the same fields as real PDF extraction."""
+    return {
+        "car_number": car_number,
+        "pit_number": pit_number,
+        "pit_time_raw": duration,
+        "page_number": page_number,
+        "column_number": 1,
+        "block_line_number": line_number,
+        "source_line": f"{pit_number} 10:00:00.000 10:01:00.000 {duration} {duration}",
+    }
+
+
 class PitStopPdfExplorationTests(unittest.TestCase):
+    def test_extraction_retains_page_column_and_line(self):
+        from unittest.mock import Mock
+
+        first_line = "1 11:10:21.650 11:11:50.131 1:28.481 1:28.481"
+        second_line = "2 12:01:16.581 12:02:39.246 1:22.665 2:51.146"
+
+        def visit(*, visitor_text):
+            identity = [1, 0, 0, 1, 0, 0]
+            for x, y, value, size in (
+                (65.05, 600, "24", 18),
+                (60.45, 590, first_line, 9),
+                (321.25, 600, second_line, 9),
+            ):
+                visitor_text(value, identity, [1, 0, 0, 1, x, y], None, size)
+
+        page = Mock()
+        page.extract_text.side_effect = visit
+        reader = Mock()
+        reader.pages = [page]
+        with patch(
+            "moto_sport_bmw_pipeline.pdf_parser.PdfReader", return_value=reader,
+        ):
+            rows = extract_stops(Path("synthetic.pdf"))
+        self.assertEqual(rows, [
+            {
+                "car_number": "24", "pit_number": 1, "pit_time_raw": "1:28.481",
+                "page_number": 1, "column_number": 1, "block_line_number": 2,
+                "source_line": first_line,
+            },
+            {
+                "car_number": "24", "pit_number": 2, "pit_time_raw": "1:22.665",
+                "page_number": 1, "column_number": 2, "block_line_number": 1,
+                "source_line": second_line,
+            },
+        ])
+
+    def test_located_stops_preserve_origin_across_blocks(self):
+        first_line = "1 11:10:21.650 11:11:50.131 1:28.481 1:28.481"
+        second_line = "2 12:01:16.581 12:02:39.246 1:22.665 2:51.146"
+        next_car_line = "1 10:17:27.494 12:17:20.883 1:59:53.389 1:59:53.389"
+        rows = parse_stop_blocks([
+            (2, 1, "24\n" + first_line),
+            (2, 2, second_line),
+            (3, 1, "25\n" + next_car_line),
+        ])
+        self.assertEqual(rows, [
+            {
+                "car_number": "24", "pit_number": 1, "pit_time_raw": "1:28.481",
+                "page_number": 2, "column_number": 1, "block_line_number": 2,
+                "source_line": first_line,
+            },
+            {
+                "car_number": "24", "pit_number": 2, "pit_time_raw": "1:22.665",
+                "page_number": 2, "column_number": 2, "block_line_number": 1,
+                "source_line": second_line,
+            },
+            {
+                "car_number": "25", "pit_number": 1, "pit_time_raw": "1:59:53.389",
+                "page_number": 3, "column_number": 1, "block_line_number": 2,
+                "source_line": next_car_line,
+            },
+        ])
+
     def test_source_pairs_publish_to_separate_contexts(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -45,7 +121,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 }
                 with patch(
                     "moto_sport_bmw_pipeline.exploration.extract_stops",
-                    return_value=[("24", 1, "1:00.000")],
+                    return_value=[raw_stop("24", 1, "1:00.000")],
                 ):
                     result = explore_source_pair(pdf, csv, context, output)
                 self.assertEqual(result["stops"], 1)
@@ -69,7 +145,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 "explore_pit_stop_pdf.py", str(pdf_path), str(csv_path)
             ]), patch(
                 "moto_sport_bmw_pipeline.exploration.extract_stops",
-                return_value=[("99", 1, "1:00.000")],
+                return_value=[raw_stop("99", 1, "1:00.000")],
             ), patch("moto_sport_bmw_pipeline.exploration.build_pdf_car_summary") as summary:
                 with self.assertRaisesRegex(
                     ValueError, "car absent from classification"
@@ -109,7 +185,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 CREATE TEMP VIEW classification_csv AS
                 SELECT *
                 FROM (VALUES
-                    ('24', '1', 'BMW M Hybrid V8', 'Classified'),
+                    (' 24 ', '1', ' BMW M Hybrid V8 ', ' Classified '),
                     ('57', '2', 'Mercedes-AMG GT3', 'Classified'),
                     ('80', NULL, 'Porsche 911 GT3 R (992)', 'Not started')
                 ) AS t(NUMBER, POSITION, VEHICLE, STATUS)
@@ -157,17 +233,26 @@ class PitStopPdfExplorationTests(unittest.TestCase):
 
     def test_converts_extracted_durations_and_preserves_raw_values(self):
         rows = [
-            ("24", 1, "1:28.481"),
-            ("24", 2, "1:22.665"),
-            ("25", 1, "1:59:53.389"),
+            raw_stop("24", 1, "1:28.481", line_number=2),
+            raw_stop("24", 2, "1:22.665", line_number=3),
+            raw_stop("25", 1, "1:59:53.389", page_number=2),
         ]
         project_directory = Path(__file__).resolve().parent.parent
         with duckdb.connect() as connection:
             result = convert_extracted_stops(connection, rows, project_directory)
-            self.assertEqual(result.fetchall(), [
+            self.assertEqual(result.project(
+                "car_number, pit_number, pit_time_raw, pit_time_seconds"
+            ).fetchall(), [
                 ("24", 1, "1:28.481", 88.481),
                 ("24", 2, "1:22.665", 82.665),
                 ("25", 1, "1:59:53.389", 7193.389),
+            ])
+            self.assertEqual(result.project(
+                "page_number, column_number, block_line_number, source_line"
+            ).fetchall(), [
+                (row["page_number"], row["column_number"],
+                 row["block_line_number"], row["source_line"])
+                for row in rows
             ])
 
     def test_converts_empty_extraction_to_empty_result(self):
@@ -187,7 +272,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 with self.assertRaisesRegex(
                     ValueError, "unreadable stop row for car 24"
                 ):
-                    parse_stop_blocks(["24\n" + valid + "\n" + retained_line])
+                    parse_stop_blocks([(1, 1, "24\n" + valid + "\n" + retained_line)])
 
     def test_ignores_report_heading(self):
         self.assertIsNone(classify_token(60.45, 630, "Pit Stop Time Cards", 9))
@@ -202,16 +287,17 @@ class PitStopPdfExplorationTests(unittest.TestCase):
  1 10:50:00.528 10:51:06.024 1:05.496 1:05.496R. De Angelis
 """
         self.assertEqual(
-            parse_selected_stops(text),
+            [(row["car_number"], row["pit_number"], row["pit_time_raw"])
+             for row in parse_stop_blocks([(None, None, text)])],
             [("24", 1, "1:28.481"), ("24", 2, "1:22.665"),
-             ("25", 1, "1:59:53.389")],
+             ("25", 1, "1:59:53.389"), ("27", 1, "1:05.496")],
         )
 
     def test_rejects_continuation_without_header(self):
         with self.assertRaisesRegex(ValueError, "missing car context"):
-            parse_selected_stops(
+            parse_stop_blocks([(None, None,
                 " 2 12:01:16.581 12:02:39.246 1:22.665 2:51.146"
-            )
+            )])
 
     def test_keeps_right_aligned_one_digit_car_numbers(self):
         self.assertEqual(classify_token(67.55, 584.3, "1", 18), (0, "1"))
@@ -231,7 +317,10 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             "2 12:01:16.581 12:02:39.246 1:22.665 2:51.146\n25\n"
             "1 10:17:27.494 12:17:20.883 1:59:53.389 1:59:53.389",
         ]
-        self.assertEqual(parse_stop_blocks(blocks), [
+        self.assertEqual([
+            (row["car_number"], row["pit_number"], row["pit_time_raw"])
+            for row in parse_stop_blocks([(None, None, text) for text in blocks])
+        ], [
             ("23", 1, "1:04.320"), ("23", 2, "1:21.607"),
             ("24", 1, "1:28.481"), ("24", 2, "1:22.665"),
             ("25", 1, "1:59:53.389"),
@@ -245,7 +334,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             "1 12:00:00.000 12:01:00.000 1:00.000 1:00.000",
         ]
         with self.assertRaisesRegex(ValueError, "non-sequential stop 1 for car 23"):
-            parse_stop_blocks(blocks)
+            parse_stop_blocks([(None, None, text) for text in blocks])
 
     def test_rejects_skipped_stop_number(self):
         # Stop sequence skipping from 1 directly to 3
@@ -254,7 +343,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             "3 12:01:16.581 12:02:39.246 1:22.665 2:51.146",
         ]
         with self.assertRaisesRegex(ValueError, "non-sequential stop 3 for car 24"):
-            parse_stop_blocks(blocks)
+            parse_stop_blocks([(None, None, text) for text in blocks])
 
     def test_rejects_missing_classification_car_number(self):
         for car_number in (None, "", "   "):
@@ -382,3 +471,35 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             second_hash = compute_source_hash(output_path_1)
 
             self.assertEqual(first_hash, second_hash)
+
+    def test_rejects_duplicate_car_numbers_after_trimming(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW classification_csv AS
+                SELECT *
+                FROM (VALUES
+                    ('24'),
+                    (' 24 '),
+                    ('25')
+                ) AS t(NUMBER)
+            """)
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "duplicate car numbers",
+            ):
+                validate_classification_keys(connection)
+
+    def test_matches_pdf_stop_to_trimmed_classification_number(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW classification_csv AS
+                SELECT ' 24 ' AS NUMBER
+            """)
+
+            connection.execute("""
+                CREATE TEMP VIEW pdf_stops AS
+                SELECT '24' AS car_number
+            """)
+
+            validate_pdf_stop_links(connection)
