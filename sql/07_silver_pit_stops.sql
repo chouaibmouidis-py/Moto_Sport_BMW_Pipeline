@@ -1,3 +1,5 @@
+-- Flatten Bronze pit-stop entries and normalize durations, clocks and driver references.
+
 WITH extracted_stops AS (
     SELECT
         bronze_document.source_id AS source_id,

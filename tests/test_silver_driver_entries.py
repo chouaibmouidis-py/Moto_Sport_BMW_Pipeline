@@ -1,3 +1,5 @@
+"""Verify nested driver extraction and preservation of source entry identifiers."""
+
 import json
 import unittest
 from pathlib import Path

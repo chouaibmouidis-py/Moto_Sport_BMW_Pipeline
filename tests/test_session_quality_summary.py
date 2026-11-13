@@ -1,3 +1,5 @@
+"""Verify session field quality counts for valid, missing and invalid values."""
+
 import unittest
 from pathlib import Path
 

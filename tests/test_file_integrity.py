@@ -1,3 +1,5 @@
+"""Verify local file integrity against recorded SHA-256 metadata."""
+
 import unittest
 import tempfile
 from pathlib import Path

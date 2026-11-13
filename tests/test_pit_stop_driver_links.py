@@ -1,3 +1,5 @@
+"""Verify missing, unmatched and ambiguous pit-stop driver references."""
+
 import unittest
 from pathlib import Path
 

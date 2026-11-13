@@ -1,3 +1,5 @@
+"""Verify complete-run activation, current-run resolution and reference preservation on failure."""
+
 import tempfile
 import unittest
 from pathlib import Path

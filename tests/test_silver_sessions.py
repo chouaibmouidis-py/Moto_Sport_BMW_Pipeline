@@ -1,3 +1,5 @@
+"""Verify session date and temperature normalization with missing and invalid inputs."""
+
 import json
 import unittest
 from datetime import datetime

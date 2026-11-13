@@ -4,10 +4,10 @@
 Il est lu par les scripts d'inspection, de construction Bronze et d'analyse.
 Ils sélectionnent les documents activés (`enabled: true`) par famille :
 `pit_stops` pour les arrêts, `classification` pour les classements.
-Les trois rapports IMSA 2025 — Road America, Long Beach et Daytona heure 24 —
-ont traversé le pipeline local et contiennent des engagements BMW vérifiés.
-Le classement Official de Road America 2025 est aussi intégré : 48 participants,
-dont cinq BMW, rapprochés des comptages d'arrêts de la même session.
+Les onze courses WeatherTech 2024 et les onze courses 2025 ont traversé le
+pipeline JSON local pour les classements et les arrêts : 44 documents activés.
+L'exploration CSV/PDF 2023 est décrite dans `exploration_2023.json` et reste
+séparée du manifeste et du run actifs.
 Le manifeste seul ne déclenche rien : les téléchargements sont effectués par
 `inspect_manifest.py` et `inspect_classification.py`, directement ou via
 `run_pipeline.py`.
@@ -21,8 +21,8 @@ un document déjà testé des exécutions suivantes.
 Le rapprochement associe les documents sur `championship`, `season`, `event_id`
 et `session_id` ; `source_id` reste propre à chaque document. Un classement
 sans rapport d'arrêts compatible, ou avec plusieurs candidats, est refusé.
-Le constructeur commun accepte pour l'instant exactement un classement activé ;
-le chargement de plusieurs classements dans une même exécution reste à implémenter.
+Le chargeur commun accepte plusieurs classements et conserve, pour chacun,
+son identifiant et son empreinte Bronze avant les rapprochements.
 
 Les saisons sont une cible de couverture, pas une preuve d'ingestion.
 `documents` référence des fichiers précis. `catalogs_to_explore` contient des

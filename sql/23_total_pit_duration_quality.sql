@@ -1,3 +1,5 @@
+-- Count missing and invalid total pit durations by source and Bronze version.
+
 SELECT
     source_id,
     bronze_sha256,

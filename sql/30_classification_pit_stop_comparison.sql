@@ -1,3 +1,5 @@
+-- Compare declared and observed stop counts while preserving every classification entry.
+
 SELECT
     classification.*,
     report.source_id AS pit_stop_source_id,

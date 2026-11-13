@@ -1,3 +1,5 @@
+-- Normalize Bronze session metadata, dates and weather into Silver sessions.
+
 SELECT
     source_id,
     bronze_sha256,

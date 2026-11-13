@@ -1,3 +1,5 @@
+"""Verify race summaries preserve participants and use the correct versioned statistics."""
+
 import unittest
 from pathlib import Path
 
@@ -207,3 +209,10 @@ class RaceCarSummaryTests(unittest.TestCase):
                 car_number,
                 average_pit_time_seconds
             """).fetchall()
+
+            expected =[
+                ("classification-a", "24", 60.0),
+                ("classification-b", "24", 90.0),
+            ]
+
+            self.assertCountEqual(rows, expected)

@@ -1,3 +1,5 @@
+-- Flatten nested drivers into Silver entries with their parent car provenance.
+
 SELECT
     bronze_document.source_id,
     bronze_document.bronze_sha256,

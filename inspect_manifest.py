@@ -1,90 +1,95 @@
-import json
-from pathlib import Path
-from download import SOURCE_FILENAME, download
-import argparse
+"""Download or reuse enabled pit-stop Raw documents and inspect their basic volumes."""
+
 from datetime import datetime, timezone
+from pathlib import Path
+import argparse
 import hashlib
-from race_metrics import count_manufacturer_pit_stops
+import json
+import logging
+
+from download import SOURCE_FILENAME, download
 from file_integrity import verify_local_file
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+from race_metrics import count_manufacturer_pit_stops
 
-parser = argparse.ArgumentParser()
-
-PROJECT_DIR = Path(__file__).resolve().parent
+logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_manifest")
 
 
-parser.add_argument("--refresh", action="store_true", help="Refresh the downloaded files")
-args = parser.parse_args()
+def main():
+    configure_logging()
+    parser = argparse.ArgumentParser()
 
-manifest_path = PROJECT_DIR / "config" / "sources.json"
+    PROJECT_DIR = Path(__file__).resolve().parent
 
-with manifest_path.open("r", encoding="utf-8") as file:
-    manifest = json.load(file)
 
-for document in manifest["documents"]:
-    if not document.get("enabled", False):
-        continue
+    parser.add_argument("--refresh", action="store_true", help="Refresh the downloaded files")
+    args = parser.parse_args()
 
-    if document["document_type"] != "pit_stops":
-        continue
+    manifest_path = PROJECT_DIR / "config" / "sources.json"
 
-    destination_dir = PROJECT_DIR / "data" / "raw" / document["source_id"]
-    downloaded_path = destination_dir / SOURCE_FILENAME
-    metadata_path = destination_dir / "metadata.json"
+    with manifest_path.open("r", encoding="utf-8") as file:
+        manifest = json.load(file)
 
-    print("Source :", document["source_id"])
-    print("URL :", document["url"])
-    print("Dossier :", destination_dir)
+    for document in manifest["documents"]:
+        if not document.get("enabled", False):
+            continue
 
-    if downloaded_path.exists() and not args.refresh:
-        verify_local_file(downloaded_path, metadata_path)
-    else:
-        downloaded_path = download(document["url"], destination_dir)
-        downloaded_at = datetime.now(timezone.utc).isoformat()
+        if document["document_type"] != "pit_stops":
+            continue
 
-        print("Téléchargé :", downloaded_path)
+        destination_dir = PROJECT_DIR / "data" / "raw" / document["source_id"]
+        downloaded_path = destination_dir / SOURCE_FILENAME
+        metadata_path = destination_dir / "metadata.json"
 
-        content = downloaded_path.read_bytes()
-        sha256 = hashlib.sha256(content).hexdigest()
+        logger.info('%s %s', "Source :", document["source_id"])
+        logger.debug('%s %s', "URL :", document["url"])
+        logger.info('%s %s', "Directory:", destination_dir)
 
-        metadata = {
-            "source_id": document["source_id"],
-            "url": document["url"],
-            "downloaded_at": downloaded_at,
-            "sha256": sha256,
-        }
+        if downloaded_path.exists() and not args.refresh:
+            verify_local_file(downloaded_path, metadata_path)
+        else:
+            downloaded_path = download(document["url"], destination_dir)
+            downloaded_at = datetime.now(timezone.utc).isoformat()
 
-        temporary_metadata_path = metadata_path.with_suffix(".json.part")
+            logger.info('%s %s', "Downloaded:", downloaded_path)
 
-        with temporary_metadata_path.open("w", encoding="utf-8") as file:
-            json.dump(metadata, file, ensure_ascii=False, indent=2)
+            content = downloaded_path.read_bytes()
+            sha256 = hashlib.sha256(content).hexdigest()
 
-        temporary_metadata_path.replace(metadata_path)
+            metadata = {
+                "source_id": document["source_id"],
+                "url": document["url"],
+                "downloaded_at": downloaded_at,
+                "sha256": sha256,
+            }
 
-    with downloaded_path.open("r", encoding="utf-8-sig") as file:
-        data = json.load(file)
+            temporary_metadata_path = metadata_path.with_suffix(".json.part")
 
-    print("Course :", data["session"]["event_name"])
-    print("Entrées de voitures :", len(data["pit_stop_analysis"]))
+            with temporary_metadata_path.open("w", encoding="utf-8") as file:
+                json.dump(metadata, file, ensure_ascii=False, indent=2)
 
-    pit_stop_count = 0
-    for car in data["pit_stop_analysis"]:
-        pit_stop_count += len(car["pit_stops"])
+            temporary_metadata_path.replace(metadata_path)
 
-    print("Nombre d’arrêts :", pit_stop_count)
-    bmw_pit_stop_count = count_manufacturer_pit_stops(data["pit_stop_analysis"], "BMW")
-    print("Nombre d’arrêts BMW :", bmw_pit_stop_count)
+        with downloaded_path.open("r", encoding="utf-8-sig") as file:
+            data = json.load(file)
 
-    for car in data["pit_stop_analysis"]:
-        if car["manufacturer"] == "BMW":
-            print(
-                "BMW :",
-                car["number"],
-                "|",
-                car["vehicle"],
-                "|",
-                car["class"],
-                "| Arrêts :",
-                len(car["pit_stops"]),
-            )
+        logger.info('%s %s', "Event:", data["session"]["event_name"])
+        logger.info('%s %s', "Car entries:", len(data["pit_stop_analysis"]))
 
-    print()
+        pit_stop_count = 0
+        for car in data["pit_stop_analysis"]:
+            pit_stop_count += len(car["pit_stops"])
+
+        logger.info('%s %s', "Pit stops:", pit_stop_count)
+        bmw_pit_stop_count = count_manufacturer_pit_stops(data["pit_stop_analysis"], "BMW")
+        logger.info('%s %s', "BMW pit stops:", bmw_pit_stop_count)
+
+        for car in data["pit_stop_analysis"]:
+            if car["manufacturer"] == "BMW":
+                logger.debug('%s %s %s %s %s %s %s %s', "BMW :", car["number"], "|", car["vehicle"], "|", car["class"], "| Stops:", len(car["pit_stops"]))
+
+        logger.debug('')
+
+
+if __name__ == "__main__":
+    main()

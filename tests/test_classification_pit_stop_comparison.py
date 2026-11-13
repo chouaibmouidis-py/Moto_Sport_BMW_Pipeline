@@ -1,3 +1,5 @@
+"""Verify stop-count comparison statuses and preservation of unmatched participants."""
+
 import unittest
 from pathlib import Path
 

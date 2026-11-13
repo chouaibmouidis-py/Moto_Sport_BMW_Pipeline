@@ -1,3 +1,5 @@
+-- Identify missing, unmatched or ambiguous incoming and outgoing driver references.
+
 WITH driver_references AS (
     SELECT
         stops.source_id,

@@ -1,3 +1,5 @@
+-- Demonstrate whitespace trimming and empty-string normalization on sample values.
+
 WITH test_cases AS (
     SELECT *
     FROM (VALUES

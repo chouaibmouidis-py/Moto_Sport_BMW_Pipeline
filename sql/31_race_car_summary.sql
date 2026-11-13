@@ -1,3 +1,5 @@
+-- Enrich classification comparisons with version-matched duration statistics per car.
+
 SELECT
     classification.*,
     summary.valid_duration_count,

@@ -1,3 +1,5 @@
+"""Verify classification Raw reuse, refresh and manifest download parameters."""
+
 import unittest
 from unittest.mock import patch
 from inspect_classification import main

@@ -1,8 +1,17 @@
-import json
+"""Preserve classification JSON roots in Bronze Parquet and verify their content."""
+
 from pathlib import Path
+import json
+import logging
 import uuid
+
 import duckdb
+
 from file_integrity import verify_local_file
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+from moto_sport_bmw_pipeline.source_loading import select_classification_sources
+
+logger = logging.getLogger("moto_sport_bmw_pipeline.build_classification_bronze")
 
 
 def build_classification_document(
@@ -11,7 +20,7 @@ def build_classification_document(
 ) -> None:
     with source_path.open("r", encoding="utf-8-sig") as file:
         source_data = json.load(file)
-        print("Classification entries:", len(source_data["classification"]))
+        logger.info('%s %s', "Classification entries:", len(source_data["classification"]))
 
     if output_path.suffix != ".parquet":
         raise ValueError(f"Unexpected file format {output_path}")
@@ -58,9 +67,10 @@ def build_classification_document(
                 )
 
     temporary_path.replace(output_path)
-    print("Bronze published:", output_path)
+    logger.info('%s %s', "Bronze published:", output_path)
 
 def main() -> None:
+    configure_logging()
     project_directory = Path(__file__).resolve().parent
     manifest_path = project_directory / "config" / "sources.json"
 
@@ -86,13 +96,6 @@ def main() -> None:
 
         verify_local_file(source_path, metadata_path)
         build_classification_document(source_path, output_path)
-
-def select_classification_sources(documents):
-    selected_souce = []
-    for document in documents:
-        if document.get("enabled", False) and document["document_type"] == "classification":
-            selected_souce.append(document)
-    return selected_souce
 
 if __name__ == "__main__":
     main()

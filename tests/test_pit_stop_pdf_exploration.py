@@ -1,3 +1,10 @@
+"""Verify PDF parsing, CSV linkage, duration conversion and source fingerprints.
+
+Tests import historical helpers through explore_pit_stop_pdf.py. Their actual
+implementations live in src/moto_sport_bmw_pipeline/pdf_parser.py (text parsing)
+and src/moto_sport_bmw_pipeline/exploration.py (validation and publication).
+"""
+
 import unittest
 import tempfile
 from pathlib import Path
@@ -37,7 +44,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                     "event_id": event, "session_id": session,
                 }
                 with patch(
-                    "explore_pit_stop_pdf.extract_stops",
+                    "moto_sport_bmw_pipeline.exploration.extract_stops",
                     return_value=[("24", 1, "1:00.000")],
                 ):
                     result = explore_source_pair(pdf, csv, context, output)
@@ -61,9 +68,9 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             with patch("sys.argv", [
                 "explore_pit_stop_pdf.py", str(pdf_path), str(csv_path)
             ]), patch(
-                "explore_pit_stop_pdf.extract_stops",
+                "moto_sport_bmw_pipeline.exploration.extract_stops",
                 return_value=[("99", 1, "1:00.000")],
-            ), patch("explore_pit_stop_pdf.build_pdf_car_summary") as summary:
+            ), patch("moto_sport_bmw_pipeline.exploration.build_pdf_car_summary") as summary:
                 with self.assertRaisesRegex(
                     ValueError, "car absent from classification"
                 ):
@@ -86,7 +93,7 @@ class PitStopPdfExplorationTests(unittest.TestCase):
 
                     with patch("sys.argv", [
                         "explore_pit_stop_pdf.py", str(pdf_path), str(csv_path)
-                    ]), patch("explore_pit_stop_pdf.extract_stops") as extract:
+                    ]), patch("moto_sport_bmw_pipeline.exploration.extract_stops") as extract:
                         with self.assertRaises(FileNotFoundError) as error:
                             main()
 

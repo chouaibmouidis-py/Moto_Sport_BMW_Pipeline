@@ -1,3 +1,5 @@
+"""Verify pit stops join car entries only within the same Bronze version."""
+
 import unittest
 from pathlib import Path
 

@@ -1,9 +1,18 @@
+"""Preserve pit-stop JSON roots in Bronze Parquet and verify round-trip content."""
+
 from pathlib import Path
-import duckdb
-from download import RAW_DIR, SOURCE_FILENAME
 import json
-from file_integrity import verify_local_file
+import logging
 import uuid
+
+import duckdb
+
+from download import RAW_DIR, SOURCE_FILENAME
+from file_integrity import verify_local_file
+from moto_sport_bmw_pipeline.logging_config import configure_logging
+
+logger = logging.getLogger("moto_sport_bmw_pipeline.build_bronze")
+
 
 PROJECT_DIR = Path(__file__).resolve().parent
 
@@ -24,14 +33,14 @@ def build_document(source_path: Path, output_path: Path) -> None:
         source_data = json.load(file)
 
     expected = count_entries(source_data["pit_stop_analysis"])
-    print("Volumes du JSON source :", expected)
+    logger.info('%s %s', "Source JSON counts:", expected)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex
     temporary_path = output_path.with_name(
         f"{output_path.name}.{run_id}.tmp.parquet"
     )
-    print(f"Temporary file for this execution: {temporary_path}")
+    logger.debug('%s', f"Temporary file for this execution: {temporary_path}")
 
     with duckdb.connect() as connection:
         document = connection.read_json(
@@ -52,7 +61,7 @@ def build_document(source_path: Path, output_path: Path) -> None:
 
         if len(rows) != 1:
             raise ValueError(
-                f"Un document attendu, mais {len(rows)} lignes trouvées"
+                f"Expected one document, found {len(rows)} rows"
             )
 
         saved_session = json.loads(rows[0][0])
@@ -60,23 +69,24 @@ def build_document(source_path: Path, output_path: Path) -> None:
 
         if saved_session != source_data["session"]:
             raise ValueError(
-                "Le contenu de session diffère entre le JSON et le Parquet"
+                "Session content differs between JSON and Parquet"
             )
         if saved_cars != source_data["pit_stop_analysis"]:
             raise ValueError(
-                "Le contenu des voitures diffère entre le JSON et le Parquet"
+                "Car content differs between JSON and Parquet"
             )
         counts = count_entries(saved_cars)
 
         if counts != expected:
             raise ValueError(
-                f"Volumes inattendus : {counts}, attendu : {expected}"
+                f"Unexpected counts: {counts}, expected: {expected}"
             )
 
     temporary_path.replace(output_path)
-    print("Contrôle des volumes réussi :", counts)
+    logger.info('%s %s', "Volume check passed:", counts)
 
 def main() -> None:
+    configure_logging()
     manifest_path = PROJECT_DIR / "config" / "sources.json"
 
     with manifest_path.open("r", encoding="utf-8") as file:
@@ -98,7 +108,7 @@ def main() -> None:
                 / "document.parquet"
             )
 
-            print("Traitement :", source["source_id"])
+            logger.info('%s %s', "Processing:", source["source_id"])
             metadata_path = source_path.parent / "metadata.json"
 
             verify_local_file(source_path, metadata_path)

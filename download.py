@@ -1,38 +1,15 @@
-import json
-from pathlib import Path
+"""Preserve historical download imports and the standalone download command.
+
+Download logic lives in src/moto_sport_bmw_pipeline/raw_download.py.
+Running this file calls that module's main function; importing it re-exports
+the existing functions and constants for callers that still use `download`.
+"""
 
 import requests
 
-BASE_URL = "https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/20_Pit%20Stops%20Time%20Cards_Race.JSON"
-RAW_DIR = "data/raw"
-BRONZE_DIR = "data/bronze"
-SOURCE_FILENAME = "20_Pit Stops Time Cards_Race.JSON"
-
-
-def download(
-    url: str,
-    save_path: str | Path,
-    filename: str = SOURCE_FILENAME,
-) -> Path:
-    target_path = Path(save_path) / filename
-    response = requests.get(url, timeout=60)
-    response.raise_for_status()
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary_path = target_path.with_suffix(".part")
-
-    with temporary_path.open("wb") as file:
-        file.write(response.content)
-
-    with temporary_path.open("r", encoding="utf-8-sig") as file:
-        json.load(file)
-
-    temporary_path.replace(target_path)
-    return target_path
-
-
-def main() -> None:
-    download_path = download(BASE_URL, RAW_DIR)
-    print("Downloaded to:", download_path)
+from moto_sport_bmw_pipeline.raw_download import (
+    BASE_URL, RAW_DIR, BRONZE_DIR, SOURCE_FILENAME, download, main,
+)
 
 
 if __name__ == "__main__":

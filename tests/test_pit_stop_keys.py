@@ -1,3 +1,5 @@
+"""Verify missing and duplicate pit-stop key counts, including empty input."""
+
 import unittest
 from pathlib import Path
 

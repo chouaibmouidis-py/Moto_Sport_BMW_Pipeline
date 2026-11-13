@@ -1,3 +1,5 @@
+-- Enrich pit stops with incoming and outgoing driver names using versioned links.
+
 SELECT
     stops.*,
     incoming.first_name AS in_driver_first_name,

@@ -1,3 +1,5 @@
+-- Compare summed stop durations with the last reported cumulative duration per car.
+
 WITH calculated_totals AS (
     SELECT
         source_id,

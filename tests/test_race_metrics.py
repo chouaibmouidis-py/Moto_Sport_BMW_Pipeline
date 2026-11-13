@@ -1,3 +1,5 @@
+"""Verify pit-stop counting for a requested manufacturer."""
+
 import unittest
 
 from race_metrics import count_manufacturer_pit_stops

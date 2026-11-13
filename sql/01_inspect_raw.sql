@@ -1,3 +1,5 @@
+-- Explore nested Raw pit stops and convert duration components to seconds.
+
 WITH pit_stops AS (
     SELECT
         session.event_name AS event_name,
@@ -10,7 +12,7 @@ WITH pit_stops AS (
         stop.pit_number,
         stop.pit_time,
         CASE
-            -- Rejeter les composants invalides du format minutes:secondes
+            -- Reject invalid minute:second components
             WHEN array_length(string_split(stop.pit_time, ':')) = 2
                 AND (
                     TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) < 0
@@ -19,7 +21,7 @@ WITH pit_stops AS (
                 )
             THEN NULL
 
-            -- Rejeter les composants invalides du format heures:minutes:secondes
+            -- Reject invalid hour:minute:second components
             WHEN array_length(string_split(stop.pit_time, ':')) = 3
                 AND (
                     TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) < 0
@@ -30,18 +32,18 @@ WITH pit_stops AS (
                 )
             THEN NULL
 
-            -- Convertir heures:minutes:secondes
+            -- Convert hours:minutes:seconds
             WHEN array_length(string_split(stop.pit_time, ':')) = 3 THEN
                 TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) * 3600
                 + TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) * 60
                 + TRY_CAST(split_part(stop.pit_time, ':', 3) AS DOUBLE)
 
-            -- Convertir minutes:secondes
+            -- Convert minutes:seconds
             WHEN array_length(string_split(stop.pit_time, ':')) = 2 THEN
                 TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) * 60
                 + TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE)
 
-            -- Convertir les secondes seules si elles sont positives ou nulles
+            -- Convert standalone seconds when non-negative
             WHEN array_length(string_split(stop.pit_time, ':')) = 1 THEN
                 CASE
                     WHEN TRY_CAST(stop.pit_time AS DOUBLE) >= 0

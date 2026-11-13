@@ -1,3 +1,5 @@
+-- Demonstrate duration coverage and averages on synthetic pit-stop data.
+
 WITH converted_stops AS (
     SELECT *
     FROM (VALUES

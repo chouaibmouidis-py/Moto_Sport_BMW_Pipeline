@@ -1,3 +1,5 @@
+"""Verify batch classification loading with hashes and missing-file rejection."""
+
 import hashlib
 import tempfile
 import unittest
