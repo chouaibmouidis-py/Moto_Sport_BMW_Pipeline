@@ -16,8 +16,10 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     'test-bronze-hash' AS bronze_sha256,
                     *
                 FROM (VALUES
-                    (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ')
-                ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
+                    (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ', ' 74 ')
+                ) AS t(
+                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId
+                )
             """)
 
             project_directory = Path(__file__).resolve().parent.parent
@@ -30,7 +32,10 @@ class SilverClassificationCsvTests(unittest.TestCase):
 
             self.assertEqual(
                 rows,
-                [("test-source", "test-bronze-hash", "04", "BMW M4 GT3", 4, "GTD", "Classified")],
+                [(
+                    "test-source", "test-bronze-hash", "04",
+                    "BMW M4 GT3", 4, "GTD", "Classified", "74",
+                )],
             )
 
     def test_keeps_participant_with_invalid_position(self):
@@ -42,8 +47,13 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     'test-bronze-hash' AS bronze_sha256,
                     *
                 FROM (VALUES
-                    ('24', 'BMW M Hybrid V8', 'inconnue', 'GTP', 'Classified')
-                ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
+                    (
+                        '24', 'BMW M Hybrid V8', 'inconnue',
+                        'GTP', 'Classified', CAST(NULL AS VARCHAR)
+                    )
+                ) AS t(
+                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId
+                )
             """)
 
             project_directory = Path(__file__).resolve().parent.parent
@@ -56,7 +66,10 @@ class SilverClassificationCsvTests(unittest.TestCase):
 
             self.assertEqual(
                 rows,
-                [("test-source", "test-bronze-hash", "24", "BMW M Hybrid V8", None, "GTP", "Classified")],
+                [(
+                    "test-source", "test-bronze-hash", "24",
+                    "BMW M Hybrid V8", None, "GTP", "Classified", None,
+                )],
             )
 
     def test_rejects_duplicate_car_numbers_before_transformation(self):

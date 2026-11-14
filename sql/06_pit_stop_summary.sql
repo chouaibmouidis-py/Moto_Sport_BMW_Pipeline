@@ -14,6 +14,6 @@ SELECT
         3
     ) AS average_pit_time_seconds,
     ROUND(100 * COUNT(pit_time_in_seconds) / COUNT(*), 2) AS duration_coverage_percent
-FROM silver_pit_stops
+FROM pit_stop_summary_input
 GROUP BY source_id, car_number, bronze_sha256
 ORDER BY source_id, car_number, bronze_sha256

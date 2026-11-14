@@ -147,3 +147,75 @@ class RunPublicationTests(unittest.TestCase):
                 "Current run directory not found",
             ):
                 get_current_run(data_directory)
+
+    def test_activates_gold_with_its_own_required_outputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data_directory = Path(directory) / "data"
+            gold_directory = data_directory / "gold"
+            run_directory = gold_directory / "runs" / "gold-test-run"
+            run_directory.mkdir(parents=True)
+
+            main_reference = data_directory / "current.json"
+            main_reference.write_text(
+                '{"run_id": "previous-main-run"}',
+                encoding="utf-8",
+            )
+
+            required_outputs = (
+                "race_car_summary.parquet",
+                "manufacturer_reference.parquet",
+                "manufacturer_evidence.parquet",
+                "inputs.json",
+            )
+
+            for filename in required_outputs:
+                (run_directory / filename).write_bytes(b"test marker")
+
+            current_path = activate_run(
+                run_directory,
+                required_outputs=required_outputs,
+            )
+
+            self.assertEqual(
+                current_path,
+                gold_directory / "current.json",
+            )
+            self.assertEqual(
+                json.loads(current_path.read_text(encoding="utf-8")),
+                {"run_id": "gold-test-run"},
+            )
+            self.assertEqual(
+                main_reference.read_text(encoding="utf-8"),
+                '{"run_id": "previous-main-run"}',
+            )
+
+    def test_incomplete_gold_preserves_previous_reference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            gold_directory = Path(directory) / "data" / "gold"
+            run_directory = gold_directory / "runs" / "candidate-run"
+            run_directory.mkdir(parents=True)
+
+            current_path = gold_directory / "current.json"
+            previous_reference = b'{"run_id": "previous-gold-run"}'
+            current_path.write_bytes(previous_reference)
+
+            (run_directory / "race_car_summary.parquet").write_bytes(
+                b"test marker"
+            )
+
+            with self.assertRaisesRegex(
+                FileNotFoundError,
+                "missing files",
+            ):
+                activate_run(
+                    run_directory,
+                    required_outputs=(
+                        "race_car_summary.parquet",
+                        "manufacturer_reference.parquet",
+                    ),
+                )
+
+            self.assertEqual(
+                current_path.read_bytes(),
+                previous_reference,
+            )

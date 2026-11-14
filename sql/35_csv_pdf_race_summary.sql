@@ -16,6 +16,10 @@ SELECT
     report.pdf_sha256,
     CAST(NULL AS INTEGER) AS reported_pit_stop_count,
     counts.observed_pit_stop_count,
+    summary.valid_duration_count,
+    summary.invalid_duration_count,
+    summary.average_pit_time_seconds,
+    summary.duration_coverage_percent,
     'unavailable_reported_count' AS comparison_status,
     CASE
         WHEN counts.observed_pit_stop_count IS NULL THEN 'no_stop_details'
@@ -32,4 +36,8 @@ LEFT JOIN pit_stop_reports AS report
 LEFT JOIN pit_stop_counts_by_car AS counts
     ON report.source_id = counts.source_id
     AND report.bronze_sha256 = counts.bronze_sha256
-    AND classification.car_number = counts.car_number;
+    AND classification.car_number = counts.car_number
+LEFT JOIN pit_stop_summary AS summary
+    ON report.source_id = summary.source_id
+    AND report.bronze_sha256 = summary.bronze_sha256
+    AND classification.car_number = summary.car_number;

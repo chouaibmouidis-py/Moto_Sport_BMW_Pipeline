@@ -26,8 +26,8 @@ class ClassificationCsvBatchTests(unittest.TestCase):
                 source = root / "data" / "raw" / source_id / "report.csv"
                 source.parent.mkdir(parents=True)
                 source.write_text(
-                    "NUMBER;VEHICLE;POSITION;CLASS;STATUS\n"
-                    " 01 ; BMW M4 GT3 ;inconnue; GTD ; Not started \n",
+                    "NUMBER;VEHICLE;POSITION;CLASS;STATUS;IMSA_ManufacturerId\n"
+                    " 01 ; BMW M4 GT3 ;inconnue; GTD ; Not started ; 74 \n",
                     encoding="utf-8",
                 )
                 events.append({

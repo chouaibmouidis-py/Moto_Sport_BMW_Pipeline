@@ -21,6 +21,19 @@ OUTPUT_VIEWS = (
     ("quality/classification_count_quality.parquet", "classification_count_quality"),
 )
 
+# Gold tables and their corresponding views in the build connection.
+GOLD_OUTPUT_VIEWS = (
+    ("race_car_summary.parquet", "gold_race_car_summary"),
+    ("manufacturer_reference.parquet", "manufacturer_reference"),
+    ("manufacturer_evidence.parquet", "manufacturer_reference_input"),
+)
+
+# Input provenance must also be present before activating the Gold run.
+GOLD_REQUIRED_OUTPUTS = (
+    *(relative_path for relative_path, _ in GOLD_OUTPUT_VIEWS),
+    "inputs.json",
+)
+
 def publish_run_outputs(
     connection,
     run_directory: Path,

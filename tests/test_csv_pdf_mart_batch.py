@@ -15,7 +15,9 @@ class CsvPdfMartBatchTests(unittest.TestCase):
         project = Path(__file__).resolve().parent.parent
         (root / "sql").mkdir()
         for filename in (
-            "28_pit_stop_counts_by_car.sql", "29_classification_pit_stop_sources.sql",
+            "06_pit_stop_summary.sql",
+            "28_pit_stop_counts_by_car.sql",
+            "29_classification_pit_stop_sources.sql",
             "35_csv_pdf_race_summary.sql",
         ):
             shutil.copyfile(project / "sql" / filename, root / "sql" / filename)
@@ -39,7 +41,9 @@ class CsvPdfMartBatchTests(unittest.TestCase):
                 )
                 connection.sql("""
                     SELECT ? AS source_id, ? AS bronze_sha256, ? AS pdf_sha256,
-                           '24' AS car_number, range + 1 AS pit_number
+                           '24' AS car_number,
+                           range + 1 AS pit_number,
+                           60.0 AS pit_time_in_seconds
                     FROM range(?)
                 """, params=[
                     f"pits-{name}", f"pit-version-{name}", f"pdf-{name}", stop_count,

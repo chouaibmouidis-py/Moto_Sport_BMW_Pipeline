@@ -7,6 +7,6 @@ SELECT
     NULLIF(TRIM(VEHICLE), '') AS car_model,
     TRY_CAST(POSITION AS INTEGER) AS overall_position,
     NULLIF(TRIM(CLASS), '') AS car_class,
-    NULLIF(TRIM(STATUS), '') AS classification_status
-FROM
-    bronze_classification_csv;
+    NULLIF(TRIM(STATUS), '') AS classification_status,
+    NULLIF(TRIM(IMSA_ManufacturerId), '') AS manufacturer_source_id
+FROM bronze_classification_csv;

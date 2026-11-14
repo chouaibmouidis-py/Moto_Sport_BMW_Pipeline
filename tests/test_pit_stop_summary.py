@@ -9,7 +9,7 @@ class PitStopSummaryTests(unittest.TestCase):
     def test_rounds_average_at_half_millisecond(self):
         with duckdb.connect() as connection:
             connection.execute("""
-                CREATE TEMP VIEW silver_pit_stops AS
+                CREATE TEMP VIEW pit_stop_summary_input AS
                 SELECT 'test-source' AS source_id,
                        'version-1' AS bronze_sha256,
                        '24' AS car_number,
@@ -29,7 +29,7 @@ class PitStopSummaryTests(unittest.TestCase):
     def test_summary_with_missing_duration(self):
         with duckdb.connect() as connexion:
             connexion.execute("""
-                CREATE TEMP VIEW silver_pit_stops AS
+                CREATE TEMP VIEW pit_stop_summary_input AS
                 SELECT
                     'test-source' AS source_id,
                     'version-1' AS bronze_sha256,
@@ -55,7 +55,7 @@ class PitStopSummaryTests(unittest.TestCase):
     def test_summary_with_only_missing_durations(self):
             with duckdb.connect() as connexion:
                 connexion.execute("""
-                CREATE TEMP VIEW silver_pit_stops AS
+                CREATE TEMP VIEW pit_stop_summary_input AS
                 SELECT 'test-source' AS source_id, 'version-1' AS bronze_sha256, *
                     FROM (VALUES
                         ('25', NULL),
@@ -74,7 +74,7 @@ class PitStopSummaryTests(unittest.TestCase):
     def test_keeps_sources_separate(self):
         with duckdb.connect() as connexion:
             connexion.execute("""
-                CREATE TEMP VIEW silver_pit_stops AS
+                CREATE TEMP VIEW pit_stop_summary_input AS
                 SELECT *
                 FROM (VALUES
                     ('course-a', 'version-1', '24', 60.0),
@@ -100,9 +100,9 @@ class PitStopSummaryTests(unittest.TestCase):
     def test_keeps_versions_separate(self):
         with duckdb.connect() as connexion:
             connexion.execute("""
-                CREATE TEMP VIEW silver_pit_stops AS
+                CREATE TEMP VIEW pit_stop_summary_input AS
                 SELECT *
-            FROM (VALUES
+                FROM (VALUES
                 ('course-a', 'version-1', '24', 60.0),
                 ('course-a', 'version-1', '24', 80.0),
                 ('course-a', 'version-2', '24', 100.0)
