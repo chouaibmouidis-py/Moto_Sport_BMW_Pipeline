@@ -1,38 +1,38 @@
-# Qualification Canadian Tire Motorsport Park / VIR 2025
+# Canadian Tire Motorsport Park / VIR 2025 qualification
 
-Inspection puis intégration du 12 novembre 2026. Quatre sources activées et
-passées à `tested_locally` après confirmation des sorties par Chouaib :
-363 participations, dont 38 BMW ; 3 183 arrêts rattachés, dont 300 BMW ;
-neuf lignes de bilan qualité. La suite de tests n'a pas été rejouée par l'agent
-pour cet ajout de configuration.
+Inspection followed by integration on 12 November 2026. Four sources enabled and
+moved to `tested_locally` after Chouaib confirmed the outputs:
+363 entries, including 38 BMW entries; 3 183 linked pit stops, including 300 BMW stops;
+nine quality summary rows. The agent did not rerun the test suite
+for this configuration addition.
 
-- [Session CTMP](https://imsa.results.alkamelcloud.com/Results/25_2025/15_Canadian%20Tire%20Motorsport%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202507131405_Race/)
-- [Session VIR](https://imsa.results.alkamelcloud.com/Results/25_2025/17_VIRginia%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508241410_Race/)
+- [CTMP session](https://imsa.results.alkamelcloud.com/Results/25_2025/15_Canadian%20Tire%20Motorsport%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202507131405_Race/)
+- [VIR session](https://imsa.results.alkamelcloud.com/Results/25_2025/17_VIRginia%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508241410_Race/)
 
-Fichiers : `03_Results_Race_Official.JSON` et `20_Pit Stops Time Cards_Race.JSON`.
-Les classements portent Official ; leurs racines sont session, fastest_lap,
-classification. Les rapports d'arrêts conservent session et pit_stop_analysis.
+Files: `03_Results_Race_Official.JSON` and `20_Pit Stops Time Cards_Race.JSON`.
+The classifications are marked Official; their roots are session, fastest_lap,
+classification. The pit stop reports retain session and pit_stop_analysis.
 
-| Référence | CTMP | VIR |
+| Reference | CTMP | VIR |
 | --- | --- | --- |
-| Session issue du dossier | 202507131405-race | 202508241410-race |
-| Classes présentes | LMP2, GTDPRO, GTD | GTDPRO, GTD |
-| Participants classés distincts | 35 | 23 |
-| Participations BMW | 3 | 3 |
-| Numéros BMW | 1, 48, 96 | 1, 96, 48 |
-| Entrées d'arrêts | 35 | 23 |
-| Entrées de pilotes | 70 | 46 |
-| Arrêts détaillés | 111 | 54 |
-| Arrêts BMW | 8 | 7 |
-| Écarts de comptage inspectés | Aucun | Aucun |
+| Session derived from the directory | 202507131405-race | 202508241410-race |
+| Classes present | LMP2, GTDPRO, GTD | GTDPRO, GTD |
+| Distinct classified participants | 35 | 23 |
+| BMW entries | 3 | 3 |
+| BMW numbers | 1, 48, 96 | 1, 96, 48 |
+| Pit stop report entries | 35 | 23 |
+| Driver entries | 70 | 46 |
+| Detailed pit stops | 111 | 54 |
+| BMW pit stops | 8 | 7 |
+| Count discrepancies inspected | None | None |
 
-Aucun numéro du rapport d'arrêts n'est absent du classement correspondant.
-L'absence des BMW GTP 24 et 25 ne constitue pas un défaut de complétude : la
-classe GTP ne figure dans aucun des deux classements. Ne pas imposer les cinq
-BMW des courses toutes catégories comme constante de validation.
-L'absence d'écart de comptage n'établit pas la qualité de tous les autres champs.
+No number in either pit stop report is absent from the corresponding classification.
+The absence of BMW GTP cars 24 and 25 is not a completeness defect: the
+GTP class does not appear in either classification. Do not require the five
+BMW cars from races featuring all classes as a constant validation rule.
+The absence of count discrepancies does not establish the quality of all other fields.
 
-Références attendues après intégration aux sept courses : 363 participations,
-dont 38 BMW ; 3 183 arrêts détaillés, dont 300 BMW ; neuf bilans qualité et
-toujours douze familles de fichiers. Conversions, clés et liens à vérifier par
-le pipeline avant de déclarer le lot validé.
+Expected reference totals after integration across the seven races: 363 entries,
+including 38 BMW entries; 3 183 detailed pit stops, including 300 BMW stops; nine quality summaries and
+still twelve file families. Conversions, keys, and links must be checked by
+the pipeline before declaring the batch validated.

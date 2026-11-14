@@ -1,117 +1,125 @@
-# Inventaire des sources et conséquences pour le pipeline
+# Source inventory and implications for the pipeline
 
-Vérification du 6 novembre 2026. Ce document distingue les fichiers lus des
-familles repérées dans les index officiels. Il ne constitue pas un inventaire
-exhaustif de tous les championnats, saisons ou schémas.
+Verification dated November 6, 2026. This document distinguishes files read from
+families identified in the official indexes. It is not an exhaustive
+inventory of all championships, seasons, or schemas.
 
-## Sources officielles
+> Historical-status clarification: the proposed design decisions and work order
+> below describe the November 6 assessment, not the current implementation
+> backlog. The project now has a separate 2023–2025 Gold for race entries;
+> statements about “our current file” and introducing a source manifest are
+> stale if read as current claims. The source observations and unvalidated
+> compatibility caveats remain historical evidence, not fresh portal checks.
+> See [the Gold documentation](gold.fr.md).
 
-- [Index IMSA 2025](https://imsa.results.alkamelcloud.com/Results/25_2025/)
-- [Course Road America 2025](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/)
-- [Course Long Beach 2025](https://imsa.results.alkamelcloud.com/Results/25_2025/07_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202504121405_Race/)
-- [Course Daytona 2025](https://imsa.results.alkamelcloud.com/Results/25_2025/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202501251340_Race/)
-- [Portail WEC](https://fiawec.alkamelsystems.com/)
-- [Portail GT World Challenge Europe](https://www.gt-world-challenge-europe.com/results)
-- [Résultats DTM](https://www.dtm.com/ergebnisse/results?season=2025)
-- [Portail WorldSBK](https://www.worldsbk.com/en/standings)
+## Official sources
 
-Les portails hors IMSA ont été repérés, mais leurs fichiers et schémas ne sont
-pas validés comme compatibles avec notre lecteur. L'URL historique WEC testée
-renvoie maintenant une application HTML : HTTP 200 ne garantit pas un fichier
-de résultats. La disponibilité des sources FIM EWC reste à vérifier.
+- [IMSA 2025 index](https://imsa.results.alkamelcloud.com/Results/25_2025/)
+- [Road America 2025 race](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/)
+- [Long Beach 2025 race](https://imsa.results.alkamelcloud.com/Results/25_2025/07_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202504121405_Race/)
+- [Daytona 2025 race](https://imsa.results.alkamelcloud.com/Results/25_2025/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202501251340_Race/)
+- [WEC portal](https://fiawec.alkamelsystems.com/)
+- [GT World Challenge Europe portal](https://www.gt-world-challenge-europe.com/results)
+- [DTM results](https://www.dtm.com/ergebnisse/results?season=2025)
+- [WorldSBK portal](https://www.worldsbk.com/en/standings)
 
-## Familles présentes dans l'index de course Road America
+The non-IMSA portals have been identified, but their files and schemas have
+not been validated as compatible with our reader. The historical WEC URL tested
+now returns an HTML application: HTTP 200 does not guarantee a results
+file. FIM EWC source availability remains to be checked.
 
-| Famille | Formats repérés | Usage envisagé |
+## Families present in the Road America race index
+
+| Family | Formats identified | Intended use |
 | --- | --- | --- |
-| Grilles de départ, dans un sous-dossier | Inventaire détaillé restant à faire | Position de départ |
-| Résultats généraux | CSV, JSON, PDF | Classement, tours, écarts, statut |
-| Résultats par catégorie | JSON, PDF | Classements de classes |
-| Meilleurs tours par pilote | PDF | Synthèses de performance |
-| Lap chart | JSON, PDF | Positions au fil des tours |
-| Meilleurs secteurs | JSON, PDF | Analyse des secteurs |
-| Séquence des leaders | PDF | Changements en tête |
-| Distance et vitesse moyennes | JSON, PDF | Synthèses |
-| Séquence des meilleurs tours | JSON, PDF | Progression des références |
-| Analyse par tour | PDF | Analyse détaillée |
-| Drive time | PDF | Temps de conduite |
-| Arrêts au stand | JSON, PDF | Entrées/sorties et durées |
-| Time cards | CSV, JSON, PDF | Tours chronométrés |
-| Analyse des drapeaux | PDF | Contexte de neutralisation |
-| Météo | CSV, JSON, PDF | Mesures horodatées |
+| Starting grids, in a subdirectory | Detailed inventory still to do | Starting position |
+| Overall results | CSV, JSON, PDF | Classification, laps, gaps, status |
+| Results by category | JSON, PDF | Class classifications |
+| Best laps by driver | PDF | Performance summaries |
+| Lap chart | JSON, PDF | Positions over the laps |
+| Best sectors | JSON, PDF | Sector analysis |
+| Leader sequence | PDF | Lead changes |
+| Average distance and speed | JSON, PDF | Summaries |
+| Best-lap sequence | JSON, PDF | Progression of benchmarks |
+| Lap analysis | PDF | Detailed analysis |
+| Drive time | PDF | Driving time |
+| Pit stops | JSON, PDF | Entries/exits and durations |
+| Time cards | CSV, JSON, PDF | Timed laps |
+| Flag analysis | PDF | Neutralization context |
+| Weather | CSV, JSON, PDF | Timestamped measurements |
 
-Des résultats Official, Provisional et Unofficial coexistent. Des points de
-championnat et des récompenses figurent également au niveau supérieur, ainsi
-que des essais et qualifications. Plusieurs formats peuvent représenter les
-mêmes faits : ne pas les concaténer comme des observations indépendantes.
-Présence dans un index ne signifie pas que le contenu de chaque PDF a été lu.
+Official, Provisional, and Unofficial results coexist. Championship points
+and awards also appear at the parent level, along with
+practice and qualifying sessions. Several formats can represent the
+same facts: do not concatenate them as independent observations.
+Presence in an index does not mean that every PDF's content has been read.
 
-## Comparaison de fichiers effectivement lus
+## Comparison of files actually read
 
-Les volumes suivants concernent le JSON d'arrêts ; ce sont des entrées source,
-pas nécessairement des véhicules ou personnes distincts.
+The following volumes concern pit-stop JSON; they are source entries,
+not necessarily distinct vehicles or people.
 
-| Épreuve 2025 | Entrées voitures | Entrées pilotes | Arrêts |
+| 2025 event | Car entries | Driver entries | Stops |
 | --- | ---: | ---: | ---: |
 | Long Beach | 26 | 52 | 32 |
 | Road America | 50 | 100 | 137 |
-| Daytona, rapport Hour 24 | 69 | 265 | 1622 |
+| Daytona, Hour 24 report | 69 | 265 | 1622 |
 
-Les trois JSON d'arrêts ont les racines `session` et `pit_stop_analysis`.
-Les résultats officiels ont `session`, `fastest_lap`, `classification` :
-27 entrées à Long Beach, 48 à Road America, 61 à Daytona Hour 24.
-Le nombre d'entrées du classement n'est donc pas celui du rapport d'arrêts.
-La cause des écarts individuels reste à analyser avant les jointures.
+The three pit-stop JSON files have the roots `session` and `pit_stop_analysis`.
+The official results have `session`, `fastest_lap`, `classification`:
+27 entries at Long Beach, 48 at Road America, 61 at Daytona Hour 24.
+The classification entry count therefore differs from the stop-report count.
+The cause of individual discrepancies still needs analysis before joins.
 
-Le JSON Time Cards de Road America a les racines `session`, `participants`
-et 48 entrées de participants. Chaque participant possède des listes `drivers`
-et `laps`. Les tours exposent numéro, pilote, durée, vitesses, temps écoulé,
-heure, validité, indicateurs d'invalidation, passage de ligne des stands et
-`sector_times`. Ces indicateurs doivent accompagner l'analyse des chronos ;
-un tour invalide ne doit pas devenir une référence de performance par défaut.
+The Road America Time Cards JSON has the roots `session`, `participants`
+and 48 participant entries. Each participant has `drivers`
+and `laps` lists. Laps expose number, driver, duration, speeds, elapsed time,
+time of day, validity, invalidation indicators, pit-lane line crossing, and
+`sector_times`. These indicators must accompany lap-time analysis;
+an invalid lap must not become a performance benchmark by default.
 
-La course de Daytona possède des sous-dossiers Hour 1 à Hour 24. Leur contenu
-ne doit pas être additionné sans vérifier la portée temporelle et les recouvrements.
+The Daytona race has Hour 1 to Hour 24 subdirectories. Their content
+must not be added together without checking temporal scope and overlaps.
 
-Les JSON météo lus ont les racines `session`, `meteoSamples` et les champs :
-`time_utc_secconds` (orthographe source), `time_utc_str`, `air_temp`,
+The weather JSON files read have the roots `session`, `meteoSamples` and the fields:
+`time_utc_secconds` (source spelling), `time_utc_str`, `air_temp`,
 `track_temp`, `pressure`, `wind_speed`, `wind_direction`.
-Daytona Hour 24 contient 1333 échantillons. Les unités et les conventions de
-temps doivent être vérifiées par famille et version ; ne pas déduire une unité
-de la seule amplitude des nombres. Pas de mesure d'humidité identifiée dans
-ces champs, ni de télémétrie interne de maintenance ou de carburant démontrée.
+Daytona Hour 24 contains 1333 samples. Units and time conventions
+must be checked per family and version; do not infer a unit
+solely from the magnitude of the numbers. No humidity measurement was identified
+in these fields, nor was internal maintenance or fuel telemetry demonstrated.
 
-## Décisions de conception proposées
+## Proposed design decisions
 
-1. Conserver la source brute intégrale, sa provenance et ses versions.
-2. Identifier chaque document par source, championnat, saison, événement,
-   session, famille et révision/période de rapport. Le nom de course seul
-   ne constitue pas une clé suffisante.
-3. Isoler les fichiers par identité et version ; un chemin unique
-   `imsa_document.parquet` ne convient pas à une collection de courses.
-4. Comparer les volumes calculés depuis le JSON aux volumes relus du Parquet
-   correspondant, au lieu d'imposer `(50, 100, 137)` à chaque ingestion.
-   Conserver ces nombres seulement dans le test du fichier Road America.
-5. Valider aussi schéma, contenu et types : égalité des volumes ne prouve pas
-   égalité des données. Vérifier avant publication du fichier final.
-6. Prévoir un lecteur par format et un traitement par famille de documents.
-   Le lecteur d'arrêts n'est pas un lecteur universel de tous les résultats.
-7. Définir la granularité de chaque table Silver : session, engagement,
-   équipage, arrêt, tour, mesure météo. Préserver numéros avec zéros initiaux.
-8. Contrôler les jointures et conserver les engagements sans arrêt ; ne pas
-   utiliser le rapport d'arrêts comme liste complète des participants.
-9. Conserver tous les champs en Raw/Bronze. Exclure des projections uniquement
-   les champs entièrement vides sur le périmètre profilé, avec possibilité de
-   réintégration dans une autre course ou saison.
-10. Distinguer absent, vide, inconnu et non applicable. Ne pas assimiler une
-    session d'essais à une course pour imposer les mêmes obligations.
-11. Vérifier les conditions d'utilisation avant redistribution des données.
-    La licence du code du projet ne donne pas de droits sur les résultats.
+1. Retain the complete raw source, its provenance, and its versions.
+2. Identify each document by source, championship, season, event,
+   session, family, and report revision/period. The race name alone
+   is not a sufficient key.
+3. Isolate files by identity and version; a single
+   `imsa_document.parquet` path is unsuitable for a collection of races.
+4. Compare volumes computed from the JSON with volumes read back from the
+   corresponding Parquet, rather than imposing `(50, 100, 137)` on every ingestion.
+   Keep these numbers only in the Road America file test.
+5. Also validate schema, content, and types: equal volumes do not prove
+   equal data. Check before publishing the final file.
+6. Provide a reader per format and processing per document family.
+   The stop reader is not a universal reader for all results.
+7. Define each Silver table's grain: session, entry,
+   crew, stop, lap, weather measurement. Preserve numbers with leading zeros.
+8. Check joins and retain entries without stops; do not
+   use the stop report as the complete participant list.
+9. Retain all fields in Raw/Bronze. Exclude from projections only
+   fields that are entirely empty within the profiled scope, with the option
+   of reintroducing them for another race or season.
+10. Distinguish missing, empty, unknown, and not applicable. Do not equate a
+    practice session with a race to impose the same requirements.
+11. Check the terms of use before redistributing data.
+    The project's code license grants no rights to the results.
 
-## Ordre de travail
+## Work order
 
-D'abord remplacer les volumes fixes par une comparaison source/sortie sur
-notre fichier actuel. Ensuite introduire le manifeste de sources, les chemins
-par document et un deuxième fichier d'arrêts. Ajouter résultats, tours et météo
-avec leurs propres contrôles, puis seulement valider un autre championnat.
-L'objectif est l'extension progressive, sans promettre une compatibilité non testée.
+First replace fixed volumes with a source/output comparison on
+our current file. Then introduce the source manifest, per-document paths,
+and a second stop file. Add results, laps, and weather
+with their own checks, and only then validate another championship.
+The goal is gradual expansion, without promising untested compatibility.

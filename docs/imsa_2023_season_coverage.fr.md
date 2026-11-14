@@ -1,232 +1,242 @@
-# Couverture exploratoire IMSA WeatherTech 2023
+# Exploratory IMSA WeatherTech 2023 coverage
 
-Qualification et publication exploratoire effectuées le 13 novembre 2026.
-[Calendrier officiel](https://www.imsa.com/weathertech/weathertech-2023-schedule/).
-[Index des résultats](https://imsa.results.alkamelcloud.com/Results/23_2023/).
+Exploratory qualification and publication carried out on November 13, 2026.
+[Official schedule](https://www.imsa.com/weathertech/weathertech-2023-schedule/).
+[Results index](https://imsa.results.alkamelcloud.com/Results/23_2023/).
 
-Les onze couples CSV de classement Official / PDF d'arrêts sont décrits dans
-`config/exploration_2023.json`. Les 22 fichiers ont été conservés localement
-dans `data/raw` après téléchargement et contrôle de l'égalité des copies.
-Ce catalogue est indépendant de `config/sources.json` : aucune source 2023
-n'est activée dans le pipeline principal.
+The eleven Official classification CSV / pit-stop PDF pairs are described in
+`config/exploration_2023.json`. The 22 files were retained locally
+in `data/raw` after downloading and checking that the copies were identical.
+This catalog is independent of `config/sources.json`: no 2023 source
+is enabled in the main pipeline.
 
-| Course | Session | Portée | Entrées classement | BMW | Arrêts extraits | Arrêts BMW |
+> Current-status clarification: the separate three-season Gold now includes the
+> 2023 CSV/PDF marts alongside the 2024–2025 JSON inputs. Statements below that
+> these summaries are not yet integrated into Gold describe an earlier stage
+> and are stale as current claims. The 2023 catalog remains separate from the
+> main JSON run. See [the Gold documentation](gold.fr.md).
+
+| Race | Session | Scope | Classification entries | BMW | Extracted stops | BMW stops |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| Daytona | 202301281340-race | Heure 24 | 61 | 5 | 1 631 | 140 |
-| Sebring | 202303181010-race | Heure 12 | 53 | 5 | 733 | 59 |
+| Daytona | 202301281340-race | Hour 24 | 61 | 5 | 1 631 | 140 |
+| Sebring | 202303181010-race | Hour 12 | 53 | 5 | 733 | 59 |
 | Long Beach | 202304151405-race | Session | 28 | 5 | 28 | 6 |
 | Laguna Seca | 202305141210-race | Session | 38 | 5 | 124 | 14 |
-| Watkins Glen | 202306251040-race | Heure 6 | 57 | 5 | 383 | 29 |
+| Watkins Glen | 202306251040-race | Hour 6 | 57 | 5 | 383 | 29 |
 | Canadian Tire | 202307091205-race | Session | 34 | 5 | 96 | 15 |
 | Lime Rock | 202307221210-race | Session | 20 | 3 | 45 | 8 |
 | Road America | 202308061010-race | Session | 45 | 5 | 116 | 9 |
 | VIR | 202308271410-race | Session | 19 | 3 | 46 | 6 |
 | Indianapolis | 202309171310-race | Session | 48 | 5 | 126 | 14 |
-| Road Atlanta | 202310141140-race | Heure 10 | 52 | 5 | 625 | 67 |
+| Road Atlanta | 202310141140-race | Hour 10 | 52 | 5 | 625 | 67 |
 | **Total** | | | **455** | **51** | **3 953** | **367** |
 
-Long Beach inclut deux entrées Not started (80 et 93), avec position NULL.
-Le terme « entrées classement » inclut ces non-partants ; il ne signifie pas
-455 voitures ayant effectivement pris le départ.
+Long Beach includes two Not started entries (80 and 93), with NULL positions.
+The term “classification entries” includes these non-starters; it does not mean
+455 cars that actually started the race.
 
-## Vérifications réalisées
+## Checks performed
 
-- Aucun doublon voiture/numéro d'arrêt ni arrêt sans participant correspondant
-  repéré ; séquences d'arrêts contrôlées.
-- Pour les neuf nouveaux PDF, comparaison de l'extraction par coordonnées avec
-  une lecture textuelle sans restriction spatiale : listes identiques.
-  Les deux lectures partagent les règles de reconnaissance ; ce n'est pas une
-  validation indépendante de chaque ligne visuelle.
-- Publication des onze synthèses par `publish_silver` avec contrôle du nombre
-  de lignes et du contenu relu. Chaque synthèse contient le contexte de la
-  course, le statut et les deux empreintes sources.
-- Suite complète : 127 tests réussis. Un test vérifie deux publications avec
-  contextes et dossiers distincts, pour prévenir la réutilisation du contexte
-  Road America pour une autre course.
+- No duplicate car/stop-number pairs or stops without a matching participant
+  were found; stop sequences were checked.
+- For the nine new PDFs, coordinate-based extraction was compared with
+  text reading without spatial restrictions: the lists were identical.
+  Both readings share the recognition rules; this is not an
+  independent validation of every visual row.
+- The eleven summaries were published through `publish_silver`, checking the
+  row count and the content read back. Each summary contains the race
+  context, status, and both source hashes.
+- Full suite: 127 tests passed. One test checks two publications with
+  separate contexts and directories to prevent reuse of the
+  Road America context for another race.
 
-Absences de détail dans l'extraction : Long Beach 01/80/93 ; Laguna Seca 94 ;
-Watkins Glen 51/24 ; Lime Rock 91/94 ; Road America 57 ; VIR 92 ; Indianapolis 93.
-Les comptages restent NULL. Pour les nouvelles absences, l'absence visuelle
-dans le PDF reste à confirmer : ne pas les interpréter comme zéro arrêt.
+Missing details in the extraction: Long Beach 01/80/93; Laguna Seca 94;
+Watkins Glen 51/24; Lime Rock 91/94; Road America 57; VIR 92; Indianapolis 93.
+Counts remain NULL. For the newly identified missing details, visual absence
+from the PDF still needs confirmation: do not interpret them as zero stops.
 
-## Utilisation
+## Usage
 
 ```bash
 uv run python explore_2023_season.py
 ```
 
-Le lanceur vérifie la présence du lot local, puis appelle `explore_source_pair`
-pour chaque course. Les sorties vont dans
-`data/exploration/<event_id>-2023/car_summary.parquet`. Le catalogue conserve
-les URL officielles, mais le lanceur ne télécharge pas les fichiers manquants.
-Le lecteur PDF reste lié à la mise en page observée, sans garantie pour de
-nouveaux formats. Le script individuel garde Road America comme contexte
-d'exploration ; utiliser le catalogue pour les autres courses.
+The launcher checks that the local batch is present, then calls `explore_source_pair`
+for each race. Outputs go to
+`data/exploration/<event_id>-2023/car_summary.parquet`. The catalog retains
+the official URLs, but the launcher does not download missing files.
+The PDF reader remains tied to the observed layout, with no guarantee for
+new formats. The individual script retains Road America as its exploration
+context; use the catalog for the other races.
 
-## Limites d'intégration
+## Integration limits
 
-Cette couverture reste **hors du run actif 2024–2025** et de ses lecteurs.
-Les classements ont un parcours Bronze/Silver isolé décrit ci-dessous ; les
-synthèses CSV/PDF ne sont pas encore intégrées à ses sorties Gold.
-Les CSV ne fournissent pas de
-comptage déclaré indépendant ; les bilans count_mismatch du pipeline JSON
-ne sont donc pas transposés. Noms de pilotes, heures d'entrée/sortie et totaux
-cumulés du PDF ne sont pas encore exposés par ce lecteur.
+This coverage remains **outside the active 2024–2025 run** and its readers.
+The classifications have a separate Bronze/Silver path described below; the
+CSV/PDF summaries are not yet integrated into its Gold outputs.
+The CSVs do not provide an
+independent reported count; the JSON pipeline's count_mismatch assessments
+are therefore not carried over. Driver names, entry/exit times, and cumulative
+PDF totals are not yet exposed by this reader.
 
-Les onze publications sont contrôlées fichier par fichier, sans activation
-atomique de l'ensemble exploratoire : un échec tardif peut laisser un lot
-partiellement actualisé. `data/current.json` n'est jamais modifié.
-Les empreintes identifient les versions lues ; le contexte du catalogue est
-déclaratif, pas une vérification automatique de la course contenue dans le PDF.
+> Historical integration limit: the “not yet integrated” Gold statement above
+> predates the separate 2023–2025 Gold. It remains relevant to the main JSON
+> run's readers, but does not describe current cross-season Gold coverage.
 
-## Structure commune des arrêts extraits du PDF
+The eleven publications are checked file by file, without atomic activation
+of the exploratory set: a late failure can leave a batch
+partially updated. `data/current.json` is never modified.
+The hashes identify the versions read; the catalog context is
+declarative, not an automatic check of which race the PDF contains.
 
-Tous les appels à `extract_stops` renvoient une liste de dictionnaires portant
-les mêmes sept champs : `car_number`, `pit_number`, `pit_time_raw`,
-`page_number`, `column_number`, `block_line_number` et `source_line`.
-Les variantes retournant seulement trois valeurs et les filtres de voitures
-codés dans le parseur ont été retirés. Le filtrage métier appartient aux lecteurs.
+## Common structure of stops extracted from PDFs
 
-`extract_stop_blocks` organise les fragments en pages/colonnes ;
-`parse_stop_blocks` est l'unique logique de reconnaissance des voitures et arrêts.
-`convert_extracted_stops` conserve les sept champs et ajoute `pit_time_seconds`.
-Les tests textuels sans document peuvent utiliser des repères page/colonne NULL ;
-l'extraction d'un vrai PDF fournit des numéros à partir de 1.
+All calls to `extract_stops` return a list of dictionaries with
+the same seven fields: `car_number`, `pit_number`, `pit_time_raw`,
+`page_number`, `column_number`, `block_line_number`, and `source_line`.
+Variants returning only three values and car filters
+hardcoded in the parser have been removed. Business filtering belongs in the readers.
 
-`block_line_number` compte les lignes retenues du bloc extrait, pas les lignes
-visuelles du PDF. `source_line` est le texte fourni par l'extraction, après les
-opérations de sélection et de retrait des espaces externes ; il ne remplace pas
-le PDF Raw. Ce schéma commun ne rend pas les coordonnées de lecture universelles.
-Le constructeur `build_pdf_pit_stop_bronze`, dans `bronze.py`, publie ces sept
-champs avec `source_id` et `pdf_sha256`, soit neuf colonnes. Le PDF Raw demeure
-la référence ; Bronze conserve les champs sélectionnés par l'extracteur, pas
-l'intégralité du contenu du document. Les durées restent textuelles.
+`extract_stop_blocks` organizes fragments into pages/columns;
+`parse_stop_blocks` is the sole logic for recognizing cars and stops.
+`convert_extracted_stops` retains the seven fields and adds `pit_time_seconds`.
+Text-only tests without a document may use NULL page/column markers;
+extraction from an actual PDF provides numbers starting at 1.
 
-Le pilote Road America est publié dans
-`data/bronze/imsa-2023-road-america-race-pit-stops/document.parquet` : 116 arrêts,
-repères et provenance relus et comparés à l'extraction. L'empreinte PDF est
-distincte de celle du Parquet Bronze, qui sera calculée lors de son chargement.
-Le constructeur refuse une source modifiée pendant l'extraction ; une erreur
-du parseur ou d'écriture préserve une éventuelle sortie précédente.
-Une extraction vide produit un schéma typé vide, sans inventer d'arrêt ; cela
-ne prouve pas qu'un PDF inconnu a été correctement interprété.
+`block_line_number` counts retained lines in the extracted block, not visual
+lines in the PDF. `source_line` is the text supplied by extraction, after
+selection and trimming of surrounding whitespace; it does not replace
+the Raw PDF. This common schema does not make the reading coordinates universal.
+The `build_pdf_pit_stop_bronze` builder in `bronze.py` publishes these seven
+fields with `source_id` and `pdf_sha256`, making nine columns. The Raw PDF remains
+the reference; Bronze retains the fields selected by the extractor, not
+the document's entire content. Durations remain textual.
 
-Les onze courses disposent maintenant d'un Bronze et d'un Silver PDF. Le chargement
-ajoute `bronze_sha256`, puis `34_silver_pdf_pit_stops.sql` ajoute
-`pit_time_in_seconds` en réutilisant la macro de durée existante.
-Le contrôle partagé de qualité refuse une provenance absente ou une clé répétée
+The Road America pilot is published in
+`data/bronze/imsa-2023-road-america-race-pit-stops/document.parquet`: 116 stops,
+markers and provenance read back and compared with the extraction. The PDF hash
+is separate from the Bronze Parquet hash, which will be computed when it is loaded.
+The builder rejects a source modified during extraction; a parser or write
+error preserves any previous output.
+An empty extraction produces an empty typed schema without inventing a stop;
+this does not prove that an unfamiliar PDF has been interpreted correctly.
+
+All eleven races now have PDF Bronze and Silver outputs. Loading
+adds `bronze_sha256`, then `34_silver_pdf_pit_stops.sql` adds
+`pit_time_in_seconds` by reusing the existing duration macro.
+The shared quality check rejects missing provenance or a repeated key
 (`source_id`, `bronze_sha256`, `car_number`, `pit_number`).
 
-Le Silver pilote est sauvegardé dans
-`data/exploration/road-america-2023/silver/pit_stops.parquet` : 116 lignes,
-onze colonnes, aucune durée non convertie. Les champs Bronze et leurs repères
-ont été comparés à la sortie ; les schémas et contenus ont été contrôlés après
-publication. Le traitement par lot est disponible avec deux modes exclusifs :
+The pilot Silver is saved in
+`data/exploration/road-america-2023/silver/pit_stops.parquet`: 116 rows,
+eleven columns, no unconverted durations. The Bronze fields and their markers
+were compared with the output; schemas and content were checked after
+publication. Batch processing is available through two exclusive modes:
 
 ```bash
 uv run python explore_2023_season.py --pdf-bronze-only
 uv run python explore_2023_season.py --pdf-silver-only
 ```
 
-Le premier construit les onze Bronze depuis les PDF Raw locaux ; le second
-construit les Silver depuis les Bronze existants. Vérification des sorties :
-3 953 arrêts, dont 367 BMW, zéro durée non convertie. Les champs extraits et
-repères sont identiques entre Bronze et Silver ; les empreintes PDF et Bronze
-correspondent aux fichiers locaux. Aucun arrêt orphelin n'a été détecté face
-aux classements Silver correspondants. La référence active reste inchangée.
+The first builds the eleven Bronze outputs from the local Raw PDFs; the second
+builds the Silver outputs from the existing Bronze outputs. Output verification:
+3 953 stops, including 367 BMW stops, zero unconverted durations. Extracted fields
+and markers are identical between Bronze and Silver; PDF and Bronze hashes
+match the local files. No orphan stops were detected against
+the corresponding Silver classifications. The active reference remains unchanged.
 
-Les modes `--classification-only`, `--pdf-bronze-only` et `--pdf-silver-only`
-sont mutuellement exclusifs. La présence des entrées est vérifiée avant chaque
-lot, mais une erreur tardive de contenu peut laisser les sorties précédentes
-actualisées : aucune activation atomique de saison n'est fournie.
+The `--classification-only`, `--pdf-bronze-only`, and `--pdf-silver-only` modes
+are mutually exclusive. Input presence is checked before each
+batch, but a late content error can leave earlier outputs
+updated: no atomic season activation is provided.
 
-Les huit tests de lots Bronze/Silver PDF passent. Après correction du bloc
-parasite dans silver_writer.py et renforcement du scénario Silver avec deux
-courses, Chouaib confirme 170 tests réussis sur la suite complète.
+The eight PDF Bronze/Silver batch tests pass. After correcting the stray block
+in silver_writer.py and strengthening the Silver scenario with two
+races, Chouaib confirms 170 tests passed in the full suite.
 
-## Rapprochement mart des onze courses
+## Mart reconciliation for the eleven races
 
 ```bash
 uv run python explore_2023_season.py --mart-only
 ```
 
-Ce mode exclusif utilise les deux Silver déjà publiés pour chaque course et
-appelle `publish_csv_pdf_race_summary` avec le contexte de cette seule course.
-Il vérifie tous les chemins et refuse les identifiants dupliqués avant de
-publier dans `data/exploration/<event_id>-2023/marts/race_car_summary.parquet`.
-Il ne relit pas les Raw et ne reconstruit pas Bronze ou Silver.
+This exclusive mode uses the two Silver outputs already published for each race and
+calls `publish_csv_pdf_race_summary` with that race's context only.
+It checks all paths and rejects duplicate identifiers before
+publishing to `data/exploration/<event_id>-2023/marts/race_car_summary.parquet`.
+It does not reread Raw inputs or rebuild Bronze or Silver.
 
-Validation sur les onze sorties : 455 participations, dont 51 BMW, 3 953 arrêts
-observés, dont 367 BMW. Les clés des participants sont identiques à celles des
-classements Silver (EXCEPT ALL dans les deux sens). Les sessions et versions
-CSV/PDF correspondent aux entrées ; les Silver et `data/current.json` sont
-inchangés. Suite complète : 173 tests réussis.
+Validation across the eleven outputs: 455 entries, including 51 BMW entries,
+3 953 observed stops, including 367 BMW stops. Participant keys are identical to
+those in the Silver classifications (EXCEPT ALL in both directions). Sessions
+and CSV/PDF versions match the inputs; Silver outputs and `data/current.json`
+are unchanged. Full suite: 173 tests passed.
 
-Onze participations sont conservées sans détail d'arrêt, avec comptage observé
-NULL : Long Beach (01, 80, 93), Laguna Seca (94), Watkins Glen (24, 51), Lime
-Rock (91, 94), Road America (57), VIR (92) et Indianapolis (93).
-Cette absence n'établit ni un zéro arrêt ni une cause sportive.
+Eleven entries are retained without stop details, with an observed count of
+NULL: Long Beach (01, 80, 93), Laguna Seca (94), Watkins Glen (24, 51), Lime
+Rock (91, 94), Road America (57), VIR (92), and Indianapolis (93).
+This absence establishes neither zero stops nor a sporting explanation.
 
-Tous les comptages déclarés restent NULL ; `comparison_status` vaut
-`unavailable_reported_count`. Le champ indépendant `stop_detail_status`
-distingue `available` de `no_stop_details`.
+All reported counts remain NULL; `comparison_status` is
+`unavailable_reported_count`. The independent `stop_detail_status` field
+distinguishes `available` from `no_stop_details`.
 
-Trois tests de lot vérifient la séparation de deux courses ayant la même
-voiture, le refus d'une entrée manquante avant publication et la préservation
-d'un mart précédent si un Silver d'une autre source est placé dans le mauvais
-dossier. La publication reste individuelle : une erreur tardive peut laisser
-les courses précédentes actualisées. Le lot n'est pas activé atomiquement et
-n'est pas intégré aux lecteurs du run principal.
+Three batch tests check separation of two races with the same
+car, rejection of a missing input before publication, and preservation
+of a previous mart if a Silver output from another source is placed in the wrong
+directory. Publication remains individual: a late error can leave
+earlier races updated. The batch is not activated atomically and
+is not integrated into the main run's readers.
 
-### Historique du pilote Road America
+### Road America pilot history
 
-La synthèse du pilote est publiée dans
-`data/exploration/road-america-2023/marts/race_car_summary.parquet` : 45
-participations conservées, 116 arrêts retrouvés, voiture 57 conservée avec
-comptage observé NULL. Les comptages déclarés restent NULL et le statut vaut
-`unavailable_reported_count` ; `stop_detail_status` distingue les détails
-disponibles de leur absence. Les versions CSV et PDF sont conservées séparément.
+The pilot summary is published in
+`data/exploration/road-america-2023/marts/race_car_summary.parquet`: 45
+entries retained, 116 stops found, car 57 retained with
+an observed count of NULL. Reported counts remain NULL and the status is
+`unavailable_reported_count`; `stop_detail_status` distinguishes available
+details from their absence. CSV and PDF versions are retained separately.
 
-`build_pit_stop_counts` alimente une vue commune `pit_stop_count_input` pour
-réutiliser SQL 28 sur les deux formats. `build_csv_pdf_race_summary` réutilise
-l'appariement SQL 29, refuse les versions multiples d'une même source et les
-arrêts sans participant correspondant, puis applique le LEFT JOIN de SQL 35.
-La même voiture dans deux sessions ne mélange pas leurs comptages.
+`build_pit_stop_counts` populates a shared `pit_stop_count_input` view to
+reuse SQL 28 for both formats. `build_csv_pdf_race_summary` reuses
+SQL 29 matching, rejects multiple versions of the same source and
+stops without a matching participant, then applies the LEFT JOIN from SQL 35.
+The same car in two sessions does not mix their counts.
 
-Validation : 158 tests réussis ; comptages partagés vérifiés sur les 8 307 arrêts
-JSON actifs, entrées Silver et référence active inchangées lors du pilote.
-Ce pilote est désormais généralisé par `build_mart_batch` sans recopier la
-logique SQL ; les limites de lecture PDF décrites plus haut restent applicables.
+Validation: 158 tests passed; shared counts checked against the 8 307 active
+JSON stops, Silver inputs and active reference unchanged during the pilot.
+This pilot has now been generalized through `build_mart_batch` without duplicating
+the SQL logic; the PDF reading limits described above still apply.
 
-## Classements CSV : parcours Bronze/Silver isolé
+## CSV classifications: separate Bronze/Silver path
 
 ```bash
 uv run python explore_2023_season.py --classification-only
 ```
 
-Cette option lit les onze `classification_path` du catalogue existant, sans
-relire les PDF. Elle vérifie tous les chemins avant publication et refuse les
-identifiants de course ou de source dupliqués. L'identifiant de source reprend
-le nom du dossier Raw, conformément aux dossiers existants.
+This option reads the eleven `classification_path` values from the existing catalog,
+without rereading the PDFs. It checks all paths before publication and rejects
+duplicate race or source identifiers. The source identifier uses
+the Raw directory name, consistent with the existing directories.
 
-Pour chaque course :
+For each race:
 
-1. Le CSV est lu en texte (`;`, en-tête, complétion des champs finaux absents
-   par NULL), sans nettoyage des valeurs Bronze.
-2. Le Parquet Bronze est publié dans `data/bronze/<source_id>/document.parquet`.
-3. Le chargement ajoute `source_id` et l'empreinte SHA-256 du Parquet Bronze.
-4. Les numéros manquants ou dupliqués après nettoyage bloquent la transformation.
-5. La requête `33_silver_classification_csv.sql` normalise cinq champs.
-6. Les sept colonnes Silver sont publiées et relues avec contrôle du contenu dans
+1. The CSV is read as text (`;`, header, missing trailing fields filled
+   with NULL), without cleaning Bronze values.
+2. The Bronze Parquet is published to `data/bronze/<source_id>/document.parquet`.
+3. Loading adds `source_id` and the SHA-256 hash of the Bronze Parquet.
+4. Missing or duplicate numbers after cleaning block transformation.
+5. The `33_silver_classification_csv.sql` query normalizes five fields.
+6. The seven Silver columns are published and read back with content checks in
    `data/exploration/<event_id>-2023/silver/classification.parquet`.
 
-Validation réelle des onze classements : 455 participations, dont 51 BMW ;
-seules les positions de 80 et 93 à Long Beach sont NULL (`Not started`).
-Les schémas et contenus Bronze ont été comparés aux lectures CSV dans les deux
-sens avec EXCEPT ALL. Les volumes et provenances Silver ont été vérifiés pour
-chaque course, sans numéros manquants ou dupliqués. Les CSV Raw et la référence
-`data/current.json` sont restés inchangés.
+Validation on the eleven actual classifications: 455 entries, including 51 BMW entries;
+only the positions of 80 and 93 at Long Beach are NULL (`Not started`).
+Bronze schemas and content were compared with the CSV readings in both
+directions using EXCEPT ALL. Silver volumes and provenance were checked for
+each race, with no missing or duplicate numbers. The Raw CSVs and the
+`data/current.json` reference remained unchanged.
 
-Cette commande publie les fichiers individuellement : un échec tardif peut
-laisser des sorties de courses précédentes actualisées. Elle ne fournit ni
-activation atomique de saison ni intégration aux sorties du run principal.
+This command publishes files individually: a late failure can
+leave outputs from earlier races updated. It provides neither
+atomic season activation nor integration into the main run's outputs.

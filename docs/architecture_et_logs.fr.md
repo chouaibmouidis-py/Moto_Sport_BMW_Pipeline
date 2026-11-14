@@ -1,156 +1,154 @@
-# Architecture et journalisation
+# Architecture and logging
 
-Refactorisation du 13 novembre 2026. Elle organise les responsabilités et les
-messages d'exécution ; elle n'intègre pas 2023 dans le run JSON et n'étend pas
-la couverture des saisons. Les requêtes SQL métier restent inchangées.
+Refactoring dated November 13, 2026. It organizes responsibilities and runtime
+messages; it does not integrate 2023 into the JSON run or extend season
+coverage. The business SQL queries remain unchanged.
 
-## Lire le projet par responsabilité
+## Navigate the project by responsibility
 
-Les commandes historiques à la racine restent utilisables. Les fonctions
-partagées résident dans `src/moto_sport_bmw_pipeline`. Les petits scripts
-d'ingestion et d'inspection restent à la racine ; leurs imports ne lancent
-plus de téléchargement ni de lecture de données.
+The legacy commands at the root remain usable. Shared functions reside in
+`src/moto_sport_bmw_pipeline`. Small ingestion and inspection scripts remain
+at the root; importing them no longer triggers downloads or data reads.
 
-| Besoin | Module propriétaire | Commande ou façade historique |
+| Need | Owning module | Legacy command or facade |
 | --- | --- | --- |
-| Coordonner les cinq étapes JSON | `orchestration.py` | `run_pipeline.py` |
-| Construire et activer un candidat JSON | `pipeline.py` | `analyze_bronze.py` |
-| Résoudre les chemins du projet | `paths.py` | Partagé par les lanceurs |
-| Télécharger un Raw JSON | `raw_download.py` | `download.py` |
-| Contrôler les empreintes Raw | `integrity.py` | `file_integrity.py` |
-| Valider les identifiants du manifeste | `manifest.py` | `manifest_validation.py` |
-| Charger les Bronze et métadonnées | `source_loading.py` | Fonctions réexportées par les anciens scripts |
-| Transformer et contrôler les clés Silver | `silver.py` | Fonctions historiques conservées |
-| Apparier les sources, contrôler les liens et participants | `quality.py` | Appelé par le pipeline |
-| Produire les diagnostics de durée | `duration_quality.py` | Appelé par le pipeline |
-| Construire les enrichissements et synthèses | `marts.py` | Appelé par le pipeline |
-| Déclarer et publier les douze sorties | `publication.py` | Registre `OUTPUT_VIEWS` unique |
-| Vérifier et remplacer un Parquet | `parquet_writer.py` | `silver_writer.py` |
-| Activer ou lire une référence de run | `run_reference.py` | `run_publication.py` |
-| Reconnaître les blocs et arrêts du PDF | `pdf_parser.py` | Réexporté par `explore_pit_stop_pdf.py` |
-| Convertir, contrôler et publier un couple CSV/PDF | `exploration.py` | `explore_pit_stop_pdf.py`, `explore_2023_season.py` |
-| Afficher des tableaux de diagnostic | `diagnostics.py` | Activé par `--verbose` |
-| Configurer les logs et le contexte de run | `logging_config.py` | Configuration aux points d'entrée |
+| Coordinate the five JSON steps | `orchestration.py` | `run_pipeline.py` |
+| Build and activate a JSON candidate | `pipeline.py` | `analyze_bronze.py` |
+| Resolve project paths | `paths.py` | Shared by launchers |
+| Download a Raw JSON file | `raw_download.py` | `download.py` |
+| Check Raw hashes | `integrity.py` | `file_integrity.py` |
+| Validate manifest identifiers | `manifest.py` | `manifest_validation.py` |
+| Load Bronze data and metadata | `source_loading.py` | Functions re-exported by legacy scripts |
+| Transform and validate Silver keys | `silver.py` | Legacy functions retained |
+| Match sources, validate links and participants | `quality.py` | Called by the pipeline |
+| Produce duration diagnostics | `duration_quality.py` | Called by the pipeline |
+| Build enrichments and summaries | `marts.py` | Called by the pipeline |
+| Declare and publish the twelve outputs | `publication.py` | Single `OUTPUT_VIEWS` registry |
+| Validate and replace a Parquet file | `parquet_writer.py` | `silver_writer.py` |
+| Activate or read a run reference | `run_reference.py` | `run_publication.py` |
+| Identify PDF blocks and stops | `pdf_parser.py` | Re-exported by `explore_pit_stop_pdf.py` |
+| Convert, validate and publish a CSV/PDF pair | `exploration.py` | `explore_pit_stop_pdf.py`, `explore_2023_season.py` |
+| Display diagnostic tables | `diagnostics.py` | Enabled by `--verbose` |
+| Configure logs and run context | `logging_config.py` | Configured at entry points |
 
-Chaque module Python possède une docstring de tête expliquant son rôle.
-Les fichiers SQL restent dans `sql/`, les manifestes dans `config/`, les
-scénarios dans `tests/` et les données locales ignorées par Git dans `data/`.
-Les façades évitent de casser les imports existants pendant la transition ;
-le nouveau code doit importer directement le module propriétaire.
+Each Python module has a module-level docstring explaining its role.
+SQL files remain in `sql/`, manifests in `config/`, test scenarios in `tests/`,
+and local data ignored by Git in `data/`.
+The facades avoid breaking existing imports during the transition;
+new code should import directly from the owning module.
 
-## Parcours des données
+## Data flow
 
 ```text
 run_pipeline.py
   ├── inspect_manifest.py → build_bronze.py
   ├── inspect_classification.py → build_classification_bronze.py
   └── analyze_bronze.py → pipeline.build_candidate_run
-        chargement → Silver → contrôles → marts → publication → activation
+        loading → Silver → checks → marts → publication → activation
 
 explore_2023_season.py
-  catalogue exploratoire → pdf_parser → exploration → Parquet exploratoires
+  exploratory catalog → pdf_parser → exploration → exploratory Parquet files
 ```
 
-Le registre des sorties requises est partagé par la publication et l'activation.
-Un fichier oublié ne peut plus résulter d'une divergence entre deux listes.
-Les règles de blocage, le comportement des NULL et les formules SQL sont conservés.
-Les anciens tableaux pédagogiques propres à une voiture de 2025 ont été remplacés
-dans l'analyse principale par des aperçus génériques des vues en mode verbose.
+The required-output registry is shared by publication and activation.
+A file can no longer be omitted because two lists diverge.
+Blocking rules, NULL behavior and SQL formulas are preserved.
+The old educational tables specific to one 2025 car have been replaced in the
+main analysis by generic view previews in verbose mode.
 
-## Logs opérationnels
+## Operational logs
 
-Les anciens `print()` de suivi sont remplacés par `logging`. Les `.show()`
-restent destinés à afficher de vraies tables, notamment dans les lecteurs métier.
+The old progress `print()` calls are replaced by `logging`. The `.show()` calls
+remain for displaying actual tables, particularly in business-data readers.
 
-| Niveau | Usage |
+| Level | Usage |
 | --- | --- |
-| INFO | Début/fin d'étape, sources chargées, volumes et fichiers publiés |
-| WARNING | Anomalie signalée qui ne bloque pas la publication |
-| ERROR | Échec d'une étape ou d'un candidat, avec traceback |
-| DEBUG | Empreintes, chemins temporaires et détails d'exploration |
+| INFO | Step start/end, sources loaded, row counts and files published |
+| WARNING | Reported anomaly that does not block publication |
+| ERROR | Step or candidate failure, with traceback |
+| DEBUG | Hashes, temporary paths and exploration details |
 
-Format : horodatage UTC, niveau, module, identifiant de run et message.
-L'identifiant vaut `-` avant la création d'un candidat JSON et dans l'exploration.
-Le contexte événement/session de l'exploration figure dans ses messages et ses données.
-Les logs console vont sur stderr ; les tableaux vont sur stdout. Un fichier
-optionnel UTF-8 est ouvert en ajout. Configurer une deuxième fois ne duplique
-pas les handlers de l'application. Les imports ne configurent pas les logs.
+Format: UTC timestamp, level, module, run identifier and message.
+The identifier is `-` before a JSON candidate is created and during exploration.
+Exploration event/session context appears in its messages and data.
+Console logs go to stderr; tables go to stdout. An optional UTF-8 file is opened
+in append mode. Configuring logging a second time does not duplicate application
+handlers. Imports do not configure logging.
 
 ```bash
-# Parcours JSON complet, logs communs aux cinq processus
+# Full JSON workflow, shared logging across the five processes
 uv run python run_pipeline.py --log-file data/logs/pipeline.log
 
-# Transformation/publication à partir des Bronze existants
+# Transformation/publication from existing Bronze data
 uv run python analyze_bronze.py --log-file data/logs/analyze.log
 
-# Détails DEBUG et tableaux, uniquement quand nécessaires
+# DEBUG details and tables, only when needed
 uv run python analyze_bronze.py --verbose --log-file data/logs/analyze-debug.log
 
-# Saison 2023 exploratoire, hors current.json
+# Exploratory 2023 season, outside current.json
 uv run python explore_2023_season.py --log-file data/logs/exploration-2023.log
 
-# Entrées équivalentes du lanceur JSON depuis ce checkout
+# Equivalent JSON launcher entry points from this checkout
 uv run moto-sport-bmw-pipeline --help
 uv run python -m moto_sport_bmw_pipeline --help
 ```
 
-Le lanceur transmet `BMW_LOG_LEVEL` et, si demandé, `BMW_LOG_FILE` aux étapes.
-Les petits scripts qui n'exposent pas ces options peuvent aussi hériter de ces
-variables. Aucun service cloud de logs, rotation automatique ou mécanisme de
-concurrence des fichiers de logs n'est ajouté par cette refactorisation.
-Le projet reste validé depuis son checkout avec `config/`, `sql/` et les scripts
-présents ; une distribution autonome par wheel n'est pas encore démontrée.
+The launcher passes `BMW_LOG_LEVEL` and, if requested, `BMW_LOG_FILE` to the steps.
+Small scripts that do not expose these options can also inherit these variables.
+This refactoring adds no cloud logging service, automatic rotation or log-file
+concurrency mechanism.
+The project remains validated from its checkout with `config/`, `sql/` and the
+scripts present; standalone wheel distribution has not yet been demonstrated.
 
-## Portée réelle du fail fast
+## Actual scope of fail-fast behavior
 
-Les contrôles existants détectent les erreurs qu'ils expriment : JSON invalide,
-empreinte incorrecte, clés invalides, liens ambigus, comptage de participants
-altéré ou contenu Parquet différent. Cela ne constitue pas un contrat exhaustif
-de schéma fournisseur. Par exemple, renommer un champ optionnel peut produire
-un NULL et une anomalie non bloquante ; un ajout de champ peut rester en Bronze
-sans être projeté en Silver.
+Existing checks detect the errors they express: invalid JSON, incorrect hashes,
+invalid keys, ambiguous links, altered participant counts or different Parquet
+content. This is not an exhaustive provider-schema contract. For example,
+renaming an optional field may produce a NULL and a non-blocking anomaly;
+an added field may remain in Bronze without being projected into Silver.
 
-Avant 2026, qualifier les documents réels puis définir les champs requis et
-compatibilités de schéma. Ne pas promettre une adaptation sans changement de
-code avant cette qualification. Les hypothèses sportives expliquant une absence
-d'arrêt ne deviennent pas des règles métier sans preuve source.
+Before tackling 2026, assess the actual documents, then define required fields
+and schema compatibility. Do not promise adaptation without code changes before
+that assessment. Sporting hypotheses explaining a missing stop do not become
+business rules without source evidence.
 
-## Validation et lecture des tests
+## Validation and interpreting tests
 
-Les imports historiques restent disponibles. Un mock doit cependant viser le
-module qui utilise réellement la dépendance : par exemple
-`moto_sport_bmw_pipeline.publication.publish_silver` plutôt que l'ancien lanceur.
-Les tests de logs couvrent absence de doublons, fichier UTF-8, niveau DEBUG,
-contexte du run et transmission des options aux processus. Les imports des
-lecteurs sont testés sans connexion ni téléchargement.
+Legacy imports remain available. However, a mock must target the module that
+actually uses the dependency: for example,
+`moto_sport_bmw_pipeline.publication.publish_silver` rather than the old launcher.
+Logging tests cover duplicate prevention, UTF-8 files, DEBUG level, run context
+and forwarding options to processes. Reader imports are tested without
+connections or downloads.
 
-Les résultats doivent être comparés avant/après par schéma et différences de
-lignes dans les deux sens ; un simple comptage ne prouve pas leur égalité.
+Results must be compared before/after using schemas and row differences in both
+directions; a simple count does not prove equality.
 
-Validation effectuée le 13 novembre 2026 : 132 tests réussis ; parcours JSON
-complet à cinq étapes exécuté depuis les Raw locaux ; douze sorties comparées
-exactement au run de référence avant refactorisation (schéma et EXCEPT ALL
-dans les deux sens). Les onze synthèses 2023 ont également été régénérées puis
-comparées à leurs références avec égalité exacte. Les lecteurs qualité et mart
-ont été exécutés sur le même run actif. Les commandes d'aide du point d'entrée
-console et du module Python sont fonctionnelles. Une installation vierge et
-un téléchargement réseau initial n'ont pas été rejoués pour ce changement.
+Validation performed on November 13, 2026: 132 tests passed; the full five-step
+JSON workflow was run from local Raw files; twelve outputs were compared exactly
+with the reference run before refactoring (schema and EXCEPT ALL in both
+directions). The eleven 2023 summaries were also regenerated and compared with
+their references with exact equality. Quality and mart readers were run against
+the same active run. Help commands for the console entry point and Python module
+work. A clean installation and an initial network download were not rerun for
+this change.
 
-## Construction Bronze des arrêts PDF
+## Bronze construction for PDF stops
 
-Le module `bronze.py` construit les Parquet Bronze à partir de champs extraits
-des sources. Son premier constructeur, `build_pdf_pit_stop_bronze`, réutilise
-`pdf_parser.extract_stops` et la publication sécurisée de `parquet_writer`.
-Il conserve les sept champs de chaque arrêt avec l'identifiant de source et
-l'empreinte du PDF, sans conversion de durée. Il ne lance pas de saison et
-n'active pas de run. Cette séparation évite de faire écrire le parseur lui-même.
+The `bronze.py` module builds Bronze Parquet files from fields extracted from
+sources. Its first builder, `build_pdf_pit_stop_bronze`, reuses
+`pdf_parser.extract_stops` and safe publication through `parquet_writer`.
+It retains the seven fields of each stop along with the source identifier and
+PDF hash, without converting durations. It does not run a season or activate a
+run. This separation keeps writing out of the parser itself.
 
-## Langue et descriptions des fichiers
+## Language and file descriptions
 
-Les modules Python, les tests et les requêtes SQL maintenus portent un en-tête
-en anglais décrivant leur rôle. Les identifiants, commentaires techniques et
-messages opérationnels sont rédigés en anglais. La documentation pédagogique
-peut rester en français. Les valeurs des sources conservent leur langue et le
-test de journalisation utilise volontairement un message français pour vérifier
-l'encodage UTF-8. Les copies de brouillon non suivies par Git sont exclues de
-cette harmonisation.
+Maintained Python modules, tests and SQL queries have an English header
+describing their role. Identifiers, technical comments and operational messages
+are written in English. Public project documentation is now in English as well;
+historical `.fr.md` filenames remain to preserve previously shared links.
+Source values retain their language, and the logging test intentionally uses a
+French message to check UTF-8 encoding. Draft copies not tracked by Git are
+excluded from this harmonization.

@@ -1,35 +1,39 @@
-# Contrat initial de la couche Gold
+# Initial Gold layer contract
 
-Ébauche du 12 novembre 2026, à éprouver avant toute promesse de livraison.
-La couverture historique visée reste 2022–2026. Au 13 novembre 2026,
-les saisons WeatherTech 2024 et 2025 sont intégrées pour classements et arrêts.
-Les onze courses 2023 disposent de synthèses CSV/PDF exploratoires séparées,
-sans intégration dans le run actif. Les saisons 2022 et 2026 restent à qualifier.
+Historical design baseline. The implemented participation schema and publication
+mechanism are documented in [Shared Gold](gold.fr.md). As of November 14, 2026,
+that separate Gold publication covers 2023–2025; the JSON run remains independent.
 
-## Tables et granularités
+Draft dated November 12, 2026, to be validated before making any delivery commitment.
+The target historical coverage remains 2022–2026. As of November 13, 2026,
+the WeatherTech 2024 and 2025 seasons are integrated for classifications and stops.
+The eleven 2023 races have separate exploratory CSV/PDF summaries, without
+integration into the active run. The 2022 and 2026 seasons still require assessment.
 
-- Synthèse des participations : une ligne par source et version du classement,
-  numéro textuel de voiture. La course, la saison et le championnat devront être
-  exposés explicitement, sans demander au consommateur de décoder source_id.
-- Détail des arrêts : une ligne par clé d'arrêt validée dans son rapport/version.
-  Préserver la référence de l'entrée source et les liens vers les pilotes.
-- Bilan qualité : une ligne par classement/version, avec population, comptages,
-  pourcentages et définition des statuts.
+## Tables and grains
 
-## Règles de consommation
+- Participation summary: one row per classification source and version,
+  and textual car number. Race, season and championship must be exposed
+  explicitly, without requiring the consumer to decode source_id.
+- Stop details: one row per validated stop key within its report/version.
+  Preserve the source-entry reference and links to drivers.
+- Quality summary: one row per classification/version, with population, counts,
+  percentages and status definitions.
 
-Conserver les participants sans détail. Une absence de moyenne reste NULL,
-jamais zéro par défaut. Présenter couverture des durées et concordance des
-comptages séparément. Le dénominateur du taux de count_mismatch est l'ensemble
-des participants du classement ; cet indicateur ne mesure pas toutes les erreurs.
-Les durées sont en secondes et ne mesurent pas isolément la performance des
-mécaniciens. Toute comparaison sportive devra expliciter ses critères de contexte.
+## Consumption rules
 
-## Traçabilité et réception
+Retain participants without details. A missing average remains NULL,
+never zero by default. Present duration coverage and count agreement separately.
+The denominator of the count_mismatch rate is all participants in the
+classification; this indicator does not measure every error.
+Durations are in seconds and do not measure mechanics' performance in isolation.
+Any sporting comparison must state its contextual criteria explicitly.
 
-Conserver les références et empreintes des deux rapports, les règles de
-transformation et le run de publication. Tester les clés, la conservation des
-participants, les liens, les conversions et les séparations de courses/versions.
-Fournir un dictionnaire des champs et un exemple SQL/notebook de lecture du
-run actif. Un futur consommateur IA utilisera les mêmes définitions, unités et
-limites ; aucune compatibilité IA n'est démontrée par cette ébauche.
+## Traceability and acceptance
+
+Retain references and hashes for both reports, transformation rules and the
+publication run. Test keys, participant preservation, links, conversions and
+separation between races/versions.
+Provide a field dictionary and an SQL/notebook example for reading the active
+run. A future AI consumer will use the same definitions, units and limitations;
+this draft demonstrates no AI compatibility.

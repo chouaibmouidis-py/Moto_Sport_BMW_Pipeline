@@ -1,106 +1,106 @@
-# Qualification initiale Road America 2023
+# Initial Road America 2023 qualification
 
-Inspection du 12 novembre 2026. Aucun ajout au manifeste actif : les formats
-disponibles diffèrent des couples JSON intégrés pour 2024 et 2025.
+Inspection on 12 November 2026. No addition to the active manifest: the available
+formats differ from the JSON pairs integrated for 2024 and 2025.
 
-[Répertoire officiel de la course](https://imsa.results.alkamelcloud.com/Results/23_2023/17_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308061010_Race/).
+[Official race directory](https://imsa.results.alkamelcloud.com/Results/23_2023/17_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202308061010_Race/).
 
-## Disponibilité constatée
+## Observed availability
 
-- Classement : `03_Results_Race_Official.CSV` et PDF.
-- Arrêts : `20_Pit Stops Time Cards_Race.PDF` ; aucun équivalent JSON ou CSV
-  n'est listé dans cet index.
-- Chronos : `23_Time Cards_Race.CSV`, granularité voiture/tour, avec
-  `PIT_TIME`, `DRIVER_NUMBER`, `LAP_NUMBER`, `HOUR`, `MANUFACTURER` et
-  `CROSSING_FINISH_LINE_IN_PIT`. Ce n'est pas le rapport d'arrêts déjà intégré.
+- Classification: `03_Results_Race_Official.CSV` and PDF.
+- Pit stops: `20_Pit Stops Time Cards_Race.PDF`; no JSON or CSV equivalent
+  is listed in this index.
+- Timing: `23_Time Cards_Race.CSV`, at car/lap granularity, with
+  `PIT_TIME`, `DRIVER_NUMBER`, `LAP_NUMBER`, `HOUR`, `MANUFACTURER`, and
+  `CROSSING_FINISH_LINE_IN_PIT`. This is not the pit stop report already integrated.
 
-## Premières différences
+## Initial differences
 
-CSV séparés par point-virgule, avec BOM UTF-8. Les en-têtes des chronos
-comportent parfois des espaces initiaux. Préserver les numéros textuels
-comme `01`. Le classement contient `POSITION`, `NUMBER`, `VEHICLE`, `CLASS`,
-mais pas de colonne de comptage d'arrêts ni de constructeur textuel ;
-`IMSA_ManufacturerId` est un identifiant, pas un libellé.
+Semicolon-delimited CSV files, with a UTF-8 BOM. The timing headers
+sometimes contain leading spaces. Preserve text numbers
+such as `01`. The classification contains `POSITION`, `NUMBER`, `VEHICLE`, `CLASS`,
+but no pit stop count column or textual manufacturer name;
+`IMSA_ManufacturerId` is an identifier, not a label.
 
-Lecture du classement vérifiée avec DuckDB : 45 participants. L'en-tête a
-93 champs, chaque ligne de participant en a 73. `null_padding=True` permet
-de remplir les champs finaux absents avec NULL, sans ignorer de lignes.
-`all_varchar=True` préserve les numéros textuels. Cette lecture exploratoire
-ne constitue pas encore une validation ni une publication Bronze.
+Classification reading verified with DuckDB: 45 participants. The header has
+93 fields, while each participant row has 73. `null_padding=True` allows
+missing trailing fields to be filled with NULL, without skipping rows.
+`all_varchar=True` preserves text numbers. This exploratory reading
+does not yet constitute validation or Bronze publication.
 
-Ne pas fabriquer un nombre d'arrêts déclaré à partir des chronos : il ne
-serait plus indépendant du comptage observé. Ne pas assimiler `PIT_TIME`
-à la durée des rapports JSON sans examiner sa définition et vérifier le PDF.
+Do not fabricate a reported stop count from timing data: it would
+no longer be independent of the observed count. Do not equate `PIT_TIME`
+with the duration in the JSON reports without examining its definition and checking the PDF.
 
-## Exploration vérifiée et référence Git
+## Verified exploration and Git reference
 
-`explore_classification_csv.py` lit le classement et un échantillon des chronos.
-Le chemin des chronos reste temporairement fixé à `/tmp/imsa-ra2023-timing.csv`.
-Pour la BMW 24, les deux durées CSV correspondent au PDF (1:28.481 et 1:22.665).
-La BMW 25 possède quatre lignes de chronos sans PIT_TIME, alors que le PDF
-contient un passage de 1:59:53.389 : les chronos ne remplacent pas le PDF.
+`explore_classification_csv.py` reads the classification and a timing sample.
+The timing path remains temporarily fixed at `/tmp/imsa-ra2023-timing.csv`.
+For BMW 24, the two CSV durations match the PDF (1:28.481 and 1:22.665).
+BMW 25 has four timing rows without PIT_TIME, whereas the PDF
+contains a stop of 1:59:53.389: timing data does not replace the PDF.
 
-`explore_pit_stop_pdf.py` extrait 116 arrêts pour 44 voitures, sans doublon de
-clé voiture/arrêt sur le PDF inspecté. Les coordonnées, limites de corps et
-tailles de police sont spécifiques à ce rapport. Le contexte voiture traverse
-les colonnes/pages ; les numéros à un, deux ou trois chiffres sont reconnus.
-Les contrôles refusent un arrêt sans contexte, un numéro hors séquence ou une
-ligne candidate dont la durée ne peut être extraite. Une dégradation qui
-empêche même la reconnaissance comme candidate peut encore passer inaperçue.
+`explore_pit_stop_pdf.py` extracts 116 pit stops for 44 cars, without duplicate
+car/stop keys in the inspected PDF. Coordinates, body boundaries, and
+font sizes are specific to this report. The car context carries across
+columns/pages; one-, two-, and three-digit numbers are recognized.
+The checks reject a stop without context, an out-of-sequence number, or a
+candidate row whose duration cannot be extracted. Degradation that
+even prevents recognition as a candidate can still go unnoticed.
 
-Validation avant commit de référence : 114 tests réussis, dont neuf ciblent
-l'exploration PDF ; les deux scripts ont été exécutés sur les sources locales.
-Ces contrôles ne prouvent pas l'exhaustivité sur d'autres PDF. Les fichiers
-sources temporaires ne sont pas inclus dans Git. Aucune source 2023 n'a été
-activée dans le pipeline, et aucune publication n'est déclenchée par ces scripts.
+Validation before the reference commit: 114 passing tests, including nine targeting
+PDF exploration; both scripts were run on the local sources.
+These checks do not prove completeness for other PDFs. Temporary source
+files are not included in Git. No 2023 source has been
+enabled in the pipeline, and these scripts do not trigger any publication.
 
-Le commit précédent couvre 2024 et 2025. Le nouveau jalon ajoute en bloc
-l'exploration 2023 ; faute de commits intermédiaires, Git ne permet pas de
-séparer rétrospectivement les contributions des différents assistants.
+The previous commit covers 2024 and 2025. The new milestone adds the
+2023 exploration as a single batch; without intermediate commits, Git cannot
+retrospectively separate the contributions of the different assistants.
 
-## Synthèse exploratoire et contrôles — 13 novembre 2026
+## Exploratory summary and checks — 13 November 2026
 
-Le script PDF reçoit désormais deux chemins : PDF d'arrêts puis CSV de
-classement. Les deux fichiers doivent exister avant toute extraction.
-`convert_extracted_stops` réutilise la macro SQL de durée et conserve le texte
-brut, avec un résultat arrondi à la milliseconde. `build_pdf_car_summary`
-regroupe les arrêts par voiture avant la jointure gauche avec le classement.
+The PDF script now receives two paths: pit stop PDF followed by classification
+CSV. Both files must exist before any extraction.
+`convert_extracted_stops` reuses the SQL duration macro and retains the raw
+text, with a result rounded to the millisecond. `build_pdf_car_summary`
+aggregates stops by car before the left join with the classification.
 
-Chouaib confirme la synthèse de 45 participants. La voiture 57, absente du
-rapport PDF inspecté, est conservée avec un comptage observé NULL, sans
-affirmer qu'elle a effectué zéro arrêt. Le classement ne fournit pas de
-comptage déclaré indépendant permettant une comparaison similaire à 2024–2025.
+Chouaib confirms the 45-participant summary. Car 57, absent from the
+inspected PDF report, is retained with an observed count of NULL, without
+asserting that it made zero stops. The classification does not provide an
+independent reported count allowing a comparison similar to 2024–2025.
 
-Contrôles : refus des numéros de classement NULL/vides/blancs ou répétés,
-préservation de la distinction textuelle entre 01 et 1, refus des arrêts sans
-participant correspondant. Un participant sans détail reste accepté.
-La revue a détecté un contrôle de rattachement testé isolément mais absent de
-`main()` : l'appel a été ajouté et un test de `main()` vérifie désormais le refus
-avant construction de la synthèse. Ces ajouts restent exploratoires ; aucune
-source 2023 n'est activée ou publiée par le pipeline principal.
+Checks: reject NULL/empty/whitespace-only or duplicate classification numbers,
+preserve the textual distinction between 01 and 1, and reject stops without a
+matching participant. A participant without detail is still accepted.
+The review detected an association check tested in isolation but missing from
+`main()`: the call was added, and a `main()` test now verifies rejection
+before the summary is built. These additions remain exploratory; no
+2023 source is enabled or published by the main pipeline.
 
-## Sources locales et traçabilité de la sortie exploratoire
+## Local sources and traceability of the exploratory output
 
-Le PDF et le CSV de classement déjà inspectés ont été copiés, sans conversion
-ni écrasement de fichier existant, depuis `/tmp` vers les dossiers Raw suivants.
-L'égalité des empreintes entre chaque source temporaire et sa copie a été vérifiée.
+The previously inspected PDF and classification CSV were copied, without conversion
+or overwriting an existing file, from `/tmp` to the following Raw directories.
+Matching hashes between each temporary source and its copy were verified.
 
 - `data/raw/imsa-2023-road-america-race-pit-stops/20_Pit Stops Time Cards_Race.PDF`
 - `data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV`
 
-Ces fichiers locaux, ignorés par Git, doivent être conservés pour reproduire
-l'exploration. Cette copie n'est pas encore un téléchargement automatisé ni un
-archivage immuable. Les liens officiels restent ceux du répertoire indiqué plus haut.
+These local files, ignored by Git, must be retained to reproduce
+the exploration. This copy is not yet an automated download or an
+immutable archive. The official links remain those of the directory listed above.
 
-La synthèse exploratoire est publiée dans
-`data/exploration/road-america-2023/car_summary.parquet`, avec vérification de
-contenu par `publish_silver`, sans activation dans `current.json`.
-Sa version courante produit 45 lignes et onze colonnes : les quatre colonnes
-métier, les deux empreintes sources, championship/season/event_id/session_id
-et classification_status (statut source, ajouté après qualification de Long Beach).
-Le fichier existant doit être régénéré pour recevoir cette nouvelle colonne.
-Les valeurs de contexte sont déclarées dans le script ; elles ne sont pas
-automatiquement déduites ou validées contre le contenu des deux documents.
+The exploratory summary is published to
+`data/exploration/road-america-2023/car_summary.parquet`, with content verification
+by `publish_silver`, without activation in `current.json`.
+Its current version produces 45 rows and eleven columns: the four business
+columns, the two source hashes, championship/season/event_id/session_id,
+and classification_status (source status, added after the Long Beach qualification).
+The existing file must be regenerated to receive this new column.
+Context values are declared in the script; they are not
+automatically inferred or validated against the content of the two documents.
 
 ```bash
 uv run python explore_pit_stop_pdf.py \

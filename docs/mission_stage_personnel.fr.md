@@ -1,48 +1,52 @@
-# Mission de stage personnelle simulée — données de compétition BMW
+# Simulated personal internship assignment — BMW racing data
 
-Version de cadrage : 10 novembre 2026.
-Actualisation du jalon local : 12 novembre 2026.
+This document retains the original assignment and dated milestones. For current
+coverage, including the separate 2023–2025 Gold publication, see the
+[README](../README.md) and [Gold documentation](gold.fr.md).
 
-Projet pédagogique indépendant. BMW est le destinataire fictif de la restitution : aucune commande, affiliation, convention de stage ou validation par BMW n'est revendiquée. Le livrable de portfolio sera présenté comme un projet personnel ayant utilisé un tuteur IA comme sparring-partner technique (revue de code critique, challenge d'architecture et scénarios de tests).
+Scoping version: November 10, 2026.
+Local milestone update: November 12, 2026.
 
-## Besoin métier
+Independent educational project. BMW is the fictional recipient of the presentation: no commission, affiliation, internship agreement or validation by BMW is claimed. The portfolio deliverable will be presented as a personal project that used an AI tutor as a technical sparring partner (critical code review, architecture challenges and test scenarios).
 
-Permettre à une équipe d'analyse sportive fictive de retrouver les engagements BMW, leurs pilotes et leurs arrêts, avec un contexte de course et une qualité des données vérifiables.
+## Business need
 
-Les premiers résultats doivent permettre de répondre à trois questions : quels engagements BMW figurent dans les documents disponibles ; quelles durées et quels changements de pilotes sont rapportés ; quelles informations sont absentes, illisibles ou incohérentes ? Une durée d'arrêt n'est pas assimilée à une performance des mécaniciens ni à une perte nette de temps en piste.
+Enable a fictional sports analytics team to find BMW entries, their drivers and their stops, with verifiable race context and data quality.
 
-## Périmètre et progression
+The first results must answer three questions: which BMW entries appear in the available documents; which durations and driver changes are reported; and which information is missing, unreadable or inconsistent? A stop duration is not equated with mechanics' performance or a net loss of track time.
 
-- Socle de livraison initial : trois rapports officiels IMSA 2025, Road America, Long Beach et Daytona heure 24 ; tous les concurrents restent disponibles pour contextualiser les engagements BMW.
-- Données : préserver les documents sources et les champs vides dans Bronze ; représenter les champs renseignés dans Silver, avec les valeurs sources nécessaires au diagnostic.
-- Extension : qualifier puis intégrer une première source de structure différente. L'objectif à terme reste l'étude des participations BMW auto et moto sur les saisons 2022–2026 ; la couverture mondiale n'est pas encore démontrée et fera l'objet d'un inventaire vérifié.
-- Premier pilote intégré : classement Official de Road America, 48 participants, rapproché des rapports d'arrêts. Lot étendu et validé localement : Long Beach (27 participants) et Daytona heure 24 (61 participants). Les trois classements totalisent 136 participations, dont 13 BMW ; leur projection Silver reste partielle et les champs non projetés demeurent en Bronze. Les jointures et bilans qualité séparent les sources et leurs versions.
-- Expérimentation stockage : émulation locale puis validation ciblée dans un cloud de test, avec budget convenu avant utilisation. Aucun déploiement cloud n'est nécessaire pour accepter le premier livrable local.
+## Scope and progression
 
-## Livrables
+- Initial delivery baseline: three official IMSA 2025 reports, Road America, Long Beach and Daytona Hour 24; all competitors remain available to put BMW entries in context.
+- Data: preserve source documents and empty fields in Bronze; represent populated fields in Silver, with the source values needed for diagnosis.
+- Extension: assess and then integrate a first source with a different structure. The long-term goal remains to study BMW car and motorcycle participations across the 2022–2026 seasons; global coverage has not yet been demonstrated and will require a verified inventory.
+- First integrated pilot: Road America Official classification, 48 participants, matched to stop reports. Batch extended and validated locally: Long Beach (27 participants) and Daytona Hour 24 (61 participants). The three classifications total 136 participations, including 13 BMW; their Silver projection remains partial and fields not projected remain in Bronze. Joins and quality summaries separate sources and their versions.
+- Storage experiment: local emulation followed by targeted validation in a test cloud, with a budget agreed before use. No cloud deployment is required to accept the first local deliverable.
 
-1. Pipeline local reproductible avec une commande, configuration des sources et dépendances restaurables avec uv.
-2. Tables Silver distinctes pour le contexte de session par document, les entrées de voitures, les entrées de pilotes et les arrêts ; relations et granularités documentées.
-3. Rapports de qualité et mart des arrêts enrichis, consultables depuis une exécution active cohérente.
-4. README de démarrage, dictionnaire de données, architecture et procédure de diagnostic/reprise.
-5. Démonstration métier, rapport de mission et soutenance comprenant les limites, les preuves de test et les décisions techniques.
+## Deliverables
 
-## Critères d'acceptation du premier livrable local
+1. Reproducible local pipeline with one command, source configuration and dependencies restorable with uv.
+2. Separate Silver tables for session context per document, car entries, driver entries and stops; documented relationships and grains.
+3. Quality reports and an enriched stop mart, accessible from a consistent active run.
+4. Getting-started README, data dictionary, architecture and diagnosis/recovery procedure.
+5. Business demonstration, assignment report and oral presentation covering limitations, test evidence and technical decisions.
 
-- Une procédure documentée permet de restaurer l'environnement et d'exécuter les cinq étapes du lanceur depuis un autre dossier.
-- Les onze rapports d'arrêts intégrés produisent les volumes de référence : 507 entrées de voitures, 1 344 entrées de pilotes et 4 117 arrêts ; le filtre BMW retrouve 388 arrêts. Les onze classements produisent 469 participations, dont 48 BMW. Ces nombres sont des références de ce jeu, pas des constantes métier universelles.
-- Le bilan de comptage est distinct pour chaque classement et version : Road America, 2 écarts sur 48 (4,17 %) ; Long Beach, aucun `count_mismatch` sur 27 ; Daytona, 14 écarts sur 61 (22,95 %). Le cas sans détail de Long Beach reste signalé séparément ; cet indicateur ne mesure pas toutes les anomalies.
-- Les numéros textuels, la provenance et la version sont conservés ; les jointures n'ajoutent ni ne suppriment involontairement des arrêts.
-- Les conversions, clés, liens parent/enfant et cumuls ont des scénarios valides et invalides testés. Absence et erreur de conversion sont distinguées.
-- Les douze fichiers d'une exécution sont préparés et vérifiés avant activation, dont le classement, sa comparaison avec les arrêts et la synthèse par participant. Cette synthèse refuse les clés manquantes ou dupliquées et les participants perdus ou ajoutés. Un échec simulé laisse l'ancienne référence exploitable. Les lecteurs choisissent une seule exécution par lecture.
-- La suite de tests passe ; la procédure de lancement et les lecteurs de qualité et de mart sont rejoués conformément au README.
-- Les limites sont explicites : sources encore peu nombreuses, dates sans fuseau confirmé, conditions de comparaison sportive, absence de validation de concurrence et de récupération après coupure machine.
+## Acceptance criteria for the first local deliverable
 
-## Jalons et accompagnement
+- A documented procedure allows the environment to be restored and the launcher's five steps to be run from another directory.
+- The eleven integrated stop reports produce the reference volumes: 507 car entries, 1 344 driver entries and 4 117 stops; the BMW filter returns 388 stops. The eleven classifications produce 469 participations, including 48 BMW. These numbers are references for this dataset, not universal business constants.
+- The count summary is separate for each classification and version: Road America, 2 mismatches out of 48 (4,17 %); Long Beach, no `count_mismatch` out of 27; Daytona, 14 mismatches out of 61 (22,95 %). The Long Beach case without details remains flagged separately; this indicator does not measure all anomalies.
+- Textual numbers, provenance and version are preserved; joins do not unintentionally add or remove stops.
+- Conversions, keys, parent/child links and cumulative totals have tested valid and invalid scenarios. Absence and conversion failure are distinguished.
+- The twelve files of a run are prepared and checked before activation, including the classification, its comparison with stops and the per-participant summary. This summary rejects missing or duplicate keys and lost or added participants. A simulated failure leaves the old reference usable. Readers select a single run per read.
+- The test suite passes; the startup procedure and quality and mart readers are rerun as described in the README.
+- Limitations are explicit: still few sources, dates without a confirmed timezone, conditions for sporting comparisons, and no validation of concurrency or recovery after a machine power loss.
 
-1. Stabiliser le lecteur de référence, la documentation et le parcours local existant.
-2. Qualifier une nouvelle source et documenter ses écarts avant d'adapter le pipeline.
-3. Consolider les résultats métier et présenter la démonstration.
-4. Réaliser une revue de code et un examen pratique noté sur les fondamentaux nécessaires à l'autonomie.
+## Milestones and coaching
 
-Le rythme respecte le travail et les disponibilités de Chouaib ; aucune échéance de livraison n'est inventée. L'évaluation distingue travail autonome, indices et solution fournie. Le nombre de tests du projet n'est pas une mesure suffisante de l'autonomie. Aucun message ni livrable ne sera envoyé à BMW sans demande explicite.
+1. Stabilize the reference reader, documentation and existing local workflow.
+2. Assess a new source and document its differences before adapting the pipeline.
+3. Consolidate business results and present the demonstration.
+4. Conduct a code review and a graded practical assessment of the fundamentals required for independent work.
+
+The pace respects Chouaib's work and availability; no delivery deadline is invented. Assessment distinguishes independent work, hints and supplied solutions. The project's test count is not a sufficient measure of independence. No message or deliverable will be sent to BMW without an explicit request.

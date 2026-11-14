@@ -1,55 +1,60 @@
-# Couverture IMSA WeatherTech 2024
+# IMSA WeatherTech 2024 coverage
 
-Inventaire initial du 12 novembre 2026, après validation du pilote Road America.
-[Calendrier officiel annoncé et révisé](https://www.imsa.com/news/2023/08/04/2024-imsa-schedules-revealed-at-road-america/).
-[Index officiel 2024](https://imsa.results.alkamelcloud.com/Results/24_2024/).
-Les dates et sessions effectives seront vérifiées dans les rapports avant activation.
+Initial inventory dated November 12, 2026, after validation of the Road America pilot.
+[Official schedule announcement and revision](https://www.imsa.com/news/2023/08/04/2024-imsa-schedules-revealed-at-road-america/).
+[Official 2024 index](https://imsa.results.alkamelcloud.com/Results/24_2024/).
+Actual dates and sessions will be checked in the reports before activation.
 
-## Périmètre et lots
+> Historical-status clarification: the future-tense activation check above
+> belongs to the initial inventory. The completed batches below and the current
+> separate 2023–2025 Gold supersede that pending status; the figures below
+> retain their original two-season scope. See [the Gold documentation](gold.fr.md).
 
-| Course | État | Lot proposé |
+## Scope and batches
+
+| Race | Status | Proposed batch |
 | --- | --- | --- |
-| Road America | Classement et arrêts validés localement | Pilote terminé |
-| Laguna Seca | Classement et arrêts validés localement | 1 terminé |
-| Detroit | Classement et arrêts validés localement | 1 terminé |
-| Long Beach | Classement et arrêts validés localement | 2 terminé |
-| Canadian Tire Motorsport Park | Classement et arrêts validés localement | 2 terminé |
-| VIR | Classement et arrêts validés localement | 2 terminé |
-| Daytona | Rapports finaux Hour 24 validés localement | 3 terminé |
-| Sebring | Rapports finaux Hour 12 validés localement | 3 terminé |
-| Watkins Glen | Rapports finaux Hour 6 validés localement | 4 terminé |
-| Indianapolis | Rapports finaux Hour 6 validés localement | 4 terminé |
-| Road Atlanta | Rapports finaux Hour 10 validés localement | 4 terminé |
+| Road America | Classification and stops validated locally | Pilot completed |
+| Laguna Seca | Classification and stops validated locally | 1 completed |
+| Detroit | Classification and stops validated locally | 1 completed |
+| Long Beach | Classification and stops validated locally | 2 completed |
+| Canadian Tire Motorsport Park | Classification and stops validated locally | 2 completed |
+| VIR | Classification and stops validated locally | 2 completed |
+| Daytona | Final Hour 24 reports validated locally | 3 completed |
+| Sebring | Final Hour 12 reports validated locally | 3 completed |
+| Watkins Glen | Final Hour 6 reports validated locally | 4 completed |
+| Indianapolis | Final Hour 6 reports validated locally | 4 completed |
+| Road Atlanta | Final Hour 10 reports validated locally | 4 completed |
 
-Onze courses attendues et intégrées pour les classements et arrêts. La présence d'un dossier
-dans l'archive ne prouve pas la disponibilité de nos deux familles de JSON.
-L'index contient aussi des essais et d'autres séries : ne pas ingérer tous les
-dossiers comme des courses WeatherTech. Deux dossiers Indianapolis apparaissent
-en 2024 : le dossier 17 concerne WeatherTech (22 septembre, six heures),
-le dossier 18 Mustang Challenge (courses des 3 et 4 octobre), hors périmètre.
-Le classement WeatherTech inspecté contient 56 participants, celui de Mustang
-Challenge course 1 en contient 25. Vérifier le championnat et la session,
-pas seulement le nom du circuit.
+Eleven races expected and integrated for classifications and stops. The presence
+of a directory in the archive does not prove that our two JSON families are available.
+The index also contains practice sessions and other series: do not ingest all
+directories as WeatherTech races. Two Indianapolis directories appear
+in 2024: directory 17 concerns WeatherTech (September 22, six hours),
+directory 18 Mustang Challenge (races on October 3 and 4), outside the scope.
+The inspected WeatherTech classification contains 56 participants; the Mustang
+Challenge race 1 classification contains 25. Check the championship and session,
+not just the circuit name.
 
-Ne pas construire les URL 2024 par substitution de l'année dans les URL 2025 :
-les préfixes d'événement et dates de session diffèrent. Ne pas supposer les
-mêmes modèles ou numéros BMW. Les GT3 et GT3 EVO restent libellées selon la source.
-Les rapports horaires seront sélectionnés selon leur portée, jamais concaténés
-comme des courses distinctes.
+Do not construct 2024 URLs by substituting the year in 2025 URLs:
+event prefixes and session dates differ. Do not assume the
+same BMW models or numbers. GT3 and GT3 EVO retain their source labels.
+Hourly reports will be selected according to their scope, never concatenated
+as separate races.
 
-## Bilan de couverture validé
+## Validated coverage summary
 
-Chouaib a confirmé les résultats du dernier lot : avec 2025, 937 participations
-dont 86 BMW, 8 307 arrêts dont 711 BMW, 1 066 fragments voitures,
-2 877 entrées pilotes et 22 bilans qualité de comptage. Les 44 sources sont
-marquées `tested_locally`. La couverture concerne ces deux familles de rapports,
-pas l'ensemble des données IMSA. La suite complète n'a pas été rejouée par
-l'agent pour ce dernier ajout de configuration.
+Chouaib confirmed the final batch results: together with 2025, 937 entries
+including 86 BMW entries, 8 307 stops including 711 BMW stops, 1 066 car fragments,
+2 877 driver entries, and 22 count quality assessments. The 44 sources are
+marked `tested_locally`. Coverage concerns these two report families,
+not all IMSA data. The full suite was not rerun by
+the agent for this final configuration addition.
 
-### Référence historique du pilote
+### Historical pilot reference
 
-Road America 2024 : 47 participants dont quatre BMW, 163 arrêts dont huit BMW,
-quatre écarts de comptage (8,51 %). Avec la saison 2025 intégrée :
-516 participations dont 52 BMW, 4 280 arrêts dont 396 BMW, douze bilans qualité.
-Chaque ajout doit conserver la séparation championnat/saison/événement/session,
-ainsi que la provenance et la version de chaque rapport.
+Road America 2024: 47 participants including four BMWs, 163 stops including eight BMW stops,
+four count mismatches (8,51 %). Together with the integrated 2025 season:
+516 entries including 52 BMW entries, 4 280 stops including 396 BMW stops, twelve quality assessments.
+Each addition must preserve championship/season/event/session separation,
+as well as each report's provenance and version.
