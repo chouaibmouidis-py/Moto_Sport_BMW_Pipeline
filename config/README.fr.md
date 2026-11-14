@@ -1,58 +1,57 @@
-# Manifeste de sources
+# Source manifest
 
-`sources.json` est un inventaire initial, pas la liste complète des courses BMW.
-Il est lu par les scripts d'inspection, de construction Bronze et d'analyse.
-Ils sélectionnent les documents activés (`enabled: true`) par famille :
-`pit_stops` pour les arrêts, `classification` pour les classements.
-Les onze courses WeatherTech 2024 et les onze courses 2025 ont traversé le
-pipeline JSON local pour les classements et les arrêts : 44 documents activés.
-L'exploration CSV/PDF 2023 est décrite dans `exploration_2023.json` et reste
-séparée du manifeste et du run actifs.
-Le manifeste seul ne déclenche rien : les téléchargements sont effectués par
-`inspect_manifest.py` et `inspect_classification.py`, directement ou via
+`sources.json` is an initial inventory, not the complete list of BMW races.
+It is read by inspection, Bronze construction and analysis scripts.
+They select enabled documents (`enabled: true`) by family:
+`pit_stops` for stops, `classification` for classifications.
+The eleven WeatherTech 2024 races and the eleven 2025 races have passed through
+the local JSON pipeline for classifications and stops: 44 enabled documents.
+The 2023 CSV/PDF exploration is described in `exploration_2023.json` and remains
+separate from the active manifest and run.
+The manifest alone triggers nothing: downloads are performed by
+`inspect_manifest.py` and `inspect_classification.py`, directly or through
 `run_pipeline.py`.
 
-Les classements doivent fournir `filename`, par exemple
-`03_Results_Race_Official.JSON`. Le téléchargeur reçoit ce nom explicitement.
-Le parcours des arrêts conserve son nom de fichier historique par défaut.
-`pipeline_status` décrit l'état de qualification ; il ne sert pas à exclure
-un document déjà testé des exécutions suivantes.
+Classifications must provide `filename`, for example
+`03_Results_Race_Official.JSON`. The downloader receives this name explicitly.
+The stop workflow retains its legacy default filename.
+`pipeline_status` describes the assessment status; it is not used to exclude
+an already tested document from subsequent runs.
 
-Le rapprochement associe les documents sur `championship`, `season`, `event_id`
-et `session_id` ; `source_id` reste propre à chaque document. Un classement
-sans rapport d'arrêts compatible, ou avec plusieurs candidats, est refusé.
-Le chargeur commun accepte plusieurs classements et conserve, pour chacun,
-son identifiant et son empreinte Bronze avant les rapprochements.
+Matching associates documents on `championship`, `season`, `event_id`
+and `session_id`; `source_id` remains specific to each document. A classification
+without a compatible stop report, or with several candidates, is rejected.
+The shared loader accepts multiple classifications and retains each one's
+identifier and Bronze hash before matching.
 
-Les saisons sont une cible de couverture, pas une preuve d'ingestion.
-`documents` référence des fichiers précis. `catalogs_to_explore` contient des
-portails à explorer et ne doit pas être traité comme une liste de JSON à lire.
-Les autres championnats candidats restent recensés dans
+Seasons are a coverage target, not evidence of ingestion.
+`documents` references specific files. `catalogs_to_explore` contains portals to
+explore and must not be treated as a list of JSON files to read.
+Other candidate championships remain listed in
 `../docs/coverage_plan.fr.md`.
 
-Le `session_id` provient du libellé de dossier source. Il ne prouve pas un
-horodatage UTC. `publication_status` reste `unspecified` lorsque le nom du
-rapport ne porte pas explicitement un statut. Hour 24 désigne un rapport
-horaire, pas une course supplémentaire.
+The `session_id` comes from the source folder label. It does not prove a UTC
+timestamp. `publication_status` remains `unspecified` when the report name does
+not explicitly carry a status. Hour 24 denotes an hourly report, not an
+additional race.
 
-`source_id` est l'identité logique choisie pour un rapport. L'ingestion enregistre
-la date de téléchargement et l'empreinte SHA-256 dans le fichier `metadata.json`
-voisin du document Raw. Un rafraîchissement remplace ces fichiers ; cela ne
-constitue pas un archivage immuable des révisions publiées à la même URL.
-La date `as_of_date` est celle de cet inventaire, pas la date de récupération
-de chaque fichier. Les résultats Silver conservent séparément l'empreinte du
-fichier Bronze utilisé.
+`source_id` is the logical identity chosen for a report. Ingestion records the
+download date and SHA-256 hash in the `metadata.json` file beside the Raw
+document. A refresh replaces these files; this is not immutable archiving of
+revisions published at the same URL.
+The `as_of_date` is the date of this inventory, not the retrieval date of each
+file. Silver results separately retain the hash of the Bronze file used.
 
-Avant de démarrer ses étapes, `run_pipeline.py` vérifie les `source_id` dans
-toute la liste `documents`, y compris les entrées désactivées. Chaque identifiant
-doit être présent, non nul, de type chaîne, non vide et non composé uniquement
-d'espaces. Une valeur invalide déclenche une `ValueError` qui indique la
-position du document dans la liste (index à partir de zéro) et la raison du refus.
-Les doublons sont également refusés avec un message qui nomme l'identifiant.
-Le validateur ne modifie pas les valeurs et ne vérifie pas le contenu des rapports.
-Ces erreurs empêchent le démarrage des scripts.
-Les lancements isolés de ces scripts ne passent pas
-automatiquement par ce contrôle du lanceur.
-La validation complète des champs obligatoires et des formats autorisés reste
-à ajouter. Les contrôles des données du pipeline sont distincts des statuts
-descriptifs renseignés dans ce fichier.
+Before starting its steps, `run_pipeline.py` checks `source_id` values throughout
+the `documents` list, including disabled entries. Each identifier must be
+present, non-null, a string, nonempty and not composed solely of whitespace.
+An invalid value raises a `ValueError` indicating the document's position in the
+list (zero-based index) and the reason for rejection.
+Duplicates are also rejected with a message naming the identifier.
+The validator does not modify values or check report contents.
+These errors prevent the scripts from starting.
+Running these scripts individually does not automatically invoke this launcher
+check.
+Full validation of required fields and permitted formats remains to be added.
+Pipeline data checks are separate from the descriptive statuses recorded in
+this file.

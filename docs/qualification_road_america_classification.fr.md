@@ -1,52 +1,52 @@
-# Qualification — classement officiel de Road America 2025
+# Qualification — Road America 2025 official classification
 
-Inspection initiale : 10 novembre 2026, avant intégration. Mise à jour du jalon :
-11 novembre 2026. Les observations ci-dessous décrivent le document inspecté ;
-la section finale distingue l'intégration réalisée du travail restant.
+Initial inspection: 10 November 2026, before integration. Milestone update:
+11 November 2026. The observations below describe the inspected document;
+the final section distinguishes completed integration from remaining work.
 
-## Source et statut
+## Source and status
 
-- Championnat : IMSA WeatherTech SportsCar Championship.
-- Événement : Motul SportsCar Grand Prix, Road America, Race.
-- Document : `03_Results_Race_Official.JSON`.
-- [Répertoire officiel](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/).
-- [JSON inspecté](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/03_Results_Race_Official.JSON).
-- `session.report_mark` vaut `Official`. Le répertoire expose aussi des versions
-  Provisional et Unofficial : elles ne doivent pas être ingérées comme des
-  courses supplémentaires.
-- `session.creation_date` : `08-08-2025 10:12:17`, texte sans fuseau confirmé.
+- Championship: IMSA WeatherTech SportsCar Championship.
+- Event: Motul SportsCar Grand Prix, Road America, Race.
+- Document: `03_Results_Race_Official.JSON`.
+- [Official directory](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/).
+- [Inspected JSON](https://imsa.results.alkamelcloud.com/Results/25_2025/16_Road%20America/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508031310_Race/03_Results_Race_Official.JSON).
+- `session.report_mark` is `Official`. The directory also exposes
+  Provisional and Unofficial versions: they must not be ingested as
+  additional races.
+- `session.creation_date`: `08-08-2025 10:12:17`, text without a confirmed time zone.
 
-## Structure observée
+## Observed structure
 
-Trois racines : `session`, `fastest_lap`, `classification`.
+Three roots: `session`, `fastest_lap`, `classification`.
 
-- `session` : contexte du document, météo, mode de fin, statut et message du rapport.
-- `fastest_lap` : objet de référence du meilleur tour avec voiture, pilote,
-  numéro du tour, durée et vitesse. À préserver séparément du classement.
-- `classification` : 48 entrées et 48 numéros textuels distincts. Une ligne
-  du tableau décrit un participant dans ce rapport de classement.
-- Chaque participant contient une liste `drivers`. La déplier dans une table
-  séparée évitera de multiplier les lignes du classement.
+- `session`: document context, weather, end mode, report status, and message.
+- `fastest_lap`: fastest-lap reference object with car, driver,
+  lap number, duration, and speed. Preserve separately from the classification.
+- `classification`: 48 entries and 48 distinct text numbers. One row
+  in the array describes one participant in this classification report.
+- Each participant contains a `drivers` list. Expanding it into a separate
+  table will avoid multiplying classification rows.
 
-Champs renseignés au moins une fois dans les participants, hors liste drivers :
+Fields populated at least once among participants, excluding the drivers list:
 `status`, `not_finished`, `position`, `number`, `elapsed_time`,
 `fastest_lap_number`, `fastest_lap_time`, `fastest_lap_kph`,
 `fastest_lap_driver_number`, `time`, `gap_first`, `gap_previous`, `kph`,
 `laps`, `pit_stops`, `team`, `class`, `group`, `vehicle`, `tires`, `manufacturer`.
-Les alias apparents (`time`/`fastest_lap_time`, `kph`/`fastest_lap_kph`) restent
-à comparer sur l'ensemble des lignes avant toute suppression de champ.
+The apparent aliases (`time`/`fastest_lap_time`, `kph`/`fastest_lap_kph`) still
+need to be compared across all rows before removing any field.
 
-Types observés : `position` et `fastest_lap_driver_number` numériques,
-`not_finished` booléen ; numéros de voiture, tours et nombre d'arrêts sont
-représentés comme textes dans le JSON. Les écarts mêlent une indication
-initiale `-` et d'autres représentations à inventorier avant conversion.
+Observed types: `position` and `fastest_lap_driver_number` are numeric,
+`not_finished` is Boolean; car numbers, laps, and stop counts are
+represented as text in the JSON. Gaps combine an initial
+`-` marker with other representations to be inventoried before conversion.
 
-## Premiers résultats BMW
+## Initial BMW results
 
-Les positions ci-dessous sont celles du classement général, pas des positions
-recalculées dans chaque classe.
+The positions below are from the overall classification, not positions
+recalculated within each class.
 
-| Voiture | Position | Classe | Tours | Arrêts déclarés |
+| Car | Position | Class | Laps | Reported pit stops |
 | --- | ---: | --- | ---: | ---: |
 | 24 | 1 | GTP | 66 | 3 |
 | 25 | 2 | GTP | 66 | 2 |
@@ -54,92 +54,92 @@ recalculées dans chaque classe.
 | 96 | 31 | GTD | 62 | 3 |
 | 48 | 41 | GTDPRO | 62 | 4 |
 
-## Écarts à traiter avant les jointures
+## Differences to address before joins
 
-1. Le classement contient 48 participants ; le rapport d'arrêts contient
-   50 fragments pour 47 numéros distincts. Tous les numéros des stands sont
-   présents au classement. Le numéro `70` est présent uniquement au classement :
-   quatre tours, zéro arrêt déclaré, `not_finished: true`.
-2. Toutes les entrées du classement ont ici `status: Classified`, y compris
-   la voiture 70. Ce statut ne suffit donc pas à déterminer si la voiture a
-   terminé : conserver aussi le booléen `not_finished`.
-3. La date de session est `03-08-2025 01:10`, contre `03/08/2025 01:10` dans
-   le document des stands. Le parseur actuel `%d/%m/%Y` ne convient pas tel quel.
-4. Les températures diffèrent : air/piste 25.22/35.56 ºC dans le classement,
-   contre 17.89/21.11 ºC dans le rapport des stands. Ce sont des contextes de
-   documents ; ne pas les écraser ou les traiter comme des mesures simultanées.
-5. Le message du rapport officiel mentionne l'invalidation de certains tours
-   pour dépassement des limites de piste. Il est renseigné et doit être conservé.
-6. Les deux rapports ont des identifiants de source et des empreintes différents.
-   La jointure entre familles ne peut pas exiger l'égalité de `source_id` ou
-   de `bronze_sha256`. Définir une correspondance explicite championnat,
-   saison, événement, session, puis numéro textuel de voiture, tout en gardant
-   la provenance et la version de chaque document.
+1. The classification contains 48 participants; the pit stop report contains
+   50 fragments for 47 distinct numbers. All pit stop car numbers are
+   present in the classification. Number `70` appears only in the classification:
+   four laps, zero reported stops, `not_finished: true`.
+2. All classification entries here have `status: Classified`, including
+   car 70. This status alone therefore cannot determine whether the car
+   finished: also retain the `not_finished` Boolean.
+3. The session date is `03-08-2025 01:10`, versus `03/08/2025 01:10` in
+   the pit stop document. The current `%d/%m/%Y` parser is not suitable as is.
+4. Temperatures differ: air/track 25.22/35.56 ºC in the classification,
+   versus 17.89/21.11 ºC in the pit stop report. These are document
+   contexts; do not overwrite them or treat them as simultaneous measurements.
+5. The official report message mentions the invalidation of some laps
+   for exceeding track limits. It is populated and must be retained.
+6. The two reports have different source identifiers and hashes.
+   The cross-family join cannot require equality of `source_id` or
+   `bronze_sha256`. Define an explicit mapping by championship,
+   season, event, session, and then text car number, while retaining
+   each document's provenance and version.
 
-## Conséquences identifiées lors de la qualification initiale
+## Implications identified during initial qualification
 
-- Le téléchargeur actuel impose le nom du fichier des arrêts. Il faudra rendre
-  la destination configurable et tester que les familles ne s'écrasent pas.
-- La construction Bronze actuelle fixe les racines `session` et
-  `pit_stop_analysis`. Elle ne doit pas être appliquée au classement : préserver
-  ses trois racines avec une ingestion adaptée, avant les projections Silver.
-- Les scripts sélectionnent uniquement `document_type: pit_stops`. Ajouter une
-  entrée au manifeste ne suffit pas à intégrer un classement.
-- Le contexte de session doit conserver le statut, le message et la famille du
-  rapport ; la règle d'exclusion des champs vides doit être réévaluée sur les
-  documents effectivement pris en charge.
-- Pour un futur mart de résultats, partir du classement et joindre les arrêts
-  agrégés par voiture permet de conserver la voiture 70. Distinguer absence
-  de rapport, absence de correspondance et zéro arrêt établi.
+- The current downloader enforces the pit stop filename. The
+  destination will need to be configurable, with tests ensuring that families do not overwrite each other.
+- The current Bronze build fixes the roots as `session` and
+  `pit_stop_analysis`. It must not be applied to the classification: preserve
+  its three roots with suitable ingestion before Silver projections.
+- The scripts select only `document_type: pit_stops`. Adding a
+  manifest entry is not enough to integrate a classification.
+- The session context must retain the report status, message, and family;
+  the rule excluding empty fields must be reassessed against the
+  documents actually supported.
+- For a future results mart, starting from the classification and joining pit stops
+  aggregated by car will retain car 70. Distinguish a missing
+  report, a missing match, and an established zero-stop count.
 
-## Critères de réception proposés
+## Proposed acceptance criteria
 
-- Document et métadonnées conservés sans altération, avec les trois racines.
-- 48 participants et cinq engagements BMW dans le jeu de référence.
-- Numéros textuels préservés, classe et position générale distinguées.
-- Voiture 70 conservée avec zéro arrêt déclaré et indicateur de non-fin.
-- Dates avec tirets testées ; version officielle et message conservés.
-- Jointure entre familles documentée et testée sans multiplication de lignes.
-- Non-régression du pipeline actuel des trois rapports d'arrêts.
+- Document and metadata retained unchanged, with all three roots.
+- 48 participants and five BMW entries in the reference dataset.
+- Text numbers preserved, class and overall position distinguished.
+- Car 70 retained with zero reported stops and a non-finish indicator.
+- Hyphenated dates tested; official version and message retained.
+- Cross-family join documented and tested without row multiplication.
+- No regression in the current pipeline for the three pit stop reports.
 
-## Écarts observés lors du rapprochement réel
+## Discrepancies observed during actual reconciliation
 
-Lecture des Raw locaux vérifiés le 11 novembre 2026 :
+Reading of the verified local Raw files on 11 November 2026:
 
-| Voiture | Arrêts déclarés au classement | Arrêts détaillés retrouvés | Statut |
+| Car | Pit stops reported in the classification | Detailed pit stops found | Status |
 | --- | ---: | ---: | --- |
-| 22 | 1 | 2 (numéros 1 et 2) | `count_mismatch` |
-| 88 | 4 | 3 (numéros 1, 2 et 3) | `count_mismatch` |
-| 70 | 0 | Aucune ligne | `zero_reported_no_detail` |
+| 22 | 1 | 2 (numbers 1 and 2) | `count_mismatch` |
+| 88 | 4 | 3 (numbers 1, 2, and 3) | `count_mismatch` |
+| 70 | 0 | No rows | `zero_reported_no_detail` |
 
-Les deux écarts numériques sont présents dans les documents sources ; leur cause
-reste à investiguer. Le contrôle signale la divergence et conserve les deux
-versions documentaires, sans affirmer qu'un rapport est erroné ni réécrire les
-comptages. La réussite des tests de code n'implique pas l'égalité de toutes les
-valeurs issues de deux rapports publics différents.
+Both numerical discrepancies are present in the source documents; their cause
+remains to be investigated. The check flags the divergence and retains both
+document versions, without asserting that either report is incorrect or rewriting
+the counts. Passing code tests does not imply equality of all
+values from two different public reports.
 
-## État d'intégration au 11 novembre 2026
+## Integration status as of 11 November 2026
 
-- Source activée dans le manifeste avec son propre `source_id` et `filename`.
-- Téléchargement paramétrable, métadonnées SHA-256, réutilisation du Raw vérifié
-  et rafraîchissement explicite via `--refresh`.
-- Bronze distincte : trois racines conservées, relues et comparées au JSON
-  avant remplacement du fichier final.
-- Silver de 48 participants avec provenance, index source, numéro textuel,
-  position générale, classe, nombre d'arrêts déclaré et `not_finished`.
-- Correspondance des rapports par championnat, saison, événement et session ;
-  candidats multiples et rapport absent refusés. Comptages d'arrêts associés
-  à la version chargée, puis jointure conservant les participants sans détail.
-- Rapport de comparaison publié dans le run candidat et consulté par le lecteur
-  qualité à partir de la même référence active que les autres résultats.
-- Scénarios synthétiques : conservation du participant sans détail, exclusion
-  d'une autre version, écart de comptage et détail absent avec comptage déclaré
-  non nul. Des tests distincts couvrent la sélection et les contrôles de clés.
+- Source enabled in the manifest with its own `source_id` and `filename`.
+- Configurable download, SHA-256 metadata, reuse of verified Raw files,
+  and explicit refresh via `--refresh`.
+- Separate Bronze layer: three roots retained, read back, and compared with the JSON
+  before replacing the final file.
+- Silver layer with 48 participants, provenance, source index, text number,
+  overall position, class, reported stop count, and `not_finished`.
+- Reports matched by championship, season, event, and session;
+  multiple candidates and missing reports rejected. Stop counts associated
+  with the loaded version, followed by a join retaining participants without detail.
+- Comparison report published in the candidate run and accessed by the quality
+  reader using the same active reference as the other results.
+- Synthetic scenarios: retaining a participant without detail, excluding
+  another version, count discrepancy, and missing detail with a nonzero
+  reported count. Separate tests cover selection and key checks.
 
-La projection Silver du classement reste partielle. La normalisation des dates
-à tirets, le contexte météo, le message officiel, les pilotes du classement et
-le meilleur tour ne sont pas encore intégrés à des tables Silver dédiées : ces
-informations restent préservées en Bronze. Les critères de réception ci-dessus
-ne sont donc pas tous satisfaits. Le parcours commun reste limité à un classement
-activé ; une extension multi-classements doit adapter le chargement avant
-d'élargir le manifeste.
+The Silver classification projection remains partial. Normalization of hyphenated
+dates, weather context, the official message, classification drivers, and
+the fastest lap are not yet integrated into dedicated Silver tables: this
+information remains preserved in Bronze. The acceptance criteria above
+are therefore not all satisfied. The shared workflow remains limited to one enabled
+classification; a multi-classification extension must adapt loading before
+expanding the manifest.

@@ -1,32 +1,32 @@
-# Qualification exploratoire Long Beach 2023
+# Exploratory qualification of Long Beach 2023
 
-Inspection du 13 novembre 2026, sans activation dans le manifeste principal.
-[Répertoire officiel](https://imsa.results.alkamelcloud.com/Results/23_2023/08_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202304151405_Race/).
-Sources inspectées : `03_Results_Race_Official.CSV` et
+Inspection on 13 November 2026, without activation in the main manifest.
+[Official directory](https://imsa.results.alkamelcloud.com/Results/23_2023/08_Long%20Beach%20Street%20Circuit/01_IMSA%20WeatherTech%20SportsCar%20Championship/202304151405_Race/).
+Sources inspected: `03_Results_Race_Official.CSV` and
 `20_Pit Stops Time Cards_Race.PDF`.
 
-Le lecteur PDF de Road America, exécuté sans modification et sans publication,
-extrait 28 arrêts pour 25 numéros de voiture sur une page. Tous ces numéros
-existent dans les 28 entrées du CSV. Cela apporte un deuxième cas réel de
-compatibilité, mais pas une preuve d'exhaustivité pour tous les rapports IMSA.
+The Road America PDF reader, run without modification or publication,
+extracts 28 pit stops for 25 car numbers on one page. All these numbers
+exist among the 28 CSV entries. This provides a second real case of
+compatibility, but does not prove completeness for all IMSA reports.
 
-BMW du classement : 25 (position 2), 24 (4), 1 (11), 96 (19), 97 (23).
-Ne pas appliquer le filtre d'affichage 24/25 pour mesurer le volume total.
+BMW cars in the classification: 25 (position 2), 24 (4), 1 (11), 96 (19), 97 (23).
+Do not apply the 24/25 display filter when measuring the total volume.
 
-Trois entrées n'ont aucun détail dans l'extraction : 01, 80 et 93.
-Le CSV indique 01 : Classified, position 26, zéro tour ; 80 et 93 :
-Not started, position absente, zéro tour. Les positions absentes sont à
-conserver, ainsi que le statut source. Elles ne prouvent pas une erreur de lecture.
-Ne pas convertir une absence de détail en zéro arrêt certifié.
+Three entries have no detail in the extraction: 01, 80, and 93.
+The CSV indicates 01: Classified, position 26, zero laps; 80 and 93:
+Not started, missing position, zero laps. Missing positions must be
+retained, along with the source status. They do not prove a reading error.
+Do not convert missing detail into a certified zero-stop count.
 
-Le script principal d'exploration reste configuré pour le contexte et le chemin
-de sortie Road America 2023 : ne pas le lancer pour publier Long Beach avant
-d'avoir rendu ce contexte explicite. Aucun résultat Road America n'a été
-remplacé pendant cette qualification. Une comparaison indépendante du contenu
-complet du PDF reste à effectuer avant validation d'exhaustivité.
+The main exploration script remains configured for the Road America 2023 context
+and output path: do not run it to publish Long Beach before
+making that context explicit. No Road America result was
+replaced during this qualification. An independent comparison of the complete
+PDF content is still required before validating completeness.
 
-La synthèse exploratoire conserve maintenant `STATUS` sous le nom
-`classification_status`. Vérification en mémoire : 28 lignes, onze colonnes,
-01 Classified/position 26, 80 et 93 Not started/position NULL, avec comptage
-observé NULL pour les trois. Les positions absentes sont triées en dernier.
-Les 21 tests ciblés passent, dont la synthèse avec un non-partant fictif.
+The exploratory summary now retains `STATUS` as
+`classification_status`. In-memory verification: 28 rows, eleven columns,
+01 Classified/position 26, 80 and 93 Not started/position NULL, with an observed
+count of NULL for all three. Missing positions are sorted last.
+The 21 targeted tests pass, including the summary with a synthetic non-starter.
