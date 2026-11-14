@@ -165,6 +165,20 @@ def validate_race_car_summary(connection) -> None:
             "Race car summary rejected: participant keys differ"
         )
 
+    missing_context_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM race_car_summary
+        WHERE NULLIF(TRIM(championship), '') IS NULL
+           OR season IS NULL
+           OR NULLIF(TRIM(event_id), '') IS NULL
+           OR NULLIF(TRIM(session_id), '') IS NULL
+    """).fetchone()[0]
+
+    if missing_context_count > 0:
+        raise ValueError(
+            "Race car summary rejected: missing session context"
+        )
+
 def validate_classification_keys(connection, source_view="classification_csv"):
     """Reject missing or duplicate cleaned car numbers in one classification."""
     quoted_view = '"' + source_view.replace('"', '""') + '"'
@@ -227,3 +241,29 @@ def validate_pdf_pit_stop_keys(connection):
 
     if duplicate_count > 0:
         raise ValueError("PDF Silver rejected: duplicate stop keys")
+
+def validate_gold_participant_keys(connection):
+    """Reject missing or duplicated versioned participant keys."""
+    missing_count = connection.sql("""
+        SELECT COUNT(*)
+        FROM gold_race_car_summary
+        WHERE NULLIF(TRIM(source_id), '') IS NULL
+           OR NULLIF(TRIM(bronze_sha256), '') IS NULL
+           OR NULLIF(TRIM(car_number), '') IS NULL
+    """).fetchone()[0]
+
+    if missing_count > 0:
+        raise ValueError("Gold rejected: missing participant keys")
+
+    duplicates = connection.sql("""
+        SELECT
+            source_id,
+            bronze_sha256,
+            car_number
+        FROM gold_race_car_summary
+        GROUP BY source_id, bronze_sha256, car_number
+        HAVING COUNT(*) > 1
+    """).fetchall()
+
+    if duplicates:
+        raise ValueError("Gold rejected: duplicate participant keys")

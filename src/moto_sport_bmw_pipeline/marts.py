@@ -4,7 +4,7 @@ import logging
 
 from .quality import build_source_pairs, validate_entry_links, validate_race_car_summary
 from .queries import build_view
-
+from .quality import validate_gold_participant_keys
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +41,17 @@ def build_pit_stop_counts(connection, project_directory, stops):
         "pit_stop_counts_by_car",
     )
 
+def build_pit_stop_summary(connection, project_directory, stops):
+    """Apply shared duration statistics to the supplied Silver stop relation."""
+    stops.create_view("pit_stop_summary_input")
+
+    return build_view(
+        connection,
+        project_directory,
+        "06_pit_stop_summary.sql",
+        "pit_stop_summary",
+    )
+
 
 def build_classification_marts(connection, project_directory):
     build_pit_stop_counts(
@@ -58,7 +69,11 @@ def build_classification_marts(connection, project_directory):
             f"changed from {expected} to {actual}"
         )
     logger.info("Classification comparison rows: %s", actual)
-    build_view(connection, project_directory, "06_pit_stop_summary.sql", "pit_stop_summary")
+    build_pit_stop_summary(
+        connection,
+        project_directory,
+        connection.table("silver_pit_stops"),
+    )
     summary = build_view(connection, project_directory, "31_race_car_summary.sql", "race_car_summary")
     validate_race_car_summary(connection)
     quality = build_view(
@@ -94,6 +109,14 @@ def build_csv_pdf_race_summary(connection, project_directory):
     build_pit_stop_counts(
         connection, project_directory, connection.table("silver_pdf_pit_stops"),
     )
+
+    build_pit_stop_summary(
+        connection,
+        project_directory,
+        connection.table("silver_pdf_pit_stops"),
+    )
+
+
     orphan_stops = connection.sql("""
         SELECT DISTINCT counts.source_id, counts.car_number
         FROM pit_stop_counts_by_car AS counts
@@ -120,3 +143,69 @@ def build_csv_pdf_race_summary(connection, project_directory):
     if unmatched:
         raise ValueError("CSV/PDF summary rejected: missing source pairing or context")
     return summary
+
+def build_manufacturer_reference(connection, project_directory):
+    """Resolve manufacturer names from explicit, versioned Bronze evidence."""
+    build_view(
+        connection,
+        project_directory,
+        "37_manufacturer_reference_input.sql",
+        "manufacturer_reference_input",
+    )
+
+    return build_view(
+        connection,
+        project_directory,
+        "36_manufacturer_reference.sql",
+        "manufacturer_reference",
+    )
+
+def enrich_2023_manufacturers(connection, project_directory):
+    """Enrich participants without changing their number of rows."""
+    expected_count = connection.table(
+        "csv_pdf_race_summary"
+    ).count("*").fetchone()[0]
+
+    participants = build_view(
+        connection,
+        project_directory,
+        "38_enrich_2023_manufacturers.sql",
+        "enriched_2023_participants",
+    )
+
+    actual_count = participants.count("*").fetchone()[0]
+
+    if actual_count != expected_count:
+        raise ValueError(
+            "Manufacturer enrichment rejected: participant count changed"
+        )
+
+    return participants
+
+def build_gold_race_car_summary(connection, project_directory):
+    """Stack aligned season participants without dropping or adding rows."""
+    expected_count = sum(
+        connection.table(view_name).count("*").fetchone()[0]
+        for view_name in (
+            "enriched_2023_participants",
+            "json_race_car_summary",
+        )
+    )
+
+    participants = build_view(
+        connection,
+        project_directory,
+        "39_gold_race_car_summary.sql",
+        "gold_race_car_summary",
+    )
+
+    actual_count = participants.count("*").fetchone()[0]
+
+    if actual_count != expected_count:
+        raise ValueError(
+            "Gold rejected: participant count changed"
+        )
+
+    validate_gold_participant_keys(connection)
+
+    return participants

@@ -31,13 +31,21 @@ class CsvPdfRaceSummaryTests(unittest.TestCase):
                 ('class-b', 'class-version-b', '24')
             ) AS t(source_id, bronze_sha256, car_number)
         """)
+
         connection.execute("""
             CREATE TEMP TABLE silver_pdf_pit_stops AS
             SELECT * FROM (VALUES
-                ('pits-a', 'pit-version-a', 'pdf-a', '24', 1),
-                ('pits-a', 'pit-version-a', 'pdf-a', '24', 2),
-                ('pits-b', 'pit-version-b', 'pdf-b', '24', 1)
-            ) AS t(source_id, bronze_sha256, pdf_sha256, car_number, pit_number)
+                ('pits-a', 'pit-version-a', 'pdf-a', '24', 1, 60.0),
+                ('pits-a', 'pit-version-a', 'pdf-a', '24', 2, 80.0),
+                ('pits-b', 'pit-version-b', 'pdf-b', '24', 1, 90.0)
+            ) AS t(
+                source_id,
+                bronze_sha256,
+                pdf_sha256,
+                car_number,
+                pit_number,
+                pit_time_in_seconds
+            )
         """)
 
     def test_preserves_participants_and_keeps_sessions_and_versions_separate(self):
@@ -61,12 +69,30 @@ class CsvPdfRaceSummaryTests(unittest.TestCase):
                  'pdf-b', None, 1, 'unavailable_reported_count', 'available'),
             ])
 
+            statistics = result.project("""
+                event_id,
+                car_number,
+                valid_duration_count,
+                invalid_duration_count,
+                average_pit_time_seconds,
+                duration_coverage_percent
+            """).order("event_id, car_number").fetchall()
+
+            self.assertEqual(
+                statistics,
+                [
+                    ("a", "24", 2, 0, 70.0, 100.0),
+                    ("a", "57", None, None, None, None),
+                    ("b", "24", 1, 0, 90.0, 100.0),
+                ],
+            )
+
     def test_rejects_two_loaded_versions_of_the_same_pdf_source(self):
         with duckdb.connect() as connection:
             self.prepare_inputs(connection)
             connection.execute("""
                 INSERT INTO silver_pdf_pit_stops
-                VALUES ('pits-a', 'other-version', 'other-pdf', '24', 1)
+                VALUES ('pits-a', 'other-version', 'other-pdf', '24', 1, 60.0)
             """)
             with self.assertRaisesRegex(ValueError, 'multiple source versions'):
                 build_csv_pdf_race_summary(
@@ -78,7 +104,7 @@ class CsvPdfRaceSummaryTests(unittest.TestCase):
             self.prepare_inputs(connection)
             connection.execute("""
                 INSERT INTO silver_pdf_pit_stops
-                VALUES ('pits-a', 'pit-version-a', 'pdf-a', '99', 1)
+                VALUES ('pits-a', 'pit-version-a', 'pdf-a', '99', 1, 60.0)
             """)
             with self.assertRaisesRegex(ValueError, 'stops without classification'):
                 build_csv_pdf_race_summary(

@@ -10,10 +10,15 @@ from .publication import OUTPUT_VIEWS
 REQUIRED_OUTPUTS = tuple(path for path, _ in OUTPUT_VIEWS)
 
 
-def activate_run(run_directory: Path) -> Path:
+def activate_run(
+    run_directory: Path,
+    *,
+    required_outputs=REQUIRED_OUTPUTS,
+) -> Path:
+    """Activate a candidate only when all required output files exist."""
     missing_files = [
         relative_path
-        for relative_path in REQUIRED_OUTPUTS
+        for relative_path in required_outputs
         if not (run_directory / relative_path).is_file()
     ]
 
