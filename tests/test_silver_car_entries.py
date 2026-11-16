@@ -90,11 +90,16 @@ class SilverCarEntriesTests(unittest.TestCase):
                 CREATE TEMP VIEW silver_car_entries AS
                 SELECT *
                 FROM (VALUES
-                    ('course-a', '0'),
-                    (NULL, '1'),
-                    ('course-a', NULL),
-                    (NULL, NULL)
-                ) AS t(source_id, source_entry_index)
+                    ('course-a', 'version-1', '0'),
+                    (NULL, 'version-1', '1'),
+                    ('course-a', 'version-1', NULL),
+                    (NULL, NULL, NULL),
+                    ('course-a', NULL, '2')
+                ) AS t(
+                    source_id,
+                    bronze_sha256,
+                    source_entry_index
+                )
             """)
 
             query_path = (
@@ -107,7 +112,29 @@ class SilverCarEntriesTests(unittest.TestCase):
                 query_path.read_text(encoding="utf-8")
             ).fetchone()[0]
 
-            self.assertEqual(missing_key_count, 3)
+            self.assertEqual(missing_key_count, 4)
+
+    def test_accepts_same_entry_index_in_different_versions(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW silver_car_entries AS
+                SELECT *
+                FROM (VALUES
+                    ('course-a', 'version-1', '0'),
+                    ('course-a', 'version-2', '0')
+                ) AS t(source_id, bronze_sha256, source_entry_index)
+            """)
+
+            query_path = (
+                Path(__file__).resolve().parent.parent
+                / "sql"
+                / "12_check_duplicate_car_entry_keys.sql"
+            )
+            duplicate_key_count = connection.sql(
+                query_path.read_text(encoding="utf-8")
+            ).fetchone()[0]
+
+            self.assertEqual(duplicate_key_count, 0)
 
     def test_counts_duplicate_keys(self):
         with duckdb.connect() as connection:
@@ -115,11 +142,16 @@ class SilverCarEntriesTests(unittest.TestCase):
                 CREATE TEMP VIEW silver_car_entries AS
                 SELECT *
                 FROM (VALUES
-                    ('course-a', '0'),
-                    ('course-a', '0'),
-                    ('course-a', '1'),
-                    ('course-b', '0')
-                ) AS t(source_id, source_entry_index)
+                    ('course-a', 'version-1', '0'),
+                    ('course-a', 'version-1', '0'),
+                    ('course-a', 'version-1', '1'),
+                    ('course-a', 'version-2', '0'),
+                    ('course-b', 'version-1', '0')
+                ) AS t(
+                    source_id,
+                    bronze_sha256,
+                    source_entry_index
+                )
             """)
 
             query_path = (

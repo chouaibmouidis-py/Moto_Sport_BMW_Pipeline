@@ -3,9 +3,10 @@
 WITH duplicate_keys AS (
     SELECT
         source_id,
-        source_entry_index
+        source_entry_index,
+        bronze_sha256
     FROM silver_car_entries
-    GROUP BY source_id, source_entry_index
+    GROUP BY source_id, source_entry_index, bronze_sha256
     HAVING COUNT(*) > 1
 )
 SELECT COUNT(*) AS duplicate_key_count

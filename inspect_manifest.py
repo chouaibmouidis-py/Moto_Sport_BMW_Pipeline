@@ -86,7 +86,13 @@ def main():
 
         for car in data["pit_stop_analysis"]:
             if car["manufacturer"] == "BMW":
-                logger.debug('%s %s %s %s %s %s %s %s', "BMW :", car["number"], "|", car["vehicle"], "|", car["class"], "| Stops:", len(car["pit_stops"]))
+                logger.debug(
+                    "BMW: %s | %s | %s | Stops: %s",
+                    car["number"],
+                    car["vehicle"],
+                    car["class"],
+                    len(car["pit_stops"]),
+                )
 
         logger.debug('')
 

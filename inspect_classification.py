@@ -112,10 +112,5 @@ def main() -> None:
             if participant["manufacturer"] == "BMW":
                 logger.debug('%s | %s | %s | %s', participant["number"], participant["position"], participant["class"], participant["pit_stops"])
 
-        for participant in document["classification"]:
-            if participant["number"] == "70":
-                logger.debug('%s | %s | %s | %s | %s', participant["number"], participant["laps"], participant["pit_stops"], participant["status"], participant["not_finished"])
-
-
 if __name__ == "__main__":
     main()
