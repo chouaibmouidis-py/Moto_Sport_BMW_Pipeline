@@ -28,7 +28,7 @@ are not used to construct download paths.
 
 The eleven races are integrated for both families: classification and stops.
 The manifest contains twenty-two enabled documents. The active run
-`57425c9ee72947108831adc8aa6232ad` was read back: 469 entries,
+`57425c9ee72947108831adc8aa6232ad`,
 4 117 detailed stops, including 388 BMW stops, and eleven quality assessments. Recorded results include
 48 BMW entries. This scope does not cover other report families
 or other IMSA championships.

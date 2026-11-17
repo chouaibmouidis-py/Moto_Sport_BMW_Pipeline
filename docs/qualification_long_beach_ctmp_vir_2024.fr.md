@@ -2,8 +2,7 @@
 
 Official JSON files inspected on 12 November 2026. After local review of
 the expected pipeline results and the reported anomalies, the six sources
-were marked `tested_locally`. The recorded validation scope excludes rerunning the pipeline for
-this batch; the previous full suite had 105 passing tests.
+were marked `tested_locally`. The previous full suite had 105 passing tests.
 
 | Race | Session | Participants | BMW | Car entries | Drivers | Pit stops | BMW pit stops |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

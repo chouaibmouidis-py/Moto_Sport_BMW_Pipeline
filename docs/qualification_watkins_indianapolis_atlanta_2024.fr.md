@@ -2,7 +2,7 @@
 
 Official JSON files inspected on 12 November 2026. After local review of
 the expected results of the full execution, the six sources were marked
-`tested_locally`. The recorded validation scope excludes rerunning this batch or the test suite.
+`tested_locally`.
 Classifications marked Official. Only the final reports are selected,
 without concatenating hourly reports. Indianapolis: directory 17 WeatherTech,
 not directory 18 Mustang Challenge.

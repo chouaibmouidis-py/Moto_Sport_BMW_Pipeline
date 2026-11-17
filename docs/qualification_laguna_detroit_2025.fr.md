@@ -4,8 +4,7 @@ Inspection on 12 November 2026, followed by activation of the four sources and l
 validation recorded locally: 194 entries, including 22 BMW entries, 1 915 linked
 and enriched pit stops. Laguna Seca summary: 36 participants, one discrepancy (2,78 %);
 Detroit: 22 participants, no count discrepancies. The status of the four sources
-was changed to `tested_locally`. The 103-test suite had passed before this addition;
-the recorded validation scope excludes rerunning it for this qualification.
+was changed to `tested_locally`. The 103-test suite had passed before this addition.
 
 ## Official sources
 

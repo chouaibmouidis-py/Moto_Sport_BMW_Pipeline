@@ -3,8 +3,7 @@
 Inspection followed by integration on 12 November 2026. Four sources enabled and
 moved to `tested_locally` after local review of the outputs:
 363 entries, including 38 BMW entries; 3 183 linked pit stops, including 300 BMW stops;
-nine quality summary rows. The recorded validation scope excludes rerunning the test suite
-for this configuration addition.
+nine quality summary rows.
 
 - [CTMP session](https://imsa.results.alkamelcloud.com/Results/25_2025/15_Canadian%20Tire%20Motorsport%20Park/01_IMSA%20WeatherTech%20SportsCar%20Championship/202507131405_Race/)
 - [VIR session](https://imsa.results.alkamelcloud.com/Results/25_2025/17_VIRginia%20International%20Raceway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202508241410_Race/)

@@ -16,6 +16,8 @@ data/
 !.env.example
 *.part
 .DS_Store
+.STATU.md
+.aider.chat.history
 
 # Local working copies and unpublished communication drafts
 /sql/07_silver_pit_stops 2.sql

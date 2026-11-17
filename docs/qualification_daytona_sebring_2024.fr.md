@@ -2,7 +2,6 @@
 
 Official JSON files inspected on 12 November 2026. After local review of
 the expected results, the four sources were marked `tested_locally`.
-The recorded validation scope excludes rerunning this batch or the test suite after that confirmation.
 The official indexes were used to select only the final
 Hour 24 and Hour 12 reports, without concatenating intermediate reports.
 

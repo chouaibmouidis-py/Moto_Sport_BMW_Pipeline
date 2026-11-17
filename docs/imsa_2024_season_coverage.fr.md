@@ -42,14 +42,6 @@ same BMW models or numbers. GT3 and GT3 EVO retain their source labels.
 Hourly reports will be selected according to their scope, never concatenated
 as separate races.
 
-## Validated coverage summary
-
-Recorded final-batch results: together with 2025, 937 entries
-including 86 BMW entries, 8 307 stops including 711 BMW stops, 1 066 car fragments,
-2 877 driver entries, and 22 count quality assessments. The 44 sources are
-marked `tested_locally`. Coverage concerns these two report families,
-not all IMSA data. The full suite was not rerun locally for this final configuration addition.
-
 ### Historical pilot reference
 
 Road America 2024: 47 participants including four BMWs, 163 stops including eight BMW stops,

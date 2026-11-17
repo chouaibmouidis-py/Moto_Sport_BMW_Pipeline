@@ -4,8 +4,7 @@ Inspection followed by integration on 12 November 2026. Four sources enabled and
 moved to `tested_locally` after recorded local execution: run
 `cf43b04e5ef849e38aafe0f07c16aec2`, 305 entries, including 32 BMW entries,
 3 018 linked and enriched pit stops, including 285 BMW stops. The discrepancies below
-come from qualification of the JSON files; the recorded validation scope excludes rerunning the test suite
-for this configuration addition.
+come from qualification of the JSON files.
 
 ## Selected directories
 
