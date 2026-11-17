@@ -152,7 +152,7 @@ updated: no atomic season activation is provided.
 
 The eight PDF Bronze/Silver batch tests pass. After correcting the stray block
 in silver_writer.py and strengthening the Silver scenario with two
-races, Recorded results include 170 tests passed in the full suite.
+races, the recorded full-suite result at this milestone was 170 passing tests.
 
 ## Mart reconciliation for the eleven races
 

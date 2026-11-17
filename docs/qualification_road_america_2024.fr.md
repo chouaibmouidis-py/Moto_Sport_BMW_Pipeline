@@ -1,7 +1,7 @@
 # Road America 2024 qualification — cross-season pilot
 
 Inspection and integration on 12 November 2026. Both sources are enabled
-and marked `tested_locally` after local review of the reference totals:
+and marked `tested_locally`. Recorded reference totals:
 516 entries, including 52 BMW entries, 4 280 pit stops including 396 BMW stops, twelve summaries, and
 separation of the two seasons.
 

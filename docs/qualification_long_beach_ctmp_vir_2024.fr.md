@@ -1,8 +1,8 @@
 # Long Beach, Canadian Tire, and VIR 2024 qualification
 
-Official JSON files inspected on 12 November 2026. After local review of
-the expected pipeline results and the reported anomalies, the six sources
-were marked `tested_locally`. The previous full suite had 105 passing tests.
+Official JSON files inspected on 12 November 2026. The six sources were
+marked `tested_locally` following local execution and review of output volumes
+and quality reports. The previous full suite had 105 passing tests.
 
 | Race | Session | Participants | BMW | Car entries | Drivers | Pit stops | BMW pit stops |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

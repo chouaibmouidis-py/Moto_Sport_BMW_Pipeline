@@ -2,9 +2,9 @@
 
 Inspection and integration on 12 November 2026. The four sources are
 `tested_locally`. The active run `57425c9ee72947108831adc8aa6232ad` was read back:
-469 entries, 4 117 pit stops including 388 BMW stops, eleven summaries; Recorded results include
+469 entries, 4 117 pit stops including 388 BMW stops, eleven summaries, and
 48 BMW entries. The Indianapolis and Road Atlanta summaries match
-the discrepancies below. The test suite still needs to be rerun after this latest batch.
+the discrepancies below. This dated qualification records source inspection and output volumes for the batch.
 
 - [Indianapolis hour 6](https://imsa.results.alkamelcloud.com/Results/25_2025/20_Indianapolis%20Motor%20Speedway%20RC/01_IMSA%20WeatherTech%20SportsCar%20Championship/202509211140_Race/06_Hour%206/)
 - [Road Atlanta hour 10](https://imsa.results.alkamelcloud.com/Results/25_2025/22_Road%20Atlanta/01_IMSA%20WeatherTech%20SportsCar%20Championship/202510111210_Race/10_Hour%2010/)

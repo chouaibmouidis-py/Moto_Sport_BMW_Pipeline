@@ -48,3 +48,7 @@ The first results must answer three questions: which BMW entries appear in the a
 2. Assess a new source and document its differences before adapting the pipeline.
 3. Consolidate business results and present the demonstration.
 4. Conduct a code review and a graded practical assessment of the fundamentals required for independent work.
+
+Milestones follow source qualification, implementation, validation and technical
+review. Acceptance is assessed against the deliverables and data-quality
+criteria defined in this brief.

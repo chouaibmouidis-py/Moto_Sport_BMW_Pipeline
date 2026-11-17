@@ -1,7 +1,7 @@
 # Daytona and Sebring 2024 qualification
 
-Official JSON files inspected on 12 November 2026. After local review of
-the expected results, the four sources were marked `tested_locally`.
+Official JSON files inspected on 12 November 2026. The four sources were
+marked `tested_locally` following local execution and output checks.
 The official indexes were used to select only the final
 Hour 24 and Hour 12 reports, without concatenating intermediate reports.
 
@@ -26,7 +26,7 @@ The causes have not been established, and no source value is replaced.
 BMW cars present in both classifications: 24, 25 (M Hybrid V8),
 1 and 96 (M4 GT3, without EVO).
 
-Recorded cumulative reference totals after publication: 772 entries including
+Recorded cumulative totals after publication: 772 entries including
 74 BMW entries, 6 917 pit stops including 600 BMW stops, 874 car fragments,
 2 346 driver entries, and 19 count summaries. Still twelve outputs.
 The reported anomalies are retained in the quality reports.

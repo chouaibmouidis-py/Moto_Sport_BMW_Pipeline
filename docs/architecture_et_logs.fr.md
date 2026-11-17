@@ -131,8 +131,9 @@ with the reference run before refactoring (schema and EXCEPT ALL in both
 directions). The eleven 2023 summaries were also regenerated and compared with
 their references with exact equality. Quality and mart readers were run against
 the same active run. Help commands for the console entry point and Python module
-work. A clean installation and an initial network download were not rerun for
-this change.
+work. The validation scope covers the existing local environment and cached
+Raw files. Fresh-environment setup and initial network acquisition require
+separate validation.
 
 ## Bronze construction for PDF stops
 

@@ -62,7 +62,7 @@ CSV. Both files must exist before any extraction.
 text, with a result rounded to the millisecond. `build_pdf_car_summary`
 aggregates stops by car before the left join with the classification.
 
-Recorded results include the 45-participant summary. Car 57, absent from the
+The recorded summary contains 45 participants. Car 57, absent from the
 inspected PDF report, is retained with an observed count of NULL, without
 asserting that it made zero stops. The classification does not provide an
 independent reported count allowing a comparison similar to 2024–2025.

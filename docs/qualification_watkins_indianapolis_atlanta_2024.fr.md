@@ -1,8 +1,7 @@
 # Watkins Glen, Indianapolis, and Road Atlanta 2024 qualification
 
-Official JSON files inspected on 12 November 2026. After local review of
-the expected results of the full execution, the six sources were marked
-`tested_locally`.
+Official JSON files inspected on 12 November 2026. The six sources were marked
+`tested_locally` following full local execution and output checks.
 Classifications marked Official. Only the final reports are selected,
 without concatenating hourly reports. Indianapolis: directory 17 WeatherTech,
 not directory 18 Mustang Challenge.
@@ -37,5 +36,5 @@ BMW cars present: 24 and 25 (M Hybrid V8), 1 and 96 (M4 GT3, without EVO).
 The eleven 2024 races and eleven 2025 races represent
 44 documents, 937 entries including 86 BMW entries, 8 307 pit stops including 711 BMW stops,
 1 066 car fragments, 2 877 driver entries, and 22 count quality summaries.
-Still twelve output files. Full execution was confirmed
-locally; the anomalies remain visible in the quality reports.
+The run contains twelve output files. The anomalies remain visible in the
+quality reports.

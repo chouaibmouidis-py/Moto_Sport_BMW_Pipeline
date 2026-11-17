@@ -1,7 +1,7 @@
 # Canadian Tire Motorsport Park / VIR 2025 qualification
 
 Inspection followed by integration on 12 November 2026. Four sources enabled and
-moved to `tested_locally` after local review of the outputs:
+moved to `tested_locally`. Recorded batch outputs:
 363 entries, including 38 BMW entries; 3 183 linked pit stops, including 300 BMW stops;
 nine quality summary rows.
 

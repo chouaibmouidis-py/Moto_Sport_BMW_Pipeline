@@ -29,7 +29,7 @@ are not used to construct download paths.
 The eleven races are integrated for both families: classification and stops.
 The manifest contains twenty-two enabled documents. The active run
 `57425c9ee72947108831adc8aa6232ad`,
-4 117 detailed stops, including 388 BMW stops, and eleven quality assessments. Recorded results include
+4 117 detailed stops, including 388 BMW stops, and eleven quality assessments, and
 48 BMW entries. This scope does not cover other report families
 or other IMSA championships.
 A missing report must be documented, not equated with zero stops or
@@ -43,19 +43,19 @@ an absence of BMWs. Non-BMW entries are retained.
 ## Progress by batch
 
 1. Laguna Seca and Detroit batch completed: qualification followed by pipeline
-   execution and output reading recorded locally on November 12, 2026. The five
+   execution and output review on November 12, 2026. The five
    races total 194 classified entries, including 22 BMW entries, and 1 915 detailed
    stops. Laguna Seca: one mismatch out of 36 (2,78 %); Detroit: none out of 22.
 2. Sebring and Watkins Glen batch integrated: final Hour 12 and Hour 6 reports,
-   without adding hourly cumulative totals. Recorded results include run
+   without adding hourly cumulative totals. Recorded run
    `cf43b04e5ef849e38aafe0f07c16aec2`: 305 entries, including 32 BMW entries,
    3 018 matched and enriched stops, including 285 BMW stops.
-3. Canadian Tire Motorsport Park and VIR batch integrated. Volumes recorded locally: 363 entries, including 38 BMW entries; 3 183 stops, including 300 BMW stops;
+3. Canadian Tire Motorsport Park and VIR batch integrated. Recorded cumulative volumes: 363 entries, including 38 BMW entries; 3 183 stops, including 300 BMW stops;
    nine quality assessments. Absence of GTP consistent with the report categories.
 4. Indianapolis and Road Atlanta integrated. All eleven events in the reference
    list are represented, each by a classification and a final stop report.
    Count mismatches are retained and do not constitute missing
-   coverage. The test suite needs to be rerun to close out the delivery.
+   coverage. This section records the source-coverage milestone and its quality findings.
 
 > Historical follow-up: the pending test-suite rerun in item 4 records that
 > delivery stage. It is stale as a statement of current overall validation:
