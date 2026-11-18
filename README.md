@@ -70,6 +70,25 @@ refreshing JSON sources. The [2023 guide](docs/imsa_2023_season_coverage.fr.md)
 and [detailed reference](docs/project_reference.md#current-project-scope) describe
 the separate CSV/PDF batch commands and required local inputs.
 
+## Local dashboard
+
+Open the Streamlit dashboard after building and activating Gold:
+
+```bash
+uv run --locked streamlit run dashboard.py
+```
+
+The dashboard reads the active Gold run from `data/gold/current.json` and its
+local Parquet table. Select a season, event and class to explore BMW participants,
+recorded pit-stop counts and mean durations. The quality panel lists count
+discrepancies, missing stop details and unconverted durations for that selection.
+The source panel exposes report identifiers and fingerprints.
+
+Column help explains declared counts, duration averages and coverage. Missing
+values remain visible, and selections without participants or averages receive
+an explicit message. Keep the terminal open while using the dashboard; press
+`Ctrl+C` to stop its local server.
+
 ## Reading the project
 
 | Need | Documentation |
@@ -88,10 +107,8 @@ to preserve previously shared links.
 
 ## Validation and boundaries
 
-The last complete validation baseline recorded for the Gold milestone was
-**187 passing tests**. It covers unit and local integration scenarios, including
-publication failures and reconstruction from copied inputs. Subsequent local
-review edits require their own verification.
+The automated suite covers unit and local integration scenarios, including
+publication failures and reconstruction from copied inputs.
 
 Source fields unavailable in a report remain `NULL`; quality statuses expose
 missing values and count discrepancies. Clock-derived stop durations assume
