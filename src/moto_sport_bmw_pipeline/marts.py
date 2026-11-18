@@ -2,7 +2,12 @@
 
 import logging
 
-from .quality import build_source_pairs, validate_entry_links, validate_race_car_summary
+from .quality import (
+    build_source_pairs,
+    validate_entry_links,
+    validate_pit_stop_classification_links,
+    validate_race_car_summary,
+)
 from .queries import build_view
 from .quality import validate_gold_participant_keys
 logger = logging.getLogger(__name__)
@@ -57,6 +62,7 @@ def build_classification_marts(connection, project_directory):
     build_pit_stop_counts(
         connection, project_directory, connection.table("silver_pit_stops"),
     )
+    validate_pit_stop_classification_links(connection, "silver_classification")
     comparison = build_view(
         connection, project_directory, "30_classification_pit_stop_comparison.sql",
         "classification_pit_stop_comparison",
@@ -109,27 +115,13 @@ def build_csv_pdf_race_summary(connection, project_directory):
     build_pit_stop_counts(
         connection, project_directory, connection.table("silver_pdf_pit_stops"),
     )
+    validate_pit_stop_classification_links(connection, "silver_classification_csv")
 
     build_pit_stop_summary(
         connection,
         project_directory,
         connection.table("silver_pdf_pit_stops"),
     )
-
-
-    orphan_stops = connection.sql("""
-        SELECT DISTINCT counts.source_id, counts.car_number
-        FROM pit_stop_counts_by_car AS counts
-        LEFT JOIN classification_pit_stop_sources AS pairs
-            ON counts.source_id = pairs.pit_stop_source_id
-        LEFT JOIN silver_classification_csv AS classification
-            ON classification.source_id = pairs.classification_source_id
-            AND classification.car_number = counts.car_number
-        WHERE classification.source_id IS NULL
-    """).fetchall()
-    if orphan_stops:
-        raise ValueError(f"CSV/PDF summary rejected: stops without classification: {orphan_stops}")
-
     summary = build_view(
         connection, project_directory, "35_csv_pdf_race_summary.sql",
         "csv_pdf_race_summary",

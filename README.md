@@ -35,6 +35,11 @@ preservation. Each output is written to a temporary Parquet and checked after
 reloading. Main and Gold runs have separate active references, updated after
 successful publication and required-file checks.
 
+Both JSON and CSV/PDF mart paths require every observed stop to match a participant
+in the classification paired with its report. An unmatched stop blocks publication.
+Classified participants without stop details remain in the results with NULL
+observed counts and an explicit status.
+
 ## Quick start
 
 Use Python 3.12 or later and uv. Run these commands from the project root.

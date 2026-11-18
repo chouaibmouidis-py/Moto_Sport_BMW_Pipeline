@@ -110,6 +110,27 @@ def build_source_pairs(connection, project_directory: Path):
         )
     return source_pairs
 
+def validate_pit_stop_classification_links(connection, classification_view: str) -> None:
+    """Reject stops absent from the classification paired with their report."""
+    quoted_classification = '"' + classification_view.replace('"', '""') + '"'
+    orphan_stops = connection.sql(f"""
+        SELECT DISTINCT counts.source_id, counts.car_number
+        FROM pit_stop_counts_by_car AS counts
+        LEFT JOIN classification_pit_stop_sources AS pairs
+            ON counts.source_id = pairs.pit_stop_source_id
+        LEFT JOIN {quoted_classification} AS classification
+            ON classification.source_id = pairs.classification_source_id
+            AND classification.car_number = counts.car_number
+        WHERE classification.source_id IS NULL
+        ORDER BY counts.source_id, counts.car_number
+    """).fetchall()
+
+    if orphan_stops:
+        raise ValueError(
+            f"Pit-stop links rejected: stops without classification: {orphan_stops}"
+        )
+
+
 def validate_race_car_summary(connection) -> None:
     missing_key_count = connection.sql("""
         SELECT COUNT(*)
