@@ -7,7 +7,7 @@ import uuid
 
 import duckdb
 
-from download import RAW_DIR, SOURCE_FILENAME
+from download import RAW_DIR
 from file_integrity import verify_local_file
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 
@@ -100,7 +100,7 @@ def main() -> None:
             source_path = (
                 PROJECT_DIR / RAW_DIR
                 / source["source_id"]
-                / SOURCE_FILENAME
+                / source["filename"]
             )
             output_path = (
                 PROJECT_DIR / "data" / "bronze"

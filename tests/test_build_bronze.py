@@ -2,9 +2,10 @@
 
 import json
 import tempfile
+import hashlib
 import unittest
 from pathlib import Path
-from build_bronze import build_document
+from build_bronze import build_document, main
 from unittest.mock import patch
 
 from download import SOURCE_FILENAME, download
@@ -49,6 +50,52 @@ class DownloadTests(unittest.TestCase):
                 output_path,
             )
             self.assertEqual(output_path.read_bytes(), b"ancienne version")
+
+    def test_main_reads_filename_from_manifest(self):
+        root = Path(self.directory.name)
+        source_id = "imsa-2024-daytona-race-hour24-pit-stops"
+        filename = "20_Pit Stops Time Cards.JSON"
+
+        config_directory = root / "config"
+        config_directory.mkdir()
+
+        manifest = {
+            "documents": [{
+                "source_id": source_id,
+                "enabled": True,
+                "document_type": "pit_stops",
+                "filename": filename,
+            }]
+        }
+        (config_directory / "sources.json").write_text(
+            json.dumps(manifest),
+            encoding="utf-8",
+        )
+
+        raw_directory = root / "data" / "raw" / source_id
+        raw_directory.mkdir(parents=True)
+
+        content = json.dumps({
+            "session": {"event_name": "Daytona"},
+            "pit_stop_analysis": [],
+        }).encode("utf-8")
+
+        (raw_directory / filename).write_bytes(content)
+
+        (raw_directory / "metadata.json").write_text(
+            json.dumps({
+                "sha256": hashlib.sha256(content).hexdigest(),
+            }),
+            encoding="utf-8",
+        )
+
+        with patch("build_bronze.PROJECT_DIR", root):
+            main()
+
+        output_path = (
+            root / "data" / "bronze" / source_id / "document.parquet"
+        )
+        self.assertTrue(output_path.is_file())
 
 
 

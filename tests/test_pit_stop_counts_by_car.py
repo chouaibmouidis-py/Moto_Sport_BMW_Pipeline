@@ -14,6 +14,7 @@ class PitStopCountsByCarTests(unittest.TestCase):
             FROM (VALUES
                 ('course-a', 'version-1', '24'),
                 ('course-a', 'version-1', '24'),
+                ('course-a', 'version-1', '25'),
                 ('course-a', 'version-2', '24'),
                 ('course-b', 'version-1', '24')
             ) AS t(source_id, bronze_sha256, car_number)
@@ -27,6 +28,7 @@ class PitStopCountsByCarTests(unittest.TestCase):
 
             expected = [
                 ("course-a", "version-1", "24", 2),
+                ("course-a", "version-1", "25", 1),
                 ("course-a", "version-2", "24", 1),
                 ("course-b", "version-1", "24", 1),
             ]

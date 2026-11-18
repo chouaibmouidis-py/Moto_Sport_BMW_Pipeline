@@ -51,6 +51,8 @@ class SilverWriterTests(unittest.TestCase):
                     SELECT '25' AS car_number
                 """)
 
+                objects_before = connection.sql("SHOW TABLES").fetchall()
+
                 with patch(
                     "duckdb.DuckDBPyConnection.read_parquet",
                     return_value=different_content,
@@ -64,10 +66,14 @@ class SilverWriterTests(unittest.TestCase):
                         output_path,
                     )
 
-            self.assertEqual(
-                output_path.read_bytes(),
-                b"previous version",
-            )
+                objects_after = connection.sql("SHOW TABLES").fetchall()
+
+                self.assertCountEqual(objects_after, objects_before)
+
+                self.assertEqual(
+                    output_path.read_bytes(),
+                    b"previous version",
+                )
 
     def test_valid_content_replaces_previous_file(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -78,9 +84,18 @@ class SilverWriterTests(unittest.TestCase):
                 converted = connection.sql("""
                     SELECT '04' AS car_number
                 """)
-                converted.create_view("silver_pit_stops")
+
+                connection.sql("""
+                    SELECT '99' AS car_number
+                """).create_view("silver_pit_stops")
+
+                objects_before = connection.sql("SHOW TABLES").fetchall()
 
                 publish_silver(connection, converted, output_path)
+
+                objects_after = connection.sql("SHOW TABLES").fetchall()
+
+                self.assertCountEqual(objects_after, objects_before)
 
                 saved = connection.read_parquet(str(output_path))
                 rows = saved.fetchall()
@@ -138,7 +153,6 @@ class SilverWriterTests(unittest.TestCase):
                     connection,
                     car_entries,
                     output_path,
-                    source_view="silver_car_entries",
                 )
 
                 rows = connection.read_parquet(

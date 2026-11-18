@@ -116,7 +116,7 @@ def extract_stop_blocks(
         for column_number, column in enumerate(columns, start=1):
             ordered_text = "\n".join(
                 value
-                for _, value in sorted(column, key=lambda item: -item[0])
+                for _, value in sorted(column, key=lambda item: item[0], reverse=True)
             )
             blocks.append((page_number, column_number, ordered_text))
 

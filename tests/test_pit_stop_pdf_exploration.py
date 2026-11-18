@@ -47,13 +47,18 @@ class PitStopPdfExplorationTests(unittest.TestCase):
         second_line = "2 12:01:16.581 12:02:39.246 1:22.665 2:51.146"
 
         def visit(*, visitor_text):
-            identity = [1, 0, 0, 1, 0, 0]
+            # PDF text coordinates are local; translation places them on the page.
+            matrix = [1, 0, 0, 1, 10, 792]
+            # Deliberately emit fragments outside reading order.
             for x, y, value, size in (
-                (65.05, 600, "24", 18),
-                (60.45, 590, first_line, 9),
                 (321.25, 600, second_line, 9),
+                (60.45, 590, first_line, 9),
+                (65.05, 600, "24", 18),
             ):
-                visitor_text(value, identity, [1, 0, 0, 1, x, y], None, size)
+                visitor_text(
+                    value, matrix,
+                    [1, 0, 0, 1, x - 10, y - 792], None, size,
+                )
 
         page = Mock()
         page.extract_text.side_effect = visit
@@ -109,11 +114,14 @@ class PitStopPdfExplorationTests(unittest.TestCase):
             pdf = root / "stops.pdf"
             csv = root / "classification.csv"
             pdf.write_bytes(b"PDF extraction is mocked")
-            csv.write_text(
-                "NUMBER;POSITION;VEHICLE;STATUS\n24;1;BMW M Hybrid V8;Classified\n",
-                encoding="utf-8",
-            )
-            for event, session in (("course-a", "session-a"), ("course-b", "session-b")):
+            for event, session, model, expected_bmw in (
+                ("course-a", "session-a", " BMW M Hybrid V8 ", 1),
+                ("course-b", "session-b", "Chevrolet Corvette", 0),
+            ):
+                csv.write_text(
+                    f"NUMBER;POSITION;VEHICLE;STATUS\n 24 ;1;{model};Classified\n",
+                    encoding="utf-8",
+                )
                 output = root / event / "car_summary.parquet"
                 context = {
                     "championship": "test-championship", "season": 2023,
@@ -125,6 +133,8 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 ):
                     result = explore_source_pair(pdf, csv, context, output)
                 self.assertEqual(result["stops"], 1)
+                self.assertEqual(result["bmw_participants"], expected_bmw)
+                self.assertEqual(result["bmw_stops"], expected_bmw)
                 with duckdb.connect() as connection:
                     saved = connection.read_parquet(str(output))
                     self.assertEqual(saved.project(

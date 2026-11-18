@@ -7,23 +7,22 @@ import duckdb
 
 
 class SessionQualitySummaryTests(unittest.TestCase):
-    def test_counts_each_air_temperature_status(self):
+    def test_counts_each_status_for_all_session_fields(self):
         with duckdb.connect() as connection:
             connection.execute("""
                 CREATE TEMP VIEW silver_sessions AS
-                SELECT
-                    *,
-                    'valid' AS track_temperature_status,
-                    'valid' AS session_datetime_status,
-                    'valid' AS report_creation_datetime_status
+                SELECT *
                 FROM (VALUES
-                    ('source-a', 'version-1', 'valid'),
-                    ('source-b', 'version-1', 'missing'),
-                    ('source-c', 'version-1', 'invalid')
+                    ('source-a', 'version-1', 'valid', 'missing', 'invalid', 'valid'),
+                    ('source-b', 'version-1', 'missing', 'invalid', 'valid', 'missing'),
+                    ('source-c', 'version-1', 'invalid', 'valid', 'missing', 'invalid')
                 ) AS t(
                     source_id,
                     bronze_sha256,
-                    air_temperature_status
+                    air_temperature_status,
+                    track_temperature_status,
+                    session_datetime_status,
+                    report_creation_datetime_status
                 )
             """)
 
@@ -37,17 +36,20 @@ class SessionQualitySummaryTests(unittest.TestCase):
                 query_path.read_text(encoding="utf-8")
             )
 
-            self.assertEqual(report.count("*").fetchone()[0], 12)
-
-            rows = report.filter(
-                "field_name = 'air_temperature'"
-            ).fetchall()
-
-            self.assertEqual(
-                rows,
+            self.assertCountEqual(
+                report.fetchall(),
                 [
                     ("source-a", "version-1", "air_temperature", 1, 1, 0, 0),
+                    ("source-a", "version-1", "track_temperature", 1, 0, 1, 0),
+                    ("source-a", "version-1", "session_datetime", 1, 0, 0, 1),
+                    ("source-a", "version-1", "report_creation_datetime", 1, 1, 0, 0),
                     ("source-b", "version-1", "air_temperature", 1, 0, 1, 0),
+                    ("source-b", "version-1", "track_temperature", 1, 0, 0, 1),
+                    ("source-b", "version-1", "session_datetime", 1, 1, 0, 0),
+                    ("source-b", "version-1", "report_creation_datetime", 1, 0, 1, 0),
                     ("source-c", "version-1", "air_temperature", 1, 0, 0, 1),
+                    ("source-c", "version-1", "track_temperature", 1, 1, 0, 0),
+                    ("source-c", "version-1", "session_datetime", 1, 0, 1, 0),
+                    ("source-c", "version-1", "report_creation_datetime", 1, 0, 0, 1),
                 ],
             )

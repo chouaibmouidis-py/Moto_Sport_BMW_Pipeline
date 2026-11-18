@@ -177,16 +177,15 @@ def explore_source_pair(
             connection,
             summary,
             output_path,
-            source_view="pdf_car_summary",
         )
         return {
             "event_id": source_context["event_id"],
             "participants": summary.count("*").fetchone()[0],
             "bmw_participants": summary.filter("car_model LIKE 'BMW%'").count("*").fetchone()[0],
             "stops": len(rows),
-            "bmw_stops": connection.sql("""
-                SELECT COUNT(*) FROM pdf_stops s
-                JOIN classification_csv c ON s.car_number = c.NUMBER
-                WHERE c.VEHICLE LIKE 'BMW%'
-            """).fetchone()[0],
+            "bmw_stops": summary.filter(
+                "car_model LIKE 'BMW%'"
+            ).aggregate(
+                "COALESCE(SUM(observed_pit_stop_count), 0)"
+            ).fetchone()[0],
         }

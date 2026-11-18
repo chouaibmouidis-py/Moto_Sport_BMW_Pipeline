@@ -13,7 +13,7 @@ logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_marts")
 
 def main():
     configure_logging()
-    mart_path = data_directory = Path(__file__).resolve().parent / "data"
+    data_directory = Path(__file__).resolve().parent / "data"
     run_directory = get_current_run(data_directory)
 
     logger.info('%s %s', "Reading run:", run_directory.name)

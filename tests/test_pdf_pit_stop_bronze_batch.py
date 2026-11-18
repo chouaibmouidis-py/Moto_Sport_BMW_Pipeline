@@ -116,9 +116,17 @@ class PdfPitStopBronzeBatchTests(unittest.TestCase):
 
                 with duckdb.connect() as conn:
                     saved = conn.read_parquet(str(bronze_path))
-                    self.assertEqual(len(saved.columns), 9)
-                    self.assertNotIn("pit_time_seconds", saved.columns)
-                    row = saved.fetchone()
-                    self.assertEqual(row[0], source_id)
-                    self.assertEqual(row[2], "24")
-                    self.assertEqual(row[4], "1:28.481")
+                    self.assertEqual(saved.columns, [
+                        "source_id", "pdf_sha256", "car_number", "pit_number",
+                        "pit_time_raw", "page_number", "column_number",
+                        "block_line_number", "source_line",
+                    ])
+                    self.assertEqual([str(dtype) for dtype in saved.types], [
+                        "VARCHAR", "VARCHAR", "VARCHAR", "INTEGER", "VARCHAR",
+                        "INTEGER", "INTEGER", "INTEGER", "VARCHAR",
+                    ])
+                    self.assertEqual(saved.fetchall(), [(
+                        source_id,
+                        hashlib.sha256((root / event["pdf_path"]).read_bytes()).hexdigest(),
+                        "24", 1, "1:28.481", 1, 1, 2, mock_record["source_line"],
+                    )])

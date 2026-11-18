@@ -11,6 +11,7 @@ from unittest.mock import patch
 import duckdb
 
 from moto_sport_bmw_pipeline.gold import build_gold_candidate, validate_gold_inputs
+from moto_sport_bmw_pipeline.publication import publish_silver
 from moto_sport_bmw_pipeline.run_reference import get_current_run
 
 
@@ -89,7 +90,28 @@ class GoldPipelineTests(unittest.TestCase):
             validate_gold_inputs(run)
             manifest = json.loads((run / "inputs.json").read_text())
             self.assertEqual(manifest["source_run_id"], "source-run")
-            self.assertEqual(len(manifest["inputs"]), 10)
+            expected_inputs = [
+                ("source_manifest", "config/sources.json"),
+                ("exploration_catalog", "config/exploration_2023.json"),
+                *[
+                    ("transformation_sql", f"sql/{name}")
+                    for name in (
+                        "36_manufacturer_reference.sql",
+                        "37_manufacturer_reference_input.sql",
+                        "38_enrich_2023_manufacturers.sql",
+                        "39_gold_race_car_summary.sql",
+                    )
+                ],
+                ("manufacturer_evidence_bronze", "data/bronze/pits-json/document.parquet"),
+                ("manufacturer_evidence_bronze", "data/bronze/class-json/document.parquet"),
+                ("json_participant_mart", "data/runs/source-run/marts/race_car_summary.parquet"),
+                ("csv_pdf_participant_mart", "data/exploration/road-america-2023/marts/race_car_summary.parquet"),
+            ]
+            self.assertCountEqual(
+                [(record["role"], record["source_path"], record["snapshot_path"])
+                 for record in manifest["inputs"]],
+                [(role, path, f"inputs/{path}") for role, path in expected_inputs],
+            )
             for record in manifest["inputs"]:
                 snapshot = run / record["snapshot_path"]
                 self.assertEqual(hashlib.sha256(snapshot.read_bytes()).hexdigest(), record["sha256"])
@@ -134,18 +156,47 @@ class GoldPipelineTests(unittest.TestCase):
                 self.assertEqual(rebuilt.columns, saved.columns)
                 self.assertCountEqual(rebuilt.fetchall(), saved.fetchall())
 
-    def test_publication_failure_preserves_previous_gold_reference(self):
+    def test_second_output_failure_preserves_previous_gold_reference(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.prepare_inputs(root)
+            previous_run = build_gold_candidate(root)
             reference = root / "data/gold/current.json"
-            reference.parent.mkdir(parents=True)
-            reference.write_bytes(b'{"run_id":"previous-gold"}')
+            previous_reference = reference.read_bytes()
+            previous_output = (previous_run / "race_car_summary.parquet").read_bytes()
+            publication_count = 0
+
+            def fail_second_output(*args, **kwargs):
+                nonlocal publication_count
+                publication_count += 1
+                if publication_count == 2:
+                    raise OSError("Simulated publication failure")
+                return publish_silver(*args, **kwargs)
+
             with patch(
-                "moto_sport_bmw_pipeline.gold.publish_run_outputs",
-                side_effect=OSError("Simulated publication failure"),
+                "moto_sport_bmw_pipeline.publication.publish_silver",
+                side_effect=fail_second_output,
             ):
                 with self.assertRaisesRegex(OSError, "publication failure"):
                     build_gold_candidate(root)
-            self.assertEqual(reference.read_bytes(), b'{"run_id":"previous-gold"}')
+            self.assertEqual(publication_count, 2)
+            candidate, = (
+                path for path in (root / "data/gold/runs").iterdir()
+                if path.resolve() != previous_run
+            )
+            with duckdb.connect() as connection:
+                self.assertEqual(
+                    connection.read_parquet(
+                        str(candidate / "race_car_summary.parquet")
+                    ).project("season").order("season").fetchall(),
+                    [(2023,), (2024,)],
+                )
+            self.assertFalse((candidate / "manufacturer_reference.parquet").exists())
+            self.assertFalse((candidate / "manufacturer_evidence.parquet").exists())
+            self.assertEqual(reference.read_bytes(), previous_reference)
+            self.assertEqual(get_current_run(root / "data/gold").resolve(), previous_run)
+            self.assertEqual(
+                (previous_run / "race_car_summary.parquet").read_bytes(),
+                previous_output,
+            )
             self.assertEqual((root / "data/current.json").read_text(), '{"run_id":"source-run"}')

@@ -16,6 +16,7 @@ class PitStopKeysTests(unittest.TestCase):
                     ('course-a', '24', 1),
                     (NULL,       '24', 2),
                     ('course-a', NULL, 3),
+                    ('course-a', '24', NULL),
                     (NULL, '25', NULL)
                 ) AS t(source_id, car_number, pit_number)
             """)
@@ -26,7 +27,7 @@ class PitStopKeysTests(unittest.TestCase):
             )
             query = query_path.read_text(encoding="utf-8")
             invalid_key_count = connexion.sql(query).fetchone()[0]
-            self.assertEqual(invalid_key_count, 3)
+            self.assertEqual(invalid_key_count, 4)
 
     def test_counts_duplicate_keys(self):
         with duckdb.connect() as connexion:

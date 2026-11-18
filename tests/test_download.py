@@ -59,12 +59,14 @@ class DownloadTests(unittest.TestCase):
 
     def test_http_error_preserves_previous_file(self):
         previous = self.seed_previous_file()
-        response = self.response(b"Not found", status=404)
-        with patch("download.requests.get", return_value=response):
-            with self.assertRaises(requests.HTTPError):
-                download(self.url, self.destination)
+        for status in (404, 503):
+            with self.subTest(status=status):
+                response = self.response(b"HTTP error", status=status)
+                with patch("download.requests.get", return_value=response):
+                    with self.assertRaises(requests.HTTPError):
+                        download(self.url, self.destination)
 
-        self.assertEqual(self.target.read_bytes(), previous)
+                self.assertEqual(self.target.read_bytes(), previous)
 
     def test_repeated_download_does_not_create_duplicate_final_files(self):
         response = self.response(b'{"version": "same"}')
@@ -74,15 +76,6 @@ class DownloadTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(list(self.destination.iterdir()), [self.target])
-
-    def test_http_503_preserves_previous_file(self):
-        previous = self.seed_previous_file()
-        reponse = self.response(b"Service Unavailable", status=503)
-        with patch("download.requests.get", return_value=reponse):
-            with self.assertRaises(requests.HTTPError):
-                download(self.url, self.destination)
-
-        self.assertEqual(self.target.read_bytes(), previous)
 
     def test_invalid_json_does_not_create_final_file(self):
         reponse = self.response(b'{"session": {}, "pit_stop_analysis": [}')

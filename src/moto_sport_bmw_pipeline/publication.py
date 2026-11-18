@@ -48,6 +48,5 @@ def publish_run_outputs(
             connection,
             relation,
             run_directory / relative_path,
-            source_view=view_name,
             verbose=verbose,
         )

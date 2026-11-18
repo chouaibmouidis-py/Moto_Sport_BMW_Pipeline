@@ -95,7 +95,6 @@ def build_classification_csv(
             connection,
             document,
             output_path,
-            source_view="bronze_classification_csv",
         )
 
 def main() -> None:

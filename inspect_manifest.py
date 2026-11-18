@@ -7,7 +7,7 @@ import hashlib
 import json
 import logging
 
-from download import SOURCE_FILENAME, download
+from download import download
 from file_integrity import verify_local_file
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 from race_metrics import count_manufacturer_pit_stops
@@ -38,7 +38,8 @@ def main():
             continue
 
         destination_dir = PROJECT_DIR / "data" / "raw" / document["source_id"]
-        downloaded_path = destination_dir / SOURCE_FILENAME
+        filename = document["filename"]
+        downloaded_path = destination_dir / filename
         metadata_path = destination_dir / "metadata.json"
 
         logger.info('%s %s', "Source :", document["source_id"])
@@ -48,7 +49,11 @@ def main():
         if downloaded_path.exists() and not args.refresh:
             verify_local_file(downloaded_path, metadata_path)
         else:
-            downloaded_path = download(document["url"], destination_dir)
+            downloaded_path = download(
+                document["url"],
+                destination_dir,
+                filename=filename,
+            )
             downloaded_at = datetime.now(timezone.utc).isoformat()
 
             logger.info('%s %s', "Downloaded:", downloaded_path)
@@ -59,6 +64,7 @@ def main():
             metadata = {
                 "source_id": document["source_id"],
                 "url": document["url"],
+                "filename": downloaded_path.name,
                 "downloaded_at": downloaded_at,
                 "sha256": sha256,
             }

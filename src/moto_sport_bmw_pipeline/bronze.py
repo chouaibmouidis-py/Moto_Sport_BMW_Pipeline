@@ -61,6 +61,6 @@ def build_pdf_pit_stop_bronze(
             )
         document = connection.table("bronze_pdf_pit_stops")
         publish_parquet(
-            connection, document, output_path, source_view="bronze_pdf_pit_stops",
+            connection, document, output_path,
         )
     return output_path

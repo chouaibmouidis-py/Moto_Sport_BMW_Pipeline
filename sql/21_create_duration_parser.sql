@@ -3,16 +3,17 @@
 CREATE OR REPLACE TEMP MACRO parse_duration_seconds(duration_text) AS (
     SELECT
         CASE
+            WHEN NOT ISFINITE(part_1) THEN NULL
             WHEN part_1 < 0 THEN NULL
-
             WHEN part_count = 2
-                AND (part_2 < 0 OR part_2 >= 60)
+                AND (part_2 < 0 OR part_2 >= 60 OR NOT ISFINITE(part_2))
             THEN NULL
 
             WHEN part_count = 3
                 AND (
                     part_2 < 0 OR part_2 >= 60
-                    OR part_3 < 0 OR part_3 >= 60
+                    OR NOT ISFINITE(part_2)
+                    OR part_3 < 0 OR part_3 >= 60 OR NOT ISFINITE(part_3)
                 )
             THEN NULL
 

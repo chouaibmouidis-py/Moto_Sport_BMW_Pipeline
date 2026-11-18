@@ -28,15 +28,16 @@ class EnrichedPitStopsTests(unittest.TestCase):
 
             connection.execute("""
                 CREATE TEMP VIEW silver_driver_entries AS
-                SELECT
-                    'test-source' AS source_id,
-                    '0' AS source_entry_index,
-                    *
+                SELECT *
                 FROM (VALUES
-                    ('version-1', 1, 'Alice', 'Martin'),
-                    ('version-1', 2, 'Bob', 'Bernard'),
-                    ('version-2', 1, 'Charlie', 'Durand')
+                    ('test-source', '0', 'version-1', 1, 'Alice', 'Martin'),
+                    ('test-source', '0', 'version-1', 2, 'Bob', 'Bernard'),
+                    ('test-source', '0', 'version-2', 1, 'Charlie', 'Durand'),
+                    ('other-source', '0', 'version-1', 1, 'Wrong source', 'Driver'),
+                    ('test-source', '1', 'version-1', 2, 'Wrong entry', 'Driver')
                 ) AS t(
+                    source_id,
+                    source_entry_index,
                     bronze_sha256,
                     driver_number,
                     first_name,

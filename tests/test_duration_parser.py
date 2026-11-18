@@ -17,6 +17,16 @@ class DurationParserTests(unittest.TestCase):
             ("1:60:00", None),
             ("-5", None),
             ("inconnue", None),
+            ("NaN", None),
+            ("Infinity", None),
+            ("-Infinity", None),
+            ("NaN:01", None),
+            ("1:NaN", None),
+            ("1:Infinity", None),
+            ("1:NaN:02", None),
+            ("1:Infinity:02", None),
+            ("1:02:NaN", None),
+            ("1:02:Infinity", None),
             (None, None),
         ]
 

@@ -17,6 +17,9 @@ class DriverEntryKeysTests(unittest.TestCase):
                     ('course-a', 'version-1', '0', '0'),
                     ('course-a', 'version-1', '0', '1'),
                     ('course-a', 'version-2', '0', '0'),
+                    (NULL, 'version-1', '0', '0'),
+                    ('course-a', NULL, '0', '0'),
+                    ('course-a', 'version-1', NULL, '0'),
                     ('course-a', 'version-1', '0', NULL)
                 ) AS t(
                     source_id,
@@ -36,4 +39,4 @@ class DriverEntryKeysTests(unittest.TestCase):
                 query_path.read_text(encoding="utf-8")
             ).fetchone()
 
-            self.assertEqual(counts, (1, 1))
+            self.assertEqual(counts, (4, 1))

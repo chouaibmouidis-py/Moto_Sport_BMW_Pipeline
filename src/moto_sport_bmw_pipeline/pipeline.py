@@ -113,7 +113,6 @@ def publish_classification_csv_from_bronze(
             connection,
             classification,
             output_path,
-            source_view="silver_classification_csv",
         )
 
     return output_path
@@ -140,7 +139,6 @@ def publish_pdf_pit_stops_from_bronze(
             connection,
             stops,
             output_path,
-            source_view="silver_pdf_pit_stops",
         )
 
     return output_path
@@ -169,7 +167,6 @@ def publish_csv_pdf_race_summary(
             connection,
             summary,
             output_path,
-            source_view="csv_pdf_race_summary",
         )
 
     return output_path
