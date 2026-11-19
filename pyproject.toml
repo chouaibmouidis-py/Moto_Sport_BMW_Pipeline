@@ -14,6 +14,11 @@ dependencies = [
     "streamlit>=1.67.0",
 ]
 
+[dependency-groups]
+orchestration = [
+    "apache-airflow==3.4.0",
+]
+
 [project.scripts]
 moto-sport-bmw-pipeline = "moto_sport_bmw_pipeline:main"
 

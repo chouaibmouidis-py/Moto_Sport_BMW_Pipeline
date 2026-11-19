@@ -1,0 +1,64 @@
+name: Build and publish IMSA Gold
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bmw-gold-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.13.0"
+          enable-cache: false
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Install locked dependencies
+        run: uv sync --locked --python 3.12 --group orchestration
+
+      - name: Initialize Airflow metadata
+        env:
+          AIRFLOW_HOME: ${{ runner.temp }}/airflow
+          AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+        run: uv run --locked --no-sync airflow db migrate
+
+      - name: Execute the Airflow DAG
+        env:
+          AIRFLOW_HOME: ${{ runner.temp }}/airflow
+          AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+          motherduck_token: ${{ secrets.MOTHERDUCK_TOKEN }}
+        shell: bash
+        run: |
+          set -o pipefail
+          uv run --locked --no-sync airflow dags test \
+            bmw_pipeline \
+            --dagfile-path dags/bmw_pipeline.py \
+            2>&1 | tee "${{ runner.temp }}/airflow-run.log"
+
+      - name: Preserve Airflow logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: airflow-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/airflow-run.log
+            ${{ runner.temp }}/airflow/logs/
+          if-no-files-found: warn
+          retention-days: 7
