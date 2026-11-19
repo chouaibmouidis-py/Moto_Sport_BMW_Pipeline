@@ -82,7 +82,7 @@ def main():
     ]
 
     if len(relative_paths) != len(set(relative_paths)):
-        raise ValueError("Duplicate archive paths")    
+        raise ValueError("Duplicate archive paths")
 
     for source_file in source_files:
         source_path = PROJECT_DIR / source_file["relative_path"]

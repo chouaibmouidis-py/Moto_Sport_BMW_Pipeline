@@ -35,7 +35,7 @@ with DAG(
         bash_command=".venv/bin/python build_bronze.py",
         cwd=str(PROJECT_DIR),
     )
-    
+
     prepare_classification_raw = BashOperator(
         task_id="prepare_classification_raw",
         bash_command=".venv/bin/python inspect_classification.py",
@@ -53,7 +53,7 @@ with DAG(
         bash_command=".venv/bin/python analyze_bronze.py",
         cwd=str(PROJECT_DIR),
     )
-    
+
     build_2023_classifications = BashOperator(
         task_id="build_2023_classifications",
         bash_command=".venv/bin/python explore_2023_season.py --classification-only",
