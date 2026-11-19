@@ -14,7 +14,7 @@ The manual `Manual IMSA source smoke check` workflow retains the actual download
 of a historical source. This check is not a full run of the seasons and may fail
 when the provider is unavailable.
 
-These workflows do not publish Parquet files or deploy the project.
+These two checks do not publish Parquet files or deploy the project.
 After pushing, check their results in GitHub Actions. To make CI mandatory before
 merging, subsequently configure a branch protection rule with the
 `Python 3.12 tests` check: the YAML alone does not enforce this rule.
@@ -23,3 +23,21 @@ The configuration follows the official GitHub Actions syntax and uv integration:
 
 - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 - https://docs.astral.sh/uv/guides/integration/github/
+
+## Remote Gold publication
+
+`Build and publish IMSA Gold` is a separate workflow, triggered manually or on
+Mondays at 23:59 in `Africa/Casablanca`. It installs the locked orchestration
+dependencies, initializes temporary Airflow metadata and executes the 13-task
+DAG with `airflow dags test`. This executes real tasks without hosting a
+permanent scheduler or web interface.
+
+The DAG restores the pinned 110-file source archive, rebuilds both source-format
+paths and publishes Gold to MotherDuck after validation. The repository secret
+`MOTHERDUCK_TOKEN` is supplied through the environment. Concurrent executions of
+this workflow are serialized, and Airflow logs are retained for seven days even
+after failures. The first manual remote execution succeeded; the first weekly
+trigger remains to be observed.
+
+The [live dashboard](https://bmw-imsa-analytics.streamlit.app/) reads the active
+Gold share with a separate account. See the [hosting guide](dashboard_hosting.md).

@@ -1,12 +1,17 @@
-# BMW Motorsport data pipeline
+# BMW Motorsport — IMSA analytics
+
+### [Explore the live dashboard →](https://bmw-imsa-analytics.streamlit.app/)
+
+Compare BMW pit-stop records across **33 IMSA races, 2023–2025**. Filter by
+season, event and class; inspect missing observations, count discrepancies and
+source provenance. **Open in your browser — no installation required.**
 
 A personal data engineering project that transforms official IMSA WeatherTech
 race reports into traceable participant and pit-stop datasets using **Python,
 SQL and DuckDB**. The project is developed as a simulated internship assignment,
 independently of BMW and IMSA.
 
-**[Open the live dashboard](https://bmw-imsa-analytics.streamlit.app/)** —
-explore the published Gold data directly in your browser, without installation.
+**Python · SQL · DuckDB · Airflow · GitHub Actions · MotherDuck · Streamlit**
 
 ## Current coverage
 
@@ -26,12 +31,20 @@ workflow covers 8,307 detailed stops; the 2023 PDF path covers 3,953.
 ```text
 Official IMSA reports
     ├── 2024–2025 JSON → Raw → Bronze → Silver → quality reports and marts
-    └── 2023 CSV/PDF  → local sources → Bronze → Silver → per-event marts
+    └── 2023 CSV/PDF  → Raw → Bronze → Silver → per-event marts
                                                         │
 Both participant-mart paths + manufacturer evidence ─────┘
     ↓
 Common 2023–2025 Gold participants + provenance snapshots
+    ↓
+MotherDuck publication → hosted Streamlit dashboard
 ```
+
+GitHub Actions restores a pinned archive of **110 source and metadata files**
+from MotherDuck and executes the **13-task Airflow DAG**. Validated Gold data is
+published transactionally. The workflow is scheduled for Mondays at **23:59,
+Africa/Casablanca**, and can also be triggered manually. The remote path has
+completed successfully; the first scheduled execution remains to be observed.
 
 Controls cover source integrity, conversion, keys, relationships and participant
 preservation. Each output is written to a temporary Parquet and checked after
@@ -134,5 +147,7 @@ input data and SQL; reproduction also depends on the code revision and Python
 environment. Full details are in the [reference](docs/project_reference.md#checks-and-current-limitations)
 and [Gold guide](docs/gold.fr.md).
 
-Race data stays local under `data/`. Verify source reuse terms before
-redistributing reports. See the [reuse notes](docs/project_reference.md#github-actions-and-reuse).
+Working files stay under the ignored `data/` directory. Versioned source bytes
+are also retained in the restricted MotherDuck archive for remote reconstruction.
+The pinned archive does not automatically discover new races or official report
+corrections. See the [reuse notes](docs/project_reference.md#github-actions-and-reuse).

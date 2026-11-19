@@ -35,5 +35,4 @@ Retain references and hashes for both reports, transformation rules and the
 publication run. Test keys, participant preservation, links, conversions and
 separation between races/versions.
 Provide a field dictionary and an SQL/notebook example for reading the active
-run. A future AI consumer will use the same definitions, units and limitations;
-this draft demonstrates no AI compatibility.
+run. Downstream consumers must follow the same definitions, units and limitations.

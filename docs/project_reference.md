@@ -468,7 +468,8 @@ Two workflows have distinct responsibilities:
   `download.py` → `inspect_source.py` path for Road America. It does not run
   `run_pipeline.py` or archive results.
 
-The complete dataset validation and publication described here remain local.
+The complete pipeline also runs on GitHub Actions through the Airflow DAG,
+restoring pinned sources and publishing validated Gold data to MotherDuck.
 See the [CI guide](../docs/ci.fr.md).
 
 `data/`, virtual environments, and secret files are excluded from Git. Public
@@ -480,7 +481,7 @@ is a separate matter; no code license is announced here.
 
 Complete the classification data contract and document context, then extend
 sources in verified batches. The common Gold participant layer is implemented;
-the next step is to demonstrate its use from SQL or a notebook. Use by an AI
-application remains unproven. Advanced orchestration, remote-change detection,
-and Raw version archiving remain in the backlog. Local and cloud object-storage
+the hosted dashboard now demonstrates its use through MotherDuck. The remote
+workflow and versioned Raw archive are implemented. Remote-change detection
+and automatic discovery of new reports remain in the backlog. Cloud object-storage
 experiments will use a separate scope with a defined budget.

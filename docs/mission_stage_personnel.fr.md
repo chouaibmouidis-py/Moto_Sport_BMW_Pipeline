@@ -7,7 +7,7 @@ coverage, including the separate 2023–2025 Gold publication, see the
 Scoping version: November 10, 2026.
 Local milestone update: November 12, 2026.
 
-Independent educational project. BMW is the fictional recipient of the presentation: no commission, affiliation, internship agreement or validation by BMW is claimed. The portfolio deliverable will be presented as a personal project that used an AI tutor as a technical sparring partner (critical code review, architecture challenges and test scenarios).
+Independent educational project. BMW is the fictional recipient of the presentation: no commission, affiliation, internship agreement or validation by BMW is claimed. The portfolio deliverable presents the implemented pipeline, its validation scenarios, architecture decisions and limitations.
 
 ## Business need
 
