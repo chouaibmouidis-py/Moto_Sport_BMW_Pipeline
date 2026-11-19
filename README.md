@@ -5,6 +5,9 @@ race reports into traceable participant and pit-stop datasets using **Python,
 SQL and DuckDB**. The project is developed as a simulated internship assignment,
 independently of BMW and IMSA.
 
+**[Open the live dashboard](https://bmw-imsa-analytics.streamlit.app/)** —
+explore the published Gold data directly in your browser, without installation.
+
 ## Current coverage
 
 | Season | Source formats | Race entries | BMW entries |

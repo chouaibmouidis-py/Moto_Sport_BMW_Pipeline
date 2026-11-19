@@ -1,5 +1,7 @@
 # Dashboard hosting
 
+Live application: <https://bmw-imsa-analytics.streamlit.app/>
+
 The dashboard reads `bmw_analytics.main.race_car_summary` through a read-only
 MotherDuck share attached to the dedicated `bmw_dashboard` service account.
 The publishing account and its token are not needed by the dashboard.
