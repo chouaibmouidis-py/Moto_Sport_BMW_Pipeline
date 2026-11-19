@@ -1,10 +1,9 @@
-"""Display published IMSA Gold data in a local interactive dashboard."""
-from pathlib import Path
+"""Display published IMSA Gold data from MotherDuck in an interactive dashboard."""
+
+import os
 
 import duckdb
 import streamlit as st
-
-from moto_sport_bmw_pipeline.run_reference import get_current_run
 
 
 def event_label(event_id):
@@ -14,37 +13,46 @@ def event_label(event_id):
     return event_id.replace("-", " ").title()
 
 
-def main():
-    st.set_page_config(
-        page_title="BMW Motorsport — IMSA",
-        layout="wide",
-    )
+@st.cache_data(ttl=300, show_spinner=False)
+def load_gold_snapshot():
+    """Read one published snapshot; limit remote reads to once per five minutes."""
+    os.environ["motherduck_token"] = st.secrets["motherduck_token"]
+
+    with duckdb.connect("md:bmw_analytics") as remote_connection:
+        remote_connection.execute("REFRESH DATABASE bmw_analytics")
+
+        return remote_connection.sql("""
+            SELECT *
+            FROM bmw_analytics.main.race_car_summary
+        """).df()
+
+
+@st.fragment(run_every="5min")
+def render_dashboard():
+    """Refresh the displayed snapshot while the browser session remains active."""
     st.title("BMW Motorsport — IMSA")
 
-    gold_directory = Path(__file__).resolve().parent / "data" / "gold"
+    if st.button("Refresh data"):
+        load_gold_snapshot.clear()
 
     try:
-        run_directory = get_current_run(gold_directory)
-    except FileNotFoundError:
-        st.error(
-            "Published Gold data is unavailable. "
-            "Build and activate a Gold run before opening the dashboard."
-        )
+        gold_snapshot = load_gold_snapshot()
+    except (duckdb.Error, FileNotFoundError, KeyError):
+        st.error("Published data is temporarily unavailable. Please try refreshing shortly.")
         return
 
-    mart_path = run_directory / "race_car_summary.parquet"
-
-    if not mart_path.is_file():
-        st.error(
-            "The active Gold run is missing race_car_summary.parquet."
-        )
+    if gold_snapshot.empty:
+        st.warning("Published Gold data is unavailable.")
         return
 
-    st.caption(f"Published Gold run · {run_directory.name}")
+    publication_run_id = gold_snapshot["publication_run_id"].iloc[0]
+    st.caption(f"Published Gold run · {publication_run_id}")
+    st.caption("Checks for updates every five minutes while this page is open.")
 
     with duckdb.connect() as connection:
-        participants = connection.read_parquet(str(mart_path))
+        participants = connection.from_df(gold_snapshot)
         participants.create_view("gold_participants")
+
         season_filter, event_filter, class_filter = st.columns(3)
 
         season_rows = (
@@ -267,6 +275,14 @@ def main():
                 "pdf_sha256": "PDF SHA-256",
             },
         )
+
+
+def main():
+    st.set_page_config(
+        page_title="BMW Motorsport — IMSA",
+        layout="wide",
+    )
+    render_dashboard()
 
 
 if __name__ == "__main__":

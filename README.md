@@ -75,16 +75,18 @@ refreshing JSON sources. The [2023 guide](docs/imsa_2023_season_coverage.fr.md)
 and [detailed reference](docs/project_reference.md#current-project-scope) describe
 the separate CSV/PDF batch commands and required local inputs.
 
-## Local dashboard
+## Dashboard
 
-Open the Streamlit dashboard after building and activating Gold:
+The Streamlit dashboard reads the active publication from the restricted
+MotherDuck Gold share. It does not require local race reports or Parquet files.
+Configure the dedicated dashboard token in `.streamlit/secrets.toml`, following
+the [hosting guide](docs/dashboard_hosting.md), then start the app:
 
 ```bash
 uv run --locked streamlit run dashboard.py
 ```
 
-The dashboard reads the active Gold run from `data/gold/current.json` and its
-local Parquet table. Select a season, event and class to explore BMW participants,
+Select a season, event and class to explore BMW participants,
 recorded pit-stop counts and mean durations. The quality panel lists count
 discrepancies, missing stop details and unconverted durations for that selection.
 The source panel exposes report identifiers and fingerprints.
@@ -92,7 +94,9 @@ The source panel exposes report identifiers and fingerprints.
 Column help explains declared counts, duration averages and coverage. Missing
 values remain visible, and selections without participants or averages receive
 an explicit message. Keep the terminal open while using the dashboard; press
-`Ctrl+C` to stop its local server.
+`Ctrl+C` to stop its local server. Active browser sessions check for updates every
+five minutes. Use **Refresh data** to request an immediate refresh. All charts
+and tables in an update use the same downloaded Gold snapshot.
 
 ## Reading the project
 
