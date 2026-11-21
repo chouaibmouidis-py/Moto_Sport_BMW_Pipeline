@@ -357,6 +357,18 @@ def build_classification_gap_issues(connection):
             silver_classification_csv
         WHERE
             gap_first_kind = 'unrecognized'
-    """)
+        UNION ALL
+        SELECT
+            source_id,
+            bronze_sha256,
+            car_number,
+            'GAP_PREVIOUS' AS field_name,
+            gap_previous_raw AS raw_value,
+            'unrecognized_gap_format' AS issue_type
+        FROM
+            silver_classification_csv
+        WHERE
+            gap_previous_kind = 'unrecognized'
+        """)
 
     return gap_issues

@@ -206,7 +206,9 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     'test-hash' AS bronze_sha256,
                     '24' AS car_number,
                     'to be confirmed' AS gap_first_raw,
-                    'unrecognized' AS gap_first_kind
+                    'unrecognized' AS gap_first_kind,
+                    '-' AS gap_previous_raw,
+                    'marker' AS gap_previous_kind
                 """)
 
             gap_issues = build_classification_gap_issues(connection)
@@ -223,4 +225,38 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     "to be confirmed",
                     "unrecognized_gap_format",
                 )]
+            )
+
+    def test_reports_both_unrecognized_gaps(self):
+
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP TABLE silver_classification_csv AS
+                SELECT
+                    'test-source' AS source_id,
+                    'test-hash' AS bronze_sha256,
+                    '24' AS car_number,
+                    'unrecognized' AS gap_first_kind,
+                    'to be confirmed' AS gap_first_raw,
+                    'unrecognized' AS gap_first_kind,
+                    'pending review' AS gap_previous_raw,
+                    'unrecognized' AS gap_previous_kind
+                """)
+
+            gap_issues = build_classification_gap_issues(connection)
+
+            rows = gap_issues.fetchall()
+
+            self.assertCountEqual(
+                rows,
+                [
+                    (
+                        "test-source", "test-hash", "24", "GAP_FIRST",
+                        "to be confirmed", "unrecognized_gap_format",
+                    ),
+                    (
+                        "test-source", "test-hash", "24", "GAP_PREVIOUS",
+                        "pending review", "unrecognized_gap_format",
+                    ),
+                ]
             )
