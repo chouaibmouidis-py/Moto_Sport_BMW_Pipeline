@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from moto_sport_bmw_pipeline.silver import transform_classification_csv
 import duckdb
+from moto_sport_bmw_pipeline.quality import validate_classification_gaps
 
 
 class SilverClassificationCsvTests(unittest.TestCase):
@@ -16,9 +17,9 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     'test-bronze-hash' AS bronze_sha256,
                     *
                 FROM (VALUES
-                    (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ', ' 74 ')
+                    (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ', ' 74 ', 	' Team Test ', '100', '42', '219.6', '1:00:00.000', '1:30.000', '+3.028', '1 Lap')
                 ) AS t(
-                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId
+                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId, TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME, GAP_FIRST, GAP_PREVIOUS
                 )
             """)
 
@@ -33,8 +34,30 @@ class SilverClassificationCsvTests(unittest.TestCase):
             self.assertEqual(
                 rows,
                 [(
-                    "test-source", "test-bronze-hash", "04",
-                    "BMW M4 GT3", 4, "GTD", "Classified", "74",
+                    "test-source",                  # source_id
+                    "test-bronze-hash",             # bronze_sha256
+                    "04",                          # car_number
+                    "BMW M4 GT3",                   # car_model
+                    4,                             # overall_position
+                    "GTD",                         # car_class
+                    "Classified",                  # classification_status
+                    "74",                          # manufacturer_source_id
+                    "Team Test",                   # team_name
+                    100,                           # completed_laps
+                    42,                            # fastest_lap_number
+                    219.6,                         # fastest_lap_speed_kph
+                    "1:00:00.000",                  # total_time_raw
+                    3600.0,                        # total_time_seconds
+                    "1:30.000",                     # fastest_lap_time_raw
+                    90.0,                          # fastest_lap_time_seconds
+                    "+3.028",                      # gap_first_raw
+                    "1 Lap",                       # gap_previous_raw
+                    "time",                        # gap_first_kind
+                    3.028,                         # gap_first_seconds
+                    None,                          # gap_first_laps
+                    "laps",                        # gap_previous_kind
+                    None,                          # gap_previous_seconds
+                    1,                             # gap_previous_laps
                 )],
             )
 
@@ -49,10 +72,20 @@ class SilverClassificationCsvTests(unittest.TestCase):
                 FROM (VALUES
                     (
                         '24', 'BMW M Hybrid V8', 'inconnue',
-                        'GTP', 'Classified', CAST(NULL AS VARCHAR)
+                        'GTP', 'Classified', CAST(NULL AS VARCHAR),
+                        CAST(NULL AS VARCHAR), -- TEAM
+                        CAST(NULL AS VARCHAR), -- LAPS
+                        CAST(NULL AS VARCHAR), -- FL_LAPNUM
+                        CAST(NULL AS VARCHAR), -- FL_KPH
+                        CAST(NULL AS VARCHAR), -- TOTAL_TIME
+                        CAST(NULL AS VARCHAR), -- FL_TIME
+                        CAST(NULL AS VARCHAR), -- GAP_FIRST
+                        CAST(NULL AS VARCHAR)  -- GAP_PREVIOUS
                     )
                 ) AS t(
-                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId
+                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId,
+                    TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME,
+                    GAP_FIRST, GAP_PREVIOUS
                 )
             """)
 
@@ -62,13 +95,36 @@ class SilverClassificationCsvTests(unittest.TestCase):
                 connection,
                 project_directory,
             )
+
             rows = result.fetchall()
 
             self.assertEqual(
                 rows,
                 [(
-                    "test-source", "test-bronze-hash", "24",
-                    "BMW M Hybrid V8", None, "GTP", "Classified", None,
+                    "test-source",       # source_id
+                    "test-bronze-hash",  # bronze_sha256
+                    "24",               # car_number
+                    "BMW M Hybrid V8",   # car_model
+                    None,               # overall_position : "inconnue" non convertible
+                    "GTP",              # car_class
+                    "Classified",       # classification_status
+                    None,               # manufacturer_source_id
+                    None,               # team_name
+                    None,               # completed_laps
+                    None,               # fastest_lap_number
+                    None,               # fastest_lap_speed_kph
+                    None,               # total_time_raw
+                    None,               # total_time_seconds
+                    None,               # fastest_lap_time_raw
+                    None,               # fastest_lap_time_seconds
+                    None,               # gap_first_raw
+                    None,               # gap_previous_raw
+                    "missing",          # gap_first_kind
+                    None,               # gap_first_seconds
+                    None,               # gap_first_laps
+                    "missing",          # gap_previous_kind
+                    None,               # gap_previous_seconds
+                    None,               # gap_previous_laps
                 )],
             )
 
@@ -120,3 +176,22 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     connection,
                     project_directory,
                 )
+
+    def test_rejects_time_gap_without_seconds(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                    CREATE TEMP VIEW silver_classification_csv AS
+                    SELECT
+                        'time' AS gap_first_kind,
+                        CAST(NULL AS DOUBLE) AS gap_first_seconds,
+                        CAST(NULL AS INTEGER) AS gap_first_laps,
+                        'marker' AS gap_previous_kind,
+                        CAST(NULL AS DOUBLE) AS gap_previous_seconds,
+                        CAST(NULL AS INTEGER) AS gap_previous_laps
+                """)
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "1 inconsistent rows"
+            ):
+                validate_classification_gaps(connection)

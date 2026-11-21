@@ -288,3 +288,57 @@ def validate_gold_participant_keys(connection):
 
     if duplicates:
         raise ValueError("Gold rejected: duplicate participant keys")
+
+def validate_classification_gaps(connection) -> None:
+
+    filter_gap = connection.sql("""
+        SELECT
+            COUNT(*) FROM silver_classification_csv
+        WHERE
+        gap_previous_kind = 'time'
+        AND(
+            gap_previous_seconds IS NULL
+            OR gap_previous_laps IS NOT NULL
+            )
+        OR
+        (
+            gap_previous_kind = 'laps'
+            AND (
+                gap_previous_laps IS NULL
+                OR gap_previous_seconds IS NOT NULL
+            )
+        )
+        OR
+        (
+            gap_previous_kind IN ('missing', 'marker')
+            AND (
+                gap_previous_seconds IS NOT NULL
+                OR gap_previous_laps IS NOT NULL
+            )
+        )
+        OR
+        gap_first_kind = 'time'
+        AND(
+            gap_first_seconds IS NULL
+            OR gap_first_laps IS NOT NULL
+            )
+        OR
+        (
+            gap_first_kind = 'laps'
+            AND (
+                gap_first_laps IS NULL
+                OR gap_first_seconds IS NOT NULL
+            )
+        )
+        OR
+        (
+            gap_first_kind IN ('missing', 'marker')
+            AND (
+                gap_first_seconds IS NOT NULL
+                OR gap_first_laps IS NOT NULL
+            )
+        )
+    """).fetchone()[0]
+
+    if filter_gap > 0:
+        raise ValueError(f"Classification gaps rejected: {filter_gap} inconsistent rows")

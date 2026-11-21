@@ -1,8 +1,8 @@
 """Transform Bronze documents and reject invalid Silver keys using existing SQL."""
 
 from pathlib import Path
-from .quality import validate_classification_keys
-from .quality import validate_pdf_pit_stop_keys
+from .quality import validate_classification_keys, validate_pdf_pit_stop_keys, validate_classification_gaps
+
 
 def transform_sessions(connection, project_directory: Path):
 
@@ -175,10 +175,21 @@ def transform_classification_csv(connection, project_directory: Path):
         / "33_silver_classification_csv.sql"
     )
 
+    connection.execute(
+        (
+        project_directory
+        / "sql"
+        / "21_create_duration_parser.sql"
+        ).read_text(encoding="utf-8")
+    )
+
     classification = connection.sql(
         query_path.read_text(encoding="utf-8")
     )
+
     classification.create_view("silver_classification_csv")
+
+    validate_classification_gaps(connection)
 
     return classification
 

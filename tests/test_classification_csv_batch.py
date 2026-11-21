@@ -20,14 +20,24 @@ class ClassificationCsvBatchTests(unittest.TestCase):
             root = Path(directory)
             (root / "sql").mkdir()
             (root / "sql" / sql_path.name).write_bytes(sql_path.read_bytes())
+
+            duration_parser_path = sql_path.parent / "21_create_duration_parser.sql"
+
+            (root / "sql" / duration_parser_path.name).write_bytes(
+                duration_parser_path.read_bytes()
+            )
+
             events = []
             for event_id in ("course-a", "course-b"):
                 source_id = f"test-2023-{event_id}-classification"
                 source = root / "data" / "raw" / source_id / "report.csv"
                 source.parent.mkdir(parents=True)
                 source.write_text(
-                    "NUMBER;VEHICLE;POSITION;CLASS;STATUS;IMSA_ManufacturerId\n"
-                    " 01 ; BMW M4 GT3 ;inconnue; GTD ; Not started ; 74 \n",
+                    "NUMBER;VEHICLE;POSITION;CLASS;STATUS;IMSA_ManufacturerId;"
+                    "TEAM;LAPS;FL_LAPNUM;FL_KPH;TOTAL_TIME;FL_TIME;"
+                    "GAP_FIRST;GAP_PREVIOUS\n"
+                    " 01 ; BMW M4 GT3 ;inconnue; GTD ; Not started ; 74 "
+                    ";;;;;;;;\n",
                     encoding="utf-8",
                 )
                 events.append({
