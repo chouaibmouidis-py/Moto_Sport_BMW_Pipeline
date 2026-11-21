@@ -794,6 +794,42 @@
       "bmw_participation": "confirmed_in_document",
       "inspection_status": "inspected",
       "pipeline_status": "tested_locally"
+    },
+    {
+      "source_id": "imsa-2022-daytona-race-hour24-classification-official",
+      "enabled": false,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2022,
+      "event_id": "daytona",
+      "session_id": "202201291340-race",
+      "document_type": "classification",
+      "report_period": "hour_24",
+      "publication_status": "official",
+      "format": "csv",
+      "filename": "03_Results_Race_Official.CSV",
+      "url": "https://imsa.results.alkamelcloud.com/Results/22_2022/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202201291340_Race/24_Hour%2024/03_Results_Race_Official.CSV",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "download_validated"
+    },
+    {
+      "source_id": "imsa-2022-daytona-race-hour24-pit-stops",
+      "enabled": false,
+      "discipline": "auto",
+      "championship": "imsa-weathertech",
+      "season": 2022,
+      "event_id": "daytona",
+      "session_id": "202201291340-race",
+      "document_type": "pit_stops",
+      "report_period": "hour_24",
+      "publication_status": "unspecified",
+      "format": "pdf",
+      "filename": "20_Pit Stops Time Cards_Race.PDF",
+      "url": "https://imsa.results.alkamelcloud.com/Results/22_2022/02_Daytona%20International%20Speedway/01_IMSA%20WeatherTech%20SportsCar%20Championship/202201291340_Race/24_Hour%2024/20_Pit%20Stops%20Time%20Cards_Race.PDF",
+      "bmw_participation": "confirmed_in_document",
+      "inspection_status": "inspected",
+      "pipeline_status": "download_validated"
     }
   ],
   "catalogs_to_explore": [

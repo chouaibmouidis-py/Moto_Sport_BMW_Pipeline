@@ -3,9 +3,9 @@
 from pathlib import Path
 import json
 import logging
-
+import csv
 import requests
-
+from pypdf import PdfReader
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,52 @@ RAW_DIR = "data/raw"
 BRONZE_DIR = "data/bronze"
 SOURCE_FILENAME = "20_Pit Stops Time Cards_Race.JSON"
 
+def validate_json(path: Path) -> None:
+    with path.open("r", encoding="utf-8-sig") as file:
+        json.load(file)
+
+def validate_classification_csv(path: Path) -> None:
+    with path.open("r", encoding="utf-8-sig", newline="") as file:
+        required_columns = [
+            "NUMBER",
+            "VEHICLE",
+            "POSITION",
+            "CLASS",
+            "STATUS",
+            "IMSA_ManufacturerId",
+            "TEAM",
+            "LAPS",
+            "FL_LAPNUM",
+            "FL_KPH",
+            "TOTAL_TIME",
+            "FL_TIME",
+            "GAP_FIRST",
+            "GAP_PREVIOUS",
+        ]
+        reader = csv.reader(file, delimiter=";")
+        header = next(reader, None)
+        if not header:
+            raise ValueError("Missing CSV header")
+        for column in required_columns:
+            if column not in header:
+                raise ValueError(f"Incompatible header, missing column: {column}")
+        if not any(
+            field.strip()
+            for row in reader
+            for field in row
+        ):
+            raise ValueError("CSV contains no data rows")
+
+def validate_pdf(path: Path) -> None:
+    document = PdfReader(path)
+    if len(document.pages) == 0:
+        raise ValueError("PDF contains no pages")
 
 def download(
     url: str,
     save_path: str | Path,
     filename: str = SOURCE_FILENAME,
+    expected_format: str = "json",
 ) -> Path:
     target_path = Path(save_path) / filename
     response = requests.get(url, timeout=60)
@@ -31,8 +72,14 @@ def download(
     with temporary_path.open("wb") as file:
         file.write(response.content)
 
-    with temporary_path.open("r", encoding="utf-8-sig") as file:
-        json.load(file)
+    if expected_format == "json":
+        validate_json(temporary_path)
+    elif expected_format == "csv":
+        validate_classification_csv(temporary_path)
+    elif expected_format == "pdf":
+        validate_pdf(temporary_path)
+    else:
+        raise ValueError(f"Unsupported format :{expected_format}")
 
     temporary_path.replace(target_path)
     return target_path
