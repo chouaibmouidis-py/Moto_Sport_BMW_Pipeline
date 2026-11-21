@@ -342,3 +342,21 @@ def validate_classification_gaps(connection) -> None:
 
     if filter_gap > 0:
         raise ValueError(f"Classification gaps rejected: {filter_gap} inconsistent rows")
+
+def build_classification_gap_issues(connection):
+
+    gap_issues = connection.sql("""
+        SELECT
+            source_id,
+            bronze_sha256,
+            car_number,
+            'GAP_FIRST' AS field_name,
+            gap_first_raw AS raw_value,
+            'unrecognized_gap_format' AS issue_type
+        FROM
+            silver_classification_csv
+        WHERE
+            gap_first_kind = 'unrecognized'
+    """)
+
+    return gap_issues

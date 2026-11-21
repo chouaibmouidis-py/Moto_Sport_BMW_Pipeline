@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from moto_sport_bmw_pipeline.silver import transform_classification_csv
 import duckdb
-from moto_sport_bmw_pipeline.quality import validate_classification_gaps
+from moto_sport_bmw_pipeline.quality import validate_classification_gaps, build_classification_gap_issues
 
 
 class SilverClassificationCsvTests(unittest.TestCase):
@@ -195,3 +195,32 @@ class SilverClassificationCsvTests(unittest.TestCase):
                 "1 inconsistent rows"
             ):
                 validate_classification_gaps(connection)
+
+    def test_reports_unrecognized_first_gap(self):
+
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP TABLE silver_classification_csv AS
+                SELECT
+                    'test-source' AS source_id,
+                    'test-hash' AS bronze_sha256,
+                    '24' AS car_number,
+                    'to be confirmed' AS gap_first_raw,
+                    'unrecognized' AS gap_first_kind
+                """)
+
+            gap_issues = build_classification_gap_issues(connection)
+
+            rows = gap_issues.fetchall()
+
+            self.assertEqual(
+                rows,
+                [(
+                    "test-source",
+                    "test-hash",
+                    "24",
+                    "GAP_FIRST",
+                    "to be confirmed",
+                    "unrecognized_gap_format",
+                )]
+            )
