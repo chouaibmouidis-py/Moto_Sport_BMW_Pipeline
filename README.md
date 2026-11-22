@@ -80,7 +80,35 @@ Enable detailed tables and retain execution logs:
 uv run --locked python run_pipeline.py --verbose --log-file data/logs/pipeline.log
 ```
 
-Build Gold after preparing both the JSON run and the 2023 per-event marts:
+Run all enabled sources through the shared pipeline (JSON, CSV and PDF):
+
+```bash
+uv run python run_pipeline.py
+# Optional selection, without creating a format- or season-specific launcher:
+uv run python run_pipeline.py --season 2023 --event daytona
+# Airflow invokes these same stages:
+uv run python run_pipeline.py --stage raw
+uv run python run_pipeline.py --stage bronze
+uv run python run_pipeline.py --stage process
+uv run python run_pipeline.py --stage gold
+```
+
+The only source configuration is `config/sources.json`. Readers and validators
+are selected by document type and declared format. Processing writes unique
+candidate directories, including classification quality reports, and activates
+`data/processing/current.json` only after every selected report succeeds.
+Gold snapshots that complete processing run; it no longer reads independently
+updated per-season files. A failed quality-report write retains the previous
+processing and Gold references. Source fingerprints are checked before reuse.
+
+Rebuild the processing stage before building Gold on this checkout. Existing
+legacy files under `data/exploration/` or `data/csv_pdf/` are preserved but
+are no longer production inputs. A selected season/event builds a correspondingly
+scoped Gold; run without selection to restore the complete configured coverage.
+No command publishes to MotherDuck unless `publish_motherduck.py` is invoked.
+
+Build Gold from the already completed processing run:
+
 
 ```bash
 uv run --locked python build_gold.py

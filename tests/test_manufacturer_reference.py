@@ -3,7 +3,7 @@
 import unittest
 from pathlib import Path
 from moto_sport_bmw_pipeline.marts import build_manufacturer_reference
-from moto_sport_bmw_pipeline.marts import enrich_2023_manufacturers
+from moto_sport_bmw_pipeline.marts import enrich_csv_pdf_manufacturers
 import duckdb
 
 
@@ -120,7 +120,7 @@ class ManufacturerReferenceTests(unittest.TestCase):
 
             project_directory = Path(__file__).resolve().parent.parent
 
-            participants = enrich_2023_manufacturers(
+            participants = enrich_csv_pdf_manufacturers(
                 connection,
                 project_directory,
             )
@@ -164,7 +164,7 @@ class ManufacturerReferenceTests(unittest.TestCase):
                 ValueError,
                 "participant count changed",
             ):
-                enrich_2023_manufacturers(
+                enrich_csv_pdf_manufacturers(
                     connection,
                     project_directory,
                 )

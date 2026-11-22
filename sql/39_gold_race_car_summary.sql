@@ -34,7 +34,7 @@ SELECT
     stop_detail_status,
     overall_position,
     CAST(NULL AS BOOLEAN) AS not_finished
-FROM enriched_2023_participants
+FROM enriched_csv_pdf_participants
 
 UNION ALL
 

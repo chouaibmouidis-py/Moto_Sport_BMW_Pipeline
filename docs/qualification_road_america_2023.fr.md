@@ -1,3 +1,5 @@
+> Historical qualification results below describe the validated datasets. For the current runtime, use the [code map](code_map.md): one source manifest and one multiformat orchestrator. Old per-season output paths are not current production inputs.
+
 # Initial Road America 2023 qualification
 
 Inspection on 12 November 2026. No addition to the active manifest: the available
@@ -34,13 +36,13 @@ with the duration in the JSON reports without examining its definition and check
 
 ## Verified exploration and Git reference
 
-`explore_classification_csv.py` reads the classification and a timing sample.
+`inspect_classification_csv.py` reads the classification and a timing sample.
 The timing path remains temporarily fixed at `/tmp/imsa-ra2023-timing.csv`.
 For BMW 24, the two CSV durations match the PDF (1:28.481 and 1:22.665).
 BMW 25 has four timing rows without PIT_TIME, whereas the PDF
 contains a stop of 1:59:53.389: timing data does not replace the PDF.
 
-`explore_pit_stop_pdf.py` extracts 116 pit stops for 44 cars, without duplicate
+`inspect_pdf_pair.py` extracts 116 pit stops for 44 cars, without duplicate
 car/stop keys in the inspected PDF. Coordinates, body boundaries, and
 font sizes are specific to this report. The car context carries across
 columns/pages; one-, two-, and three-digit numbers are recognized.
@@ -89,17 +91,20 @@ the exploration. This copy is not yet an automated download or an
 immutable archive. The official links remain those of the directory listed above.
 
 The exploratory summary is published to
-`data/exploration/road-america-2023/car_summary.parquet`, with content verification
+`data/csv_pdf/road-america-2023/car_summary.parquet`, with content verification
 by `publish_silver`, without activation in `current.json`.
 Its current version produces 45 rows and eleven columns: the four business
 columns, the two source hashes, championship/season/event_id/session_id,
 and classification_status (source status, added after the Long Beach qualification).
 The existing file must be regenerated to receive this new column.
-Context values are declared in the script; they are not
+Context values are passed explicitly to the diagnostic command; they are not
 automatically inferred or validated against the content of the two documents.
 
 ```bash
-uv run python explore_pit_stop_pdf.py \
+uv run python inspect_pdf_pair.py \
   "data/raw/imsa-2023-road-america-race-pit-stops/20_Pit Stops Time Cards_Race.PDF" \
-  data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV
+  data/raw/imsa-2023-road-america-race-classification-official/03_Results_Race_Official.CSV \
+  --championship imsa-weathertech --season 2023 \
+  --event-id road-america --session-id 202308061010-race \
+  --output scratch/road-america-2023/car_summary.parquet
 ```

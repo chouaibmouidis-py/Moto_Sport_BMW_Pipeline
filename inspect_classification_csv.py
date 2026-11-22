@@ -8,7 +8,7 @@ import duckdb
 
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 
-logger = logging.getLogger("moto_sport_bmw_pipeline.explore_classification_csv")
+logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_classification_csv")
 
 
 def main() -> None:

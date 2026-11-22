@@ -1,6 +1,9 @@
 """Download and validate a JSON document before replacing its final Raw path."""
 
 from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import tempfile
 import json
 import logging
 import csv
@@ -57,6 +60,44 @@ def validate_pdf(path: Path) -> None:
     if len(document.pages) == 0:
         raise ValueError("PDF contains no pages")
 
+
+VALIDATORS = {"json": validate_json, "csv": validate_classification_csv, "pdf": validate_pdf}
+
+
+def prepare_source(project_directory: Path, source: dict, *, refresh=False) -> Path:
+    """Acquire or verify one source; choose its validator from the declared format."""
+    from .integrity import verify_local_file
+
+    directory = project_directory / "data/raw" / source["source_id"]
+    target = directory / source["filename"]
+    metadata_path = directory / "metadata.json"
+    validator = VALIDATORS[source["format"]]
+    expected = source.get("expected_sha256")
+    if target.is_file() and not refresh:
+        if expected:
+            if hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+                raise ValueError(f"Raw fingerprint mismatch: {source['source_id']}")
+        else:
+            verify_local_file(target, metadata_path)
+        validator(target)
+        return target
+    directory.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        candidate = download(source["url"], temporary, source["filename"], source["format"])
+        digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        if expected and digest != expected:
+            raise ValueError(f"Raw fingerprint mismatch: {source['source_id']}")
+        metadata = {
+            "source_id": source["source_id"], "url": source["url"],
+            "filename": source["filename"], "sha256": digest,
+            "downloaded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        candidate_metadata = Path(temporary) / "metadata.json"
+        candidate_metadata.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+        candidate.replace(target)
+        candidate_metadata.replace(metadata_path)
+    return target
+
 def download(
     url: str,
     save_path: str | Path,
@@ -72,14 +113,9 @@ def download(
     with temporary_path.open("wb") as file:
         file.write(response.content)
 
-    if expected_format == "json":
-        validate_json(temporary_path)
-    elif expected_format == "csv":
-        validate_classification_csv(temporary_path)
-    elif expected_format == "pdf":
-        validate_pdf(temporary_path)
-    else:
+    if expected_format not in VALIDATORS:
         raise ValueError(f"Unsupported format :{expected_format}")
+    VALIDATORS[expected_format](temporary_path)
 
     temporary_path.replace(target_path)
     return target_path

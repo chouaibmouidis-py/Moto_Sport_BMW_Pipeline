@@ -152,7 +152,7 @@ def build_manufacturer_reference(connection, project_directory):
         "manufacturer_reference",
     )
 
-def enrich_2023_manufacturers(connection, project_directory):
+def enrich_csv_pdf_manufacturers(connection, project_directory):
     """Enrich participants without changing their number of rows."""
     expected_count = connection.table(
         "csv_pdf_race_summary"
@@ -161,8 +161,8 @@ def enrich_2023_manufacturers(connection, project_directory):
     participants = build_view(
         connection,
         project_directory,
-        "38_enrich_2023_manufacturers.sql",
-        "enriched_2023_participants",
+        "38_enrich_csv_pdf_manufacturers.sql",
+        "enriched_csv_pdf_participants",
     )
 
     actual_count = participants.count("*").fetchone()[0]
@@ -179,7 +179,7 @@ def build_gold_race_car_summary(connection, project_directory):
     expected_count = sum(
         connection.table(view_name).count("*").fetchone()[0]
         for view_name in (
-            "enriched_2023_participants",
+            "enriched_csv_pdf_participants",
             "json_race_car_summary",
         )
     )

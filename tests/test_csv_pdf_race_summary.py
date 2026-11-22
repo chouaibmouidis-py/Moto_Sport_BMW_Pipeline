@@ -6,7 +6,7 @@ import unittest
 import duckdb
 
 from moto_sport_bmw_pipeline.marts import build_csv_pdf_race_summary
-from moto_sport_bmw_pipeline.source_loading import load_exploration_source_sessions
+from moto_sport_bmw_pipeline.source_loading import load_csv_pdf_source_sessions
 
 
 class CsvPdfRaceSummaryTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class CsvPdfRaceSummaryTests(unittest.TestCase):
                 for event in ("a", "b")
             ],
         }
-        load_exploration_source_sessions(connection, catalog)
+        load_csv_pdf_source_sessions(connection, catalog)
         connection.execute("""
             CREATE TEMP TABLE silver_classification_csv AS
             SELECT * FROM (VALUES

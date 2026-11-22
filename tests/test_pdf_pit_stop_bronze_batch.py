@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import duckdb
 
-from explore_2023_season import build_pdf_bronze_batch
+from moto_sport_bmw_pipeline.batch_processing import build_pdf_bronze_batch
 
 
 class PdfPitStopBronzeBatchTests(unittest.TestCase):

@@ -1,4 +1,4 @@
-"""Convert, validate and publish exploratory CSV/PDF pairs outside the active JSON pipeline."""
+"""Inspect a PDF/CSV pair and optionally save a diagnostic summary outside production."""
 
 from pathlib import Path
 import hashlib
@@ -119,7 +119,7 @@ def build_pdf_car_summary(
 def compute_source_hash(source_path: Path) -> str:
     return hashlib.sha256(source_path.read_bytes()).hexdigest()
 
-def explore_source_pair(
+def inspect_source_pair(
     pdf_path: Path,
     classification_path: Path,
     source_context: dict,
@@ -128,7 +128,7 @@ def explore_source_pair(
     show_tables: bool = False,
 ) -> dict:
     """Validate and publish one exploratory pair, without activating a main run."""
-    logger.info("Exploring event: %s; session: %s", source_context["event_id"], source_context["session_id"])
+    logger.info("Inspecting event: %s; session: %s", source_context["event_id"], source_context["session_id"])
     for source_path in (pdf_path, classification_path):
         if not source_path.is_file():
             raise FileNotFoundError(

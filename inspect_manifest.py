@@ -34,7 +34,7 @@ def main():
         if not document.get("enabled", False):
             continue
 
-        if document["document_type"] != "pit_stops":
+        if document["document_type"] != "pit_stops" or document.get("format", "json") != "json":
             continue
 
         destination_dir = PROJECT_DIR / "data" / "raw" / document["source_id"]

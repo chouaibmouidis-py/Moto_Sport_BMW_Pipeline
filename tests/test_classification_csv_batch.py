@@ -7,7 +7,7 @@ import unittest
 
 import duckdb
 
-from explore_2023_season import build_classification_batch
+from moto_sport_bmw_pipeline.batch_processing import build_classification_batch
 
 
 class ClassificationCsvBatchTests(unittest.TestCase):
@@ -53,7 +53,7 @@ class ClassificationCsvBatchTests(unittest.TestCase):
                 source_id = Path(event["classification_path"]).parent.name
                 bronze = root / "data" / "bronze" / source_id / "document.parquet"
                 output = (
-                    root / "data" / "exploration" / f"{event['event_id']}-2023"
+                    root / "data" / "csv_pdf" / f"{event['event_id']}-2023"
                     / "silver" / "classification.parquet"
                 )
                 with duckdb.connect() as connection:
@@ -79,4 +79,4 @@ class ClassificationCsvBatchTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 build_classification_batch(root, catalog)
             self.assertFalse((root / "data" / "bronze").exists())
-            self.assertFalse((root / "data" / "exploration").exists())
+            self.assertFalse((root / "data" / "csv_pdf").exists())

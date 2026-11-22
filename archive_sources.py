@@ -43,6 +43,11 @@ def main():
 
         metadata_path = source_path.parent / "metadata.json"
 
+        if source.get("expected_sha256"):
+            if hashlib.sha256(source_path.read_bytes()).hexdigest() != source["expected_sha256"]:
+                raise ValueError(f"Raw fingerprint mismatch: {source["source_id"]}")
+            continue
+
         if not metadata_path.is_file():
             raise FileNotFoundError(
                 f"Raw metadata not found: {metadata_path}"
@@ -56,25 +61,6 @@ def main():
         })
 
         logger.info("Source: %s | Path: %s", source["source_id"], source_path)
-
-    catalog_path = PROJECT_DIR / "config" / "exploration_2023.json"
-
-    with catalog_path.open("r", encoding="utf-8") as file:
-        catalog = json.load(file)
-
-    for event in catalog["events"]:
-        for field in ("classification_path", "pdf_path"):
-            source_path = PROJECT_DIR / event[field]
-
-            if not source_path.is_file():
-                raise FileNotFoundError(
-                    f"2023 source not found: {source_path}"
-                )
-
-            source_files.append({
-                "source_id": source_path.parent.name,
-                "relative_path": source_path.relative_to(PROJECT_DIR).as_posix(),
-            })
 
     relative_paths = [
         source_file["relative_path"]

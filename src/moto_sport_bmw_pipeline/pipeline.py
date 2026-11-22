@@ -4,11 +4,12 @@ from pathlib import Path
 import json
 import logging
 import uuid
+import hashlib
 from .parquet_writer import publish_parquet
 from .silver import transform_classification_csv, transform_pdf_pit_stops
 from .source_loading import (
     load_classification_csv_bronze,
-    load_exploration_source_sessions,
+    load_csv_pdf_source_sessions,
     load_pdf_pit_stop_bronze,
 )
 import duckdb
@@ -22,7 +23,7 @@ from .marts import (
     build_enriched_stops,
 )
 from .publication import OUTPUT_VIEWS, publish_run_outputs
-from .quality import build_session_quality, build_source_pairs
+from .quality import build_session_quality, build_source_pairs, build_classification_gap_issues
 from .run_reference import activate_run
 from .silver import (
     transform_car_entries, transform_classification, transform_driver_entries,
@@ -37,10 +38,11 @@ from .source_loading import (
 logger = logging.getLogger(__name__)
 
 
-def build_candidate_run(project_directory: Path, *, verbose=False) -> Path:
+def build_candidate_run(project_directory: Path, *, verbose=False, documents=None, activate=True) -> Path:
     """Build all candidate outputs, then update current.json after success."""
     manifest_path = project_directory / "config" / "sources.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if documents is None else {"documents": documents}
+    manifest["documents"] = [source for source in manifest["documents"] if source.get("format", "json") == "json"]
     pit_sources = select_pit_stop_sources(manifest["documents"])
     classification_sources = select_classification_sources(manifest["documents"])
     if not classification_sources:
@@ -83,8 +85,9 @@ def build_candidate_run(project_directory: Path, *, verbose=False) -> Path:
                     connection, run_directory, OUTPUT_VIEWS, verbose=verbose,
                 )
 
-            current_path = activate_run(run_directory)
-            logger.info("Activated run: %s; reference: %s", run_id, current_path)
+            if activate:
+                current_path = activate_run(run_directory)
+                logger.info("Activated run: %s; reference: %s", run_id, current_path)
         except Exception:
             logger.exception("Candidate run failed; previous current reference retained")
             raise
@@ -95,6 +98,8 @@ def publish_classification_csv_from_bronze(
     bronze_path: Path,
     source_id: str,
     output_path: Path,
+    *,
+    quality_output_path: Path | None = None,
 ) -> Path:
     """Load, validate, transform and publish one classification CSV Bronze."""
     with duckdb.connect() as connection:
@@ -109,11 +114,16 @@ def publish_classification_csv_from_bronze(
             project_directory,
         )
 
+        gap_issues = build_classification_gap_issues(connection)
+
         publish_parquet(
             connection,
             classification,
             output_path,
         )
+
+        if quality_output_path is not None:
+            publish_parquet(connection, gap_issues, quality_output_path)
 
     return output_path
 
@@ -153,7 +163,7 @@ def publish_csv_pdf_race_summary(
 ) -> Path:
     """Pair loaded Silver CSV and PDF relations, validate consistency and publish Mart."""
     with duckdb.connect() as connection:
-        load_exploration_source_sessions(connection, catalog)
+        load_csv_pdf_source_sessions(connection, catalog)
 
         classification = connection.read_parquet(str(classification_silver_path))
         classification.create_view("silver_classification_csv")
@@ -170,3 +180,60 @@ def publish_csv_pdf_race_summary(
         )
 
     return output_path
+
+
+def build_processing_run(project_directory: Path, documents: list[dict], *, verbose=False) -> Path:
+    """Activate processing only after all selected report outputs are complete."""
+    from .manifest import pair_reports
+
+    pairs = pair_reports(documents)
+    run = project_directory / "data/processing/runs" / uuid.uuid4().hex
+    run.mkdir(parents=True)
+    hashes = {}
+    for source in documents:
+        path = project_directory / "data/bronze" / source["source_id"] / "document.parquet"
+        hashes[path.relative_to(project_directory).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    json_documents = [source for source in documents if source["format"] == "json"]
+    outputs = []
+    if json_documents:
+        json_run = build_candidate_run(project_directory, documents=json_documents, activate=False, verbose=verbose)
+        outputs.append({"role": "json_participant_mart", "path": (json_run / "marts/race_car_summary.parquet").relative_to(project_directory).as_posix()})
+    for pair in pairs:
+        classification, stops = pair["classification"], pair["pit_stops"]
+        if classification["format"] == "json":
+            continue
+        source_id = classification["source_id"]
+        directory = run / "reports" / source_id
+        classification_path = directory / "silver/classification.parquet"
+        stops_path = directory / "silver/pit_stops.parquet"
+        publish_classification_csv_from_bronze(
+            project_directory,
+            project_directory / "data/bronze" / source_id / "document.parquet",
+            source_id, classification_path,
+            quality_output_path=directory / "quality/classification_gap_issues.parquet",
+        )
+        outputs.append({"role": "classification_quality_report", "path": (directory / "quality/classification_gap_issues.parquet").relative_to(project_directory).as_posix()})
+        publish_pdf_pit_stops_from_bronze(
+            project_directory,
+            project_directory / "data/bronze" / stops["source_id"] / "document.parquet",
+            stops_path,
+        )
+        event = {
+            "event_id": classification["event_id"], "session_id": classification["session_id"],
+            "classification_path": f"data/raw/{source_id}/{classification['filename']}",
+            "pdf_path": f"data/raw/{stops['source_id']}/{stops['filename']}",
+        }
+        catalog = {"championship": classification["championship"], "season": classification["season"], "events": [event]}
+        mart_path = directory / "marts/race_car_summary.parquet"
+        publish_csv_pdf_race_summary(project_directory, catalog, classification_path, stops_path, mart_path)
+        outputs.append({"role": "csv_pdf_participant_mart", "path": mart_path.relative_to(project_directory).as_posix()})
+    for relative, expected in hashes.items():
+        if hashlib.sha256((project_directory / relative).read_bytes()).hexdigest() != expected:
+            raise ValueError(f"Processing rejected: Bronze input changed: {relative}")
+    for output in outputs:
+        path = project_directory / output["path"]
+        output["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (run / "sources.json").write_text(json.dumps({"documents": documents}, indent=2), encoding="utf-8")
+    (run / "outputs.json").write_text(json.dumps({"outputs": outputs, "bronze_hashes": hashes}, indent=2), encoding="utf-8")
+    activate_run(run, required_outputs=("sources.json", "outputs.json"))
+    return run

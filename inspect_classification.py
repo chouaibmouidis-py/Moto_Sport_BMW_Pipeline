@@ -81,7 +81,7 @@ def main() -> None:
         manifest = json.load(file)
 
     selected_sources = select_classification_sources(
-        manifest["documents"]
+        manifest["documents"], format="json"
     )
 
     for source in selected_sources:

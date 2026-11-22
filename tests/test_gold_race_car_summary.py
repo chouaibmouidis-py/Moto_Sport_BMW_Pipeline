@@ -11,7 +11,7 @@ class GoldRaceCarSummaryTests(unittest.TestCase):
     def test_keeps_same_car_in_different_seasons(self):
         with duckdb.connect() as connection:
             connection.execute("""
-                CREATE TEMP VIEW enriched_2023_participants AS
+                CREATE TEMP VIEW enriched_csv_pdf_participants AS
                 SELECT
                     'imsa-weathertech' AS championship,
                     2023 AS season,
@@ -66,7 +66,7 @@ class GoldRaceCarSummaryTests(unittest.TestCase):
                     'pits-2024' AS pit_stop_source_id,
                     'pit-version-2024' AS pit_stop_bronze_sha256,
                     FALSE AS not_finished
-                FROM enriched_2023_participants
+                FROM enriched_csv_pdf_participants
             """)
 
             project_directory = Path(__file__).resolve().parent.parent

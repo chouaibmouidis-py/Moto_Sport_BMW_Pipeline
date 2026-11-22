@@ -53,7 +53,7 @@ class ApplicationLoggingTests(unittest.TestCase):
         self.assertIn("DEBUG", stream.getvalue())
         self.assertIn("Diagnostic details", stream.getvalue())
 
-    def test_workflow_propagates_logging_options_to_stage_processes(self):
+    def test_workflow_propagates_logging_options_to_common_stages(self):
         from moto_sport_bmw_pipeline.orchestration import main
 
         with tempfile.TemporaryDirectory() as directory:
@@ -64,15 +64,10 @@ class ApplicationLoggingTests(unittest.TestCase):
             )
             log_file = root / "logs" / "pipeline.log"
             with patch("moto_sport_bmw_pipeline.orchestration.PROJECT_DIR", root), patch(
-                "moto_sport_bmw_pipeline.orchestration.subprocess.run"
-            ) as run, patch("sys.stderr", io.StringIO()):
+                "moto_sport_bmw_pipeline.orchestration.run_stages"
+            ) as run, patch("moto_sport_bmw_pipeline.orchestration.select_documents", return_value=[{"source_id": "test"}]), patch("sys.stderr", io.StringIO()):
                 main(["--verbose", "--log-file", str(log_file)])
-            self.assertEqual(run.call_count, 5)
-            for call in run.call_args_list:
-                self.assertTrue(call.kwargs["check"])
-                self.assertEqual(call.kwargs["env"]["BMW_LOG_LEVEL"], "DEBUG")
-                self.assertEqual(call.kwargs["env"]["BMW_LOG_FILE"], str(log_file.resolve()))
-            self.assertEqual(run.call_args_list[-1].args[0][-1], "--verbose")
+            run.assert_called_once_with(root, [{"source_id": "test"}], stage="all", refresh=False, verbose=True)
             self.assertTrue(log_file.is_file())
 
 

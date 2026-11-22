@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from moto_sport_bmw_pipeline.source_loading import load_classification_csv_bronze
 import duckdb
-from moto_sport_bmw_pipeline.source_loading import load_exploration_source_sessions
+from moto_sport_bmw_pipeline.source_loading import load_csv_pdf_source_sessions
 from analyze_classification import load_classification_sources
 from moto_sport_bmw_pipeline.quality import build_source_pairs
 
@@ -152,7 +152,7 @@ class ClassificationLoadingTests(unittest.TestCase):
         }
 
         with duckdb.connect() as connection:
-            load_exploration_source_sessions(connection, catalog)
+            load_csv_pdf_source_sessions(connection, catalog)
 
             rows = connection.sql("""
                 SELECT

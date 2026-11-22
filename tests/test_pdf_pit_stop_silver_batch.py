@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import duckdb
-from explore_2023_season import build_pdf_silver_batch
+from moto_sport_bmw_pipeline.batch_processing import build_pdf_silver_batch
 import hashlib
 
 
@@ -29,7 +29,7 @@ class PdfPitStopSilverBatchTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 build_pdf_silver_batch(root, catalog)
 
-            self.assertFalse((root / "data" / "exploration").exists())
+            self.assertFalse((root / "data" / "csv_pdf").exists())
 
     def test_builds_silver_per_event_and_converts_durations(self):
         """Keep each event's stops and Bronze fingerprint separate."""
@@ -101,7 +101,7 @@ class PdfPitStopSilverBatchTests(unittest.TestCase):
 
             for event_id, source_id, raw_duration, seconds in cases:
                 silver_path = (
-                    root / "data" / "exploration"
+                    root / "data" / "csv_pdf"
                     / f"{event_id}-2023" / "silver" / "pit_stops.parquet"
                 )
 

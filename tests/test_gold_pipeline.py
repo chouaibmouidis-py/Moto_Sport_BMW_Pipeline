@@ -16,12 +16,61 @@ from moto_sport_bmw_pipeline.run_reference import get_current_run
 
 
 class GoldPipelineTests(unittest.TestCase):
+    def test_wrong_selection_or_changed_processing_output_preserves_gold(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.prepare_inputs(root)
+            build_gold_candidate(root)
+            reference = root / "data/gold/current.json"
+            previous = reference.read_bytes()
+            with self.assertRaisesRegex(ValueError, "selection differs"):
+                build_gold_candidate(root, expected_source_ids=["another-source"])
+            self.assertEqual(reference.read_bytes(), previous)
+            descriptor_path = root / "data/processing/runs/processing-run/outputs.json"
+            descriptor = json.loads(descriptor_path.read_text())
+            for output in descriptor["outputs"]:
+                output["sha256"] = hashlib.sha256((root / output["path"]).read_bytes()).hexdigest()
+            descriptor_path.write_text(json.dumps(descriptor))
+            (root / descriptor["outputs"][0]["path"]).write_bytes(b"changed after processing")
+            with self.assertRaisesRegex(ValueError, "processing output changed"):
+                build_gold_candidate(root)
+            self.assertEqual(reference.read_bytes(), previous)
+
+    def test_gold_includes_configured_csv_pdf_seasons(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.prepare_inputs(root)
+            descriptor_path = root / "data/processing/runs/processing-run/outputs.json"
+            descriptor = json.loads(descriptor_path.read_text())
+            previous = root / "data/csv_pdf/road-america-2023/marts/race_car_summary.parquet"
+            added = root / "data/csv_pdf/road-america-2022/marts/race_car_summary.parquet"
+            added.parent.mkdir(parents=True)
+            with duckdb.connect() as connection:
+                rows = connection.read_parquet(str(previous))
+                rows.create_view("previous")
+                connection.sql("""
+                    SELECT * REPLACE (
+                        2022 AS season, 'race-2022' AS session_id,
+                        'class-csv-2022' AS source_id,
+                        'csv-version-2022' AS bronze_sha256,
+                        'pits-pdf-2022' AS pit_stop_source_id
+                    ) FROM previous
+                """).write_parquet(str(added))
+            descriptor["outputs"].append({"role": "csv_pdf_participant_mart", "path": added.relative_to(root).as_posix()})
+            descriptor_path.write_text(json.dumps(descriptor))
+            run = build_gold_candidate(root)
+            with duckdb.connect() as connection:
+                self.assertEqual(
+                    connection.read_parquet(str(run / "race_car_summary.parquet")).project("season").order("season").fetchall(),
+                    [(2022,), (2023,), (2024,)],
+                )
+
     def prepare_inputs(self, root):
         project = Path(__file__).resolve().parent.parent
         (root / "sql").mkdir()
         for name in (
             "36_manufacturer_reference.sql", "37_manufacturer_reference_input.sql",
-            "38_enrich_2023_manufacturers.sql", "39_gold_race_car_summary.sql",
+            "38_enrich_csv_pdf_manufacturers.sql", "39_gold_race_car_summary.sql",
         ):
             shutil.copyfile(project / "sql" / name, root / "sql" / name)
         (root / "config").mkdir()
@@ -51,7 +100,7 @@ class GoldPipelineTests(unittest.TestCase):
                     0::BIGINT AS invalid_duration_count, 60.0::DOUBLE AS average_pit_time_seconds,
                     100.0::DOUBLE AS duration_coverage_percent
             """)
-            csv_path = root / "data/exploration/road-america-2023/marts/race_car_summary.parquet"
+            csv_path = root / "data/csv_pdf/road-america-2023/marts/race_car_summary.parquet"
             csv_path.parent.mkdir(parents=True)
             connection.sql("""
                 SELECT *, 2023 AS season, 'race-2023' AS session_id,
@@ -75,9 +124,21 @@ class GoldPipelineTests(unittest.TestCase):
                 FROM common_payload
             """).write_parquet(str(json_path))
         (root / "config/sources.json").write_text(json.dumps({"documents": documents}))
-        (root / "config/exploration_2023.json").write_text(json.dumps({
-            "season": 2023, "events": [{"event_id": "road-america"}],
-        }))
+        processing = root / "data/processing/runs/processing-run"
+        processing.mkdir(parents=True)
+        (processing / "sources.json").write_text(json.dumps({"documents": documents}))
+        descriptor = {
+            "outputs": [
+                {"role": "json_participant_mart", "path": json_path.relative_to(root).as_posix()},
+                {"role": "csv_pdf_participant_mart", "path": csv_path.relative_to(root).as_posix()},
+            ],
+            "bronze_hashes": {
+                f"data/bronze/{source['source_id']}/document.parquet": hashlib.sha256((root / "data/bronze" / source["source_id"] / "document.parquet").read_bytes()).hexdigest()
+                for source in documents
+            },
+        }
+        (processing / "outputs.json").write_text(json.dumps(descriptor))
+        (root / "data/processing/current.json").write_text('{"run_id":"processing-run"}')
         (root / "data/current.json").write_text('{"run_id":"source-run"}')
 
     def test_publishes_reproducible_gold_without_changing_main_reference(self):
@@ -89,23 +150,23 @@ class GoldPipelineTests(unittest.TestCase):
             self.assertEqual((root / "data/current.json").read_text(), '{"run_id":"source-run"}')
             validate_gold_inputs(run)
             manifest = json.loads((run / "inputs.json").read_text())
-            self.assertEqual(manifest["source_run_id"], "source-run")
+            self.assertEqual(manifest["source_run_id"], "processing-run")
             expected_inputs = [
-                ("source_manifest", "config/sources.json"),
-                ("exploration_catalog", "config/exploration_2023.json"),
+                ("source_manifest", "data/processing/runs/processing-run/sources.json"),
+                ("processing_run", "data/processing/runs/processing-run/outputs.json"),
                 *[
                     ("transformation_sql", f"sql/{name}")
                     for name in (
                         "36_manufacturer_reference.sql",
                         "37_manufacturer_reference_input.sql",
-                        "38_enrich_2023_manufacturers.sql",
+                        "38_enrich_csv_pdf_manufacturers.sql",
                         "39_gold_race_car_summary.sql",
                     )
                 ],
                 ("manufacturer_evidence_bronze", "data/bronze/pits-json/document.parquet"),
                 ("manufacturer_evidence_bronze", "data/bronze/class-json/document.parquet"),
                 ("json_participant_mart", "data/runs/source-run/marts/race_car_summary.parquet"),
-                ("csv_pdf_participant_mart", "data/exploration/road-america-2023/marts/race_car_summary.parquet"),
+                ("csv_pdf_participant_mart", "data/csv_pdf/road-america-2023/marts/race_car_summary.parquet"),
             ]
             self.assertCountEqual(
                 [(record["role"], record["source_path"], record["snapshot_path"])
@@ -135,11 +196,11 @@ class GoldPipelineTests(unittest.TestCase):
                 select_classification_sources, select_pit_stop_sources,
             )
             from moto_sport_bmw_pipeline.marts import (
-                build_manufacturer_reference, enrich_2023_manufacturers,
+                build_manufacturer_reference, enrich_csv_pdf_manufacturers,
                 build_gold_race_car_summary,
             )
             frozen = run / "inputs"
-            sources = json.loads((frozen / "config/sources.json").read_text())["documents"]
+            sources = json.loads((frozen / "data/processing/runs/processing-run/sources.json").read_text())["documents"]
             with duckdb.connect() as connection:
                 load_pit_stop_bronze(connection, select_pit_stop_sources(sources), frozen)
                 load_classification_sources(connection, select_classification_sources(sources), frozen)
@@ -150,7 +211,7 @@ class GoldPipelineTests(unittest.TestCase):
                 ):
                     paths = [str(run / r["snapshot_path"]) for r in manifest["inputs"] if r["role"] == role]
                     connection.read_parquet(paths).create_view(view)
-                enrich_2023_manufacturers(connection, frozen)
+                enrich_csv_pdf_manufacturers(connection, frozen)
                 rebuilt = build_gold_race_car_summary(connection, frozen)
                 saved = connection.read_parquet(str(run / "race_car_summary.parquet"))
                 self.assertEqual(rebuilt.columns, saved.columns)

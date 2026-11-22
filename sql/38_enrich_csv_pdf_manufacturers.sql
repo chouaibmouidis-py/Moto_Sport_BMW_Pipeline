@@ -1,4 +1,4 @@
--- Enrich 2023 participants with evidence-based manufacturer names.
+-- Enrich CSV/PDF participants with evidence-based manufacturer names.
 -- Preserve every participant and expose unresolved mappings explicitly.
 
 SELECT

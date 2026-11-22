@@ -1,57 +1,44 @@
-# Source manifest
+# Source configuration
 
-`sources.json` is an initial inventory, not the complete list of BMW races.
-It is read by inspection, Bronze construction and analysis scripts.
-They select enabled documents (`enabled: true`) by family:
-`pit_stops` for stops, `classification` for classifications.
-The eleven WeatherTech 2024 races and the eleven 2025 races have passed through
-the local JSON pipeline for classifications and stops: 44 enabled documents.
-The 2023 CSV/PDF exploration is described in `exploration_2023.json` and remains
-separate from the active manifest and run.
-The manifest alone triggers nothing: downloads are performed by
-`inspect_manifest.py` and `inspect_classification.py`, directly or through
-`run_pipeline.py`.
+`sources.json` is the single production source inventory for JSON, CSV and PDF.
+`enabled: true` controls selection; descriptive inspection and pipeline statuses
+do not trigger processing. `target_seasons` is a coverage goal, not achieved coverage.
 
-Classifications must provide `filename`, for example
-`03_Results_Race_Official.JSON`. The downloader receives this name explicitly.
-The stop workflow retains its legacy default filename.
-`pipeline_status` describes the assessment status; it is not used to exclude
-an already tested document from subsequent runs.
+Each enabled document declares its source ID, URL, filename, format, document type,
+championship, season, event ID and session ID. Reports are paired by championship,
+season, event and session. Missing or ambiguous pairs are rejected. Identifiers
+must be nonempty strings and unique, including disabled documents. Source IDs and
+filenames may not escape their directories.
 
-Matching associates documents on `championship`, `season`, `event_id`
-and `session_id`; `source_id` remains specific to each document. A classification
-without a compatible stop report, or with several candidates, is rejected.
-The shared loader accepts multiple classifications and retains each one's
-identifier and Bronze hash before matching.
+Supported readers currently cover classification JSON/CSV and pit-stop JSON/PDF.
+The qualified pairings are JSON + JSON and CSV + PDF. Unsupported combinations
+are rejected explicitly rather than guessed. The parser validates structure;
+normalization and business consistency belong to Silver and quality controls.
 
-Seasons are a coverage target, not evidence of ingestion.
-`documents` references specific files. `catalogs_to_explore` contains portals to
-explore and must not be treated as a list of JSON files to read.
-Other candidate championships remain listed in
-`../docs/coverage_plan.fr.md`.
+The current enabled scope is 44 JSON reports for 2024–2025 and 22 CSV/PDF reports
+for 2023. Daytona 2022 remains disabled until its integration is qualified.
+The previous season-specific catalog is retired. URLs, filenames and source
+context for 2023 have been migrated into this manifest.
 
-The `session_id` comes from the source folder label. It does not prove a UTC
-timestamp. `publication_status` remains `unspecified` when the report name does
-not explicitly carry a status. Hour 24 denotes an hourly report, not an
-additional race.
+Raw JSON versions are verified against their `metadata.json` sidecars. Migrated
+CSV/PDF sources carry `expected_sha256`, pinning the previously qualified local
+bytes also held in the remote archive. A changed upstream report must be reviewed
+before updating that fingerprint. Cached data are validated without redownload;
+`--refresh` explicitly requests acquisition. Refresh is not immutable revision
+archiving. No secret belongs in this file.
 
-`source_id` is the logical identity chosen for a report. Ingestion records the
-download date and SHA-256 hash in the `metadata.json` file beside the Raw
-document. A refresh replaces these files; this is not immutable archiving of
-revisions published at the same URL.
-The `as_of_date` is the date of this inventory, not the retrieval date of each
-file. Silver results separately retain the hash of the Bronze file used.
+```bash
+uv run python run_pipeline.py
+uv run python run_pipeline.py --season 2023 --event daytona
+uv run python run_pipeline.py --stage raw
+```
 
-Before starting its steps, `run_pipeline.py` checks `source_id` values throughout
-the `documents` list, including disabled entries. Each identifier must be
-present, non-null, a string, nonempty and not composed solely of whitespace.
-An invalid value raises a `ValueError` indicating the document's position in the
-list (zero-based index) and the reason for rejection.
-Duplicates are also rejected with a message naming the identifier.
-The validator does not modify values or check report contents.
-These errors prevent the scripts from starting.
-Running these scripts individually does not automatically invoke this launcher
-check.
-Full validation of required fields and permitted formats remains to be added.
-Pipeline data checks are separate from the descriptive statuses recorded in
-this file.
+These commands use the same orchestrator. Omitting selection processes every
+enabled race. Selecting a season/event builds a correspondingly scoped Gold,
+rather than adding rows to the previous run. The `gold` stage requires the same
+selection as the active processing run.
+
+`source_archive.json` is the pinned remote archive reference, not a competing
+source inventory. `catalogs_to_explore` contains discovery portals, not inputs
+to ingest automatically. Changes to source coverage also require updating the
+remote source archive before relying on a clean cloud runner.

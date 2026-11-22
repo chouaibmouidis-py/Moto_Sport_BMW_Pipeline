@@ -1,3 +1,5 @@
+> Historical qualification results below describe the validated datasets. For the current runtime, use the [code map](code_map.md): one source manifest and one multiformat orchestrator. Old per-season output paths are not current production inputs.
+
 # Exploratory IMSA WeatherTech 2023 coverage
 
 Exploratory qualification and publication carried out on November 13, 2026.
@@ -5,7 +7,7 @@ Exploratory qualification and publication carried out on November 13, 2026.
 [Results index](https://imsa.results.alkamelcloud.com/Results/23_2023/).
 
 The eleven Official classification CSV / pit-stop PDF pairs are described in
-`config/exploration_2023.json`. The 22 files were retained locally
+`config/sources.json`. The 22 files were retained locally
 in `data/raw` after downloading and checking that the copies were identical.
 This catalog is independent of `config/sources.json`: no 2023 source
 is enabled in the main pipeline.
@@ -58,16 +60,14 @@ from the PDF still needs confirmation: do not interpret them as zero stops.
 ## Usage
 
 ```bash
-uv run python explore_2023_season.py
+uv run python run_pipeline.py --season 2023
 ```
 
-The launcher checks that the local batch is present, then calls `explore_source_pair`
-for each race. Outputs go to
-`data/exploration/<event_id>-2023/car_summary.parquet`. The catalog retains
-the official URLs, but the launcher does not download missing files.
-The PDF reader remains tied to the observed layout, with no guarantee for
-new formats. The individual script retains Road America as its exploration
-context; use the catalog for the other races.
+The generic launcher checks local inputs and builds CSV Bronze/Silver, PDF Bronze/Silver and per-event marts in dependency order. Outputs go to
+`data/csv_pdf/<event_id>-2023/{silver,marts}/`. Select this season with
+`--season 2023`; omitting the option processes all configured seasons.
+The catalog retains official URLs, but this build command does not download missing files.
+The PDF reader remains tied to the observed layout, with no guarantee for new formats.
 
 ## Integration limits
 
@@ -128,14 +128,14 @@ The shared quality check rejects missing provenance or a repeated key
 (`source_id`, `bronze_sha256`, `car_number`, `pit_number`).
 
 The pilot Silver is saved in
-`data/exploration/road-america-2023/silver/pit_stops.parquet`: 116 rows,
+`data/csv_pdf/road-america-2023/silver/pit_stops.parquet`: 116 rows,
 eleven columns, no unconverted durations. The Bronze fields and their markers
 were compared with the output; schemas and content were checked after
 publication. Batch processing is available through two exclusive modes:
 
 ```bash
-uv run python explore_2023_season.py --pdf-bronze-only
-uv run python explore_2023_season.py --pdf-silver-only
+uv run python run_pipeline.py --stage bronze
+uv run python run_pipeline.py --stage process
 ```
 
 The first builds the eleven Bronze outputs from the local Raw PDFs; the second
@@ -157,13 +157,13 @@ races, the recorded full-suite result at this milestone was 170 passing tests.
 ## Mart reconciliation for the eleven races
 
 ```bash
-uv run python explore_2023_season.py --mart-only
+uv run python run_pipeline.py --stage process
 ```
 
 This exclusive mode uses the two Silver outputs already published for each race and
 calls `publish_csv_pdf_race_summary` with that race's context only.
 It checks all paths and rejects duplicate identifiers before
-publishing to `data/exploration/<event_id>-2023/marts/race_car_summary.parquet`.
+publishing to `data/csv_pdf/<event_id>-2023/marts/race_car_summary.parquet`.
 It does not reread Raw inputs or rebuild Bronze or Silver.
 
 Validation across the eleven outputs: 455 entries, including 51 BMW entries,
@@ -191,7 +191,7 @@ is not integrated into the main run's readers.
 ### Road America pilot history
 
 The pilot summary is published in
-`data/exploration/road-america-2023/marts/race_car_summary.parquet`: 45
+`data/csv_pdf/road-america-2023/marts/race_car_summary.parquet`: 45
 entries retained, 116 stops found, car 57 retained with
 an observed count of NULL. Reported counts remain NULL and the status is
 `unavailable_reported_count`; `stop_detail_status` distinguishes available
@@ -211,7 +211,7 @@ the SQL logic; the PDF reading limits described above still apply.
 ## CSV classifications: separate Bronze/Silver path
 
 ```bash
-uv run python explore_2023_season.py --classification-only
+uv run python run_pipeline.py --stage bronze
 ```
 
 This option reads the eleven `classification_path` values from the existing catalog,
@@ -228,7 +228,7 @@ For each race:
 4. Missing or duplicate numbers after cleaning block transformation.
 5. The `33_silver_classification_csv.sql` query normalizes five fields.
 6. The seven Silver columns are published and read back with content checks in
-   `data/exploration/<event_id>-2023/silver/classification.parquet`.
+   `data/csv_pdf/<event_id>-2023/silver/classification.parquet`.
 
 Validation on the eleven actual classifications: 455 entries, including 51 BMW entries;
 only the positions of 80 and 93 at Long Beach are NULL (`Not started`).

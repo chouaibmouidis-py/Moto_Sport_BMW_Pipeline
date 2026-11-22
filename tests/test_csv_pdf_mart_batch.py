@@ -7,7 +7,7 @@ import unittest
 
 import duckdb
 
-from explore_2023_season import build_mart_batch
+from moto_sport_bmw_pipeline.batch_processing import build_mart_batch
 
 
 class CsvPdfMartBatchTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class CsvPdfMartBatchTests(unittest.TestCase):
                 "pdf_path": f"data/raw/pits-{name}/report.pdf",
             }
             events.append(event)
-            directory = root / "data" / "exploration" / f"{name}-2023" / "silver"
+            directory = root / "data" / "csv_pdf" / f"{name}-2023" / "silver"
             directory.mkdir(parents=True)
             with duckdb.connect() as connection:
                 connection.sql("""
@@ -62,7 +62,7 @@ class CsvPdfMartBatchTests(unittest.TestCase):
                 [("a", 2, 2), ("b", 2, 1)],
             )
             for name, count in (("a", 2), ("b", 1)):
-                path = root / "data/exploration" / f"{name}-2023/marts/race_car_summary.parquet"
+                path = root / "data/csv_pdf" / f"{name}-2023/marts/race_car_summary.parquet"
                 with duckdb.connect() as connection:
                     rows = connection.read_parquet(str(path)).project("""
                         event_id, session_id, source_id, bronze_sha256, car_number,
@@ -81,21 +81,21 @@ class CsvPdfMartBatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             catalog = self.prepare_inputs(root)
-            (root / "data/exploration/b-2023/silver/pit_stops.parquet").unlink()
+            (root / "data/csv_pdf/b-2023/silver/pit_stops.parquet").unlink()
             with self.assertRaises(FileNotFoundError):
                 build_mart_batch(root, catalog)
             for name in ("a", "b"):
-                self.assertFalse((root / "data/exploration" / f"{name}-2023/marts").exists())
+                self.assertFalse((root / "data/csv_pdf" / f"{name}-2023/marts").exists())
 
     def test_misplaced_source_preserves_existing_mart(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             catalog = self.prepare_inputs(root)
             shutil.copyfile(
-                root / "data/exploration/b-2023/silver/pit_stops.parquet",
-                root / "data/exploration/a-2023/silver/pit_stops.parquet",
+                root / "data/csv_pdf/b-2023/silver/pit_stops.parquet",
+                root / "data/csv_pdf/a-2023/silver/pit_stops.parquet",
             )
-            output = root / "data/exploration/a-2023/marts/race_car_summary.parquet"
+            output = root / "data/csv_pdf/a-2023/marts/race_car_summary.parquet"
             output.parent.mkdir()
             output.write_bytes(b"previous mart")
             with self.assertRaisesRegex(ValueError, "stops without classification"):

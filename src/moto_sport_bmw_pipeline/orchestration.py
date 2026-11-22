@@ -1,56 +1,49 @@
-"""Run the five JSON pipeline stages in order; stop immediately when a stage fails."""
+"""Coordinate acquisition, extraction, processing and Gold for all source formats."""
 
-from pathlib import Path
 import argparse
 import json
 import logging
-import os
-import subprocess
-import sys
+from pathlib import Path
 
-from .manifest import validate_unique_source_ids
-from moto_sport_bmw_pipeline.logging_config import configure_logging
-from moto_sport_bmw_pipeline.paths import PROJECT_DIR
+from .bronze import build_source
+from .gold import build_gold_candidate
+from .logging_config import configure_logging
+from .manifest import select_documents
+from .paths import PROJECT_DIR
+from .pipeline import build_processing_run
+from .raw_download import prepare_source
 
-logger = logging.getLogger("moto_sport_bmw_pipeline.run_pipeline")
-
-
-SCRIPTS = (
-    "inspect_manifest.py", "build_bronze.py", "inspect_classification.py",
-    "build_classification_bronze.py", "analyze_bronze.py",
-)
+logger = logging.getLogger(__name__)
 
 
-def main(argv=()) -> None:
-    """Coordinate stages; argv=() preserves programmatic calls without CLI arguments."""
+def run_stages(project_directory, documents, *, stage="all", refresh=False, verbose=False):
+    """Use one sequence for JSON, CSV and PDF; exceptions stop execution."""
+    if stage in ("raw", "all"):
+        for source in documents:
+            prepare_source(project_directory, source, refresh=refresh)
+    if stage in ("bronze", "all"):
+        for source in documents:
+            prepare_source(project_directory, source)
+        for source in documents:
+            build_source(project_directory, source)
+    if stage in ("process", "all"):
+        build_processing_run(project_directory, documents, verbose=verbose)
+    if stage in ("gold", "all"):
+        return build_gold_candidate(project_directory, expected_source_ids=[source["source_id"] for source in documents])
+
+
+def main(argv=(), *, project_directory=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logs and analysis tables.")
-    parser.add_argument("--log-file", type=Path, help="Append all stage logs to this UTF-8 file.")
+    parser.add_argument("--stage", choices=("raw", "bronze", "process", "gold", "all"), default="all")
+    parser.add_argument("--season", type=int)
+    parser.add_argument("--event")
+    parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--log-file", type=Path)
     args = parser.parse_args(argv)
     configure_logging(verbose=args.verbose, log_file=args.log_file)
-    manifest_path = PROJECT_DIR / "config" / "sources.json"
-    with manifest_path.open("r", encoding="utf-8") as file:
-        manifest = json.load(file)
-    validate_unique_source_ids(manifest["documents"])
-
-    # Stage processes inherit the same verbosity and optional log destination.
-    environment = os.environ.copy()
-    environment["BMW_LOG_LEVEL"] = "DEBUG" if args.verbose else environment.get("BMW_LOG_LEVEL", "INFO")
-    if args.log_file:
-        environment["BMW_LOG_FILE"] = str(args.log_file.expanduser().resolve())
-    for script in SCRIPTS:
-        command = [sys.executable, str(PROJECT_DIR / script)]
-        if args.verbose and script == "analyze_bronze.py":
-            command.append("--verbose")
-        logger.info("Starting: %s", script)
-        try:
-            subprocess.run(command, cwd=PROJECT_DIR, env=environment, check=True)
-        except subprocess.CalledProcessError:
-            logger.exception("Stage failed: %s; remaining stages will not run", script)
-            raise
-        logger.info("Completed: %s", script)
-    logger.info("Pipeline completed successfully.")
-
-
-if __name__ == "__main__":
-    main(None)
+    project_directory = project_directory or PROJECT_DIR
+    manifest = json.loads((project_directory / "config/sources.json").read_text(encoding="utf-8"))
+    documents = select_documents(manifest, season=args.season, event_id=args.event)
+    logger.info("Selected %s reports", len(documents))
+    return run_stages(project_directory, documents, stage=args.stage, refresh=args.refresh, verbose=args.verbose)

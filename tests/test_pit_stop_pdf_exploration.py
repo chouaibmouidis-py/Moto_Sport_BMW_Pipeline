@@ -1,8 +1,7 @@
 """Verify PDF parsing, CSV linkage, duration conversion and source fingerprints.
 
-Tests import historical helpers through explore_pit_stop_pdf.py. Their actual
-implementations live in src/moto_sport_bmw_pipeline/pdf_parser.py (text parsing)
-and src/moto_sport_bmw_pipeline/exploration.py (validation and publication).
+Parsing helpers are imported from their owning module. The diagnostic CLI
+receives explicit race context rather than assuming a season or event.
 """
 
 import unittest
@@ -12,17 +11,15 @@ from unittest.mock import patch
 import hashlib
 import duckdb
 from silver_writer import publish_silver
-from explore_pit_stop_pdf import (
-    classify_token,
-    extract_stops,
+from inspect_pdf_pair import main
+from moto_sport_bmw_pipeline.pdf_parser import classify_token, extract_stops, parse_stop_blocks
+from moto_sport_bmw_pipeline.quality import validate_classification_keys
+from moto_sport_bmw_pipeline.pair_diagnostics import (
     convert_extracted_stops,
-    parse_stop_blocks,
     build_pdf_car_summary,
-    main,
-    validate_classification_keys,
     validate_pdf_stop_links,
     compute_source_hash,
-    explore_source_pair,
+    inspect_source_pair,
 )
 
 
@@ -128,10 +125,10 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                     "event_id": event, "session_id": session,
                 }
                 with patch(
-                    "moto_sport_bmw_pipeline.exploration.extract_stops",
+                    "moto_sport_bmw_pipeline.pair_diagnostics.extract_stops",
                     return_value=[raw_stop("24", 1, "1:00.000")],
                 ):
-                    result = explore_source_pair(pdf, csv, context, output)
+                    result = inspect_source_pair(pdf, csv, context, output)
                 self.assertEqual(result["stops"], 1)
                 self.assertEqual(result["bmw_participants"], expected_bmw)
                 self.assertEqual(result["bmw_stops"], expected_bmw)
@@ -152,11 +149,14 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch("sys.argv", [
-                "explore_pit_stop_pdf.py", str(pdf_path), str(csv_path)
+                "inspect_pdf_pair.py", str(pdf_path), str(csv_path),
+                "--championship", "imsa-weathertech", "--season", "2023",
+                "--event-id", "road-america", "--session-id", "race-test",
+                "--output", str(Path(directory) / "summary.parquet")
             ]), patch(
-                "moto_sport_bmw_pipeline.exploration.extract_stops",
+                "moto_sport_bmw_pipeline.pair_diagnostics.extract_stops",
                 return_value=[raw_stop("99", 1, "1:00.000")],
-            ), patch("moto_sport_bmw_pipeline.exploration.build_pdf_car_summary") as summary:
+            ), patch("moto_sport_bmw_pipeline.pair_diagnostics.build_pdf_car_summary") as summary:
                 with self.assertRaisesRegex(
                     ValueError, "car absent from classification"
                 ):
@@ -178,8 +178,11 @@ class PitStopPdfExplorationTests(unittest.TestCase):
                         missing_path = csv_path
 
                     with patch("sys.argv", [
-                        "explore_pit_stop_pdf.py", str(pdf_path), str(csv_path)
-                    ]), patch("moto_sport_bmw_pipeline.exploration.extract_stops") as extract:
+                        "inspect_pdf_pair.py", str(pdf_path), str(csv_path),
+                "--championship", "imsa-weathertech", "--season", "2023",
+                "--event-id", "road-america", "--session-id", "race-test",
+                "--output", str(Path(directory) / "summary.parquet")
+                    ]), patch("moto_sport_bmw_pipeline.pair_diagnostics.extract_stops") as extract:
                         with self.assertRaises(FileNotFoundError) as error:
                             main()
 

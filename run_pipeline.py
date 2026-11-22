@@ -1,10 +1,6 @@
-"""CLI compatibility entry point for the five-stage JSON workflow."""
+"""Run the manifest-driven pipeline for all supported report formats."""
 
-from pathlib import Path
-import subprocess
-
-from moto_sport_bmw_pipeline.orchestration import PROJECT_DIR, SCRIPTS, main
-
+from moto_sport_bmw_pipeline.orchestration import main
 
 if __name__ == "__main__":
     main(None)

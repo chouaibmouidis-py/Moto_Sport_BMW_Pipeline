@@ -9,7 +9,7 @@ import duckdb
 from download import RAW_DIR, SOURCE_FILENAME
 from moto_sport_bmw_pipeline.logging_config import configure_logging
 
-logger = logging.getLogger("moto_sport_bmw_pipeline.explore_bronze")
+logger = logging.getLogger("moto_sport_bmw_pipeline.inspect_json_sql")
 
 
 def main() -> None:

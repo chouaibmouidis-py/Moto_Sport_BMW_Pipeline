@@ -1,3 +1,5 @@
+> Historical qualification results below describe the validated datasets. For the current runtime, use the [code map](code_map.md): one source manifest and one multiformat orchestrator. Old per-season output paths are not current production inputs.
+
 # Detailed project reference
 
 Public documentation is written in English. Historical `.fr.md` filenames are
@@ -26,15 +28,15 @@ uv run python run_pipeline.py --log-file data/logs/pipeline.log
 Alongside the 2024–2025 JSON pipeline described below, a separate CSV/PDF
 exploration covers eleven 2023 WeatherTech races: **455 classification entries
 (including two non-starters), 51 BMW entries, and 3,953 extracted pit stops,
-including 367 BMW stops**. The eleven summaries remain in `data/exploration`,
+including 367 BMW stops**. The eleven summaries remain in `data/csv_pdf`,
 outside the active main run. See the
 [2023 findings and limitations](../docs/imsa_2023_season_coverage.fr.md).
-Run against local Raw files with `uv run python explore_2023_season.py`.
+Run against local Raw files with `uv run python run_pipeline.py`.
 
 The eleven classification CSV files also have a separate Bronze → Silver path:
-`uv run python explore_2023_season.py --classification-only`.
+`uv run python run_pipeline.py --stage bronze`.
 It preserves all 455 race entries and their provenance; Silver outputs are stored
-in `data/exploration/<event_id>-2023/silver/classification.parquet`, without
+in `data/csv_pdf/<event_id>-2023/silver/classification.parquet`, without
 activation in the main run.
 
 The eleven PDF pit-stop reports also have their own Bronze and Silver layers:
@@ -42,12 +44,12 @@ The eleven PDF pit-stop reports also have their own Bronze and Silver layers:
 markers retained. Rebuild separately from local files:
 
 ```bash
-uv run python explore_2023_season.py --pdf-bronze-only
-uv run python explore_2023_season.py --pdf-silver-only
+uv run python run_pipeline.py --stage bronze
+uv run python run_pipeline.py --stage process
 ```
 
 Generate the eleven marts from these Silver files with:
-`uv run python explore_2023_season.py --mart-only`.
+`uv run python run_pipeline.py --stage process`.
 They preserve all 455 race entries, including eleven without pit-stop details
 (observed count remains `NULL`). Reported counts remain `NULL` because they are
 absent from the 2023 CSV files. These 2023 batches do not change the main run reference.

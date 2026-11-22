@@ -7,10 +7,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def select_classification_sources(documents):
+def select_classification_sources(documents, *, format=None):
     selected_sources = []
     for document in documents:
-        if document.get("enabled", False) and document["document_type"] == "classification":
+        if document.get("enabled", False) and document["document_type"] == "classification" and (format is None or document.get("format", "json") == format):
             selected_sources.append(document)
     return selected_sources
 
@@ -86,10 +86,10 @@ def load_pit_stop_bronze(
 
         logger.info("Bronze source loaded: %s", source["source_id"])
 
-def select_pit_stop_sources(documents):
+def select_pit_stop_sources(documents, *, format=None):
     selected_sources = []
     for document in documents:
-        if document.get("enabled", False) and document["document_type"] == "pit_stops":
+        if document.get("enabled", False) and document["document_type"] == "pit_stops" and (format is None or document.get("format", "json") == format):
             selected_sources.append(document)
     return selected_sources
 
@@ -208,8 +208,8 @@ def load_pdf_pit_stop_bronze(
         params=[bronze_sha256],
     ).create_view("bronze_pdf_pit_stops")
 
-def load_exploration_source_sessions(connection, catalog: dict) -> None:
-    """Map exploratory source documents to their declared race sessions."""
+def load_csv_pdf_source_sessions(connection, catalog: dict) -> None:
+    """Map configured CSV/PDF documents to their declared race sessions."""
     documents = []
 
     for event in catalog["events"]:

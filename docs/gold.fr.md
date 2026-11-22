@@ -1,3 +1,5 @@
+> Historical qualification results below describe the validated datasets. For the current runtime, use the [code map](code_map.md): one source manifest and one multiformat orchestrator. Old per-season output paths are not current production inputs.
+
 # Shared IMSA Gold layer, 2023–2025
 
 The `race_car_summary.parquet` table contains one versioned participation per
