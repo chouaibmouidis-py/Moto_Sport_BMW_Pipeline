@@ -8,6 +8,22 @@ import duckdb
 
 
 class ManufacturerReferenceTests(unittest.TestCase):
+    def test_silver_correction_takes_precedence_over_ambiguous_reference(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW csv_pdf_race_summary AS
+                SELECT '15' AS car_number, '7643' AS manufacturer_source_id,
+                    'Mercedes' AS manufacturer, 'matched_override' AS manufacturer_mapping_status
+            """)
+            connection.execute("""
+                CREATE TEMP VIEW manufacturer_reference AS
+                SELECT '7643' AS manufacturer_source_id, NULL::VARCHAR AS manufacturer,
+                    'ambiguous' AS manufacturer_mapping_status, 2 AS manufacturer_name_count
+            """)
+            result = enrich_csv_pdf_manufacturers(connection, Path(__file__).resolve().parent.parent)
+            self.assertEqual(result.fetchall(), [('15', '7643', 'Mercedes', 'matched_override', 2)])
+            self.assertEqual(len(result.columns), len(set(result.columns)))
+
     def test_distinguishes_unique_ambiguous_and_missing_names(self):
         with duckdb.connect() as connection:
             connection.execute("""
@@ -40,28 +56,34 @@ class ManufacturerReferenceTests(unittest.TestCase):
                 ],
             )
 
-    def test_extracts_cleaned_evidence_from_both_report_types(self):
+    def test_collects_evidence_from_both_silver_reports(self):
         with duckdb.connect() as connection:
             connection.execute("""
-                CREATE TEMP VIEW bronze_classification AS
+                CREATE TEMP VIEW silver_classification AS
                 SELECT
-                    'classification-a' AS source_id,
-                    'class-version' AS bronze_sha256,
-                    CAST('[
-                        {"imsa_manufacturerid": " 74 ", "manufacturer": " BMW "},
-                        {"imsa_manufacturerid": "", "manufacturer": "BMW"}
-                    ]' AS JSON) AS classification
+                    * FROM (VALUES
+                        ('classification-a', 'class-version', '74', 'BMW'),
+                        ('classification-a', 'class-version', NULL, 'BMW')
+                    ) AS t(
+                        source_id,
+                        bronze_sha256,
+                        manufacturer_source_id,
+                        manufacturer
+                    )
             """)
 
             connection.execute("""
-                CREATE TEMP VIEW bronze_document AS
+                CREATE TEMP VIEW silver_car_entries AS
                 SELECT
-                    'pits-a' AS source_id,
-                    'pit-version' AS bronze_sha256,
-                    CAST('[
-                        {"imsa_manufacturerid": "74", "manufacturer": "BMW"},
-                        {"imsa_manufacturerid": "7665", "manufacturer": ""}
-                    ]' AS JSON) AS pit_stop_analysis
+                    * FROM (VALUES
+                        ('pits-a', 'pit-version', '74', 'BMW'),
+                        ('pits-a', 'pit-version', '7665', NULL)
+                    ) AS t(
+                        source_id,
+                        bronze_sha256,
+                        manufacturer_source_id,
+                        manufacturer
+                    )
             """)
 
             project_directory = Path(__file__).resolve().parent.parent
@@ -96,7 +118,7 @@ class ManufacturerReferenceTests(unittest.TestCase):
         with duckdb.connect() as connection:
             connection.execute("""
                 CREATE TEMP VIEW csv_pdf_race_summary AS
-                SELECT *
+                SELECT *, NULL::VARCHAR AS manufacturer, NULL::VARCHAR AS manufacturer_mapping_status
                 FROM (VALUES
                     ('24', '74'),
                     ('57', '7643'),
@@ -141,7 +163,9 @@ class ManufacturerReferenceTests(unittest.TestCase):
                 CREATE TEMP VIEW csv_pdf_race_summary AS
                 SELECT
                     '24' AS car_number,
-                    '74' AS manufacturer_source_id
+                    '74' AS manufacturer_source_id,
+                    NULL::VARCHAR AS manufacturer,
+                    NULL::VARCHAR AS manufacturer_mapping_status
             """)
 
             connection.execute("""

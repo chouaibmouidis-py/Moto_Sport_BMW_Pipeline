@@ -38,7 +38,23 @@ class GoldRaceCarSummaryTests(unittest.TestCase):
                     'pdf-2023-hash' AS pdf_sha256,
                     CAST(1 AS BIGINT) AS manufacturer_name_count,
                     'available' AS stop_detail_status,
-                    4 AS overall_position
+                    4 AS overall_position,
+                    'Team CSV' AS team_name,
+                    100 AS completed_laps,
+                    42 AS fastest_lap_number,
+                    219.6::DOUBLE AS fastest_lap_speed_kph,
+                    '1:00:00.000' AS total_time_raw,
+                    3600.0::DOUBLE AS total_time_seconds,
+                    '1:30.000' AS fastest_lap_time_raw,
+                    90.0::DOUBLE AS fastest_lap_time_seconds,
+                    '+1:17.343' AS gap_first_raw,
+                    '2 Laps' AS gap_previous_raw,
+                    'time' AS gap_first_kind,
+                    77.343::DOUBLE AS gap_first_seconds,
+                    CAST(NULL AS INTEGER) AS gap_first_laps,
+                    'laps' AS gap_previous_kind,
+                    CAST(NULL AS DOUBLE) AS gap_previous_seconds,
+                    2::INTEGER AS gap_previous_laps
             """)
 
             connection.execute("""
@@ -65,7 +81,23 @@ class GoldRaceCarSummaryTests(unittest.TestCase):
                     'matched' AS comparison_status,
                     'pits-2024' AS pit_stop_source_id,
                     'pit-version-2024' AS pit_stop_bronze_sha256,
-                    FALSE AS not_finished
+                    FALSE AS not_finished,
+                    'Team JSON' AS team_name,
+                    120 AS completed_laps,
+                    55 AS fastest_lap_number,
+                    220.3::DOUBLE AS fastest_lap_speed_kph,
+                    '2:00:00.000' AS total_time_raw,
+                    7200.0::DOUBLE AS total_time_seconds,
+                    CAST(NULL AS VARCHAR) AS fastest_lap_time_raw,
+                    CAST(NULL AS DOUBLE) AS fastest_lap_time_seconds,
+                    '-' AS gap_first_raw,
+                    CAST(NULL AS VARCHAR) AS gap_previous_raw,
+                    'marker' AS gap_first_kind,
+                    CAST(NULL AS DOUBLE) AS gap_first_seconds,
+                    CAST(NULL AS INTEGER) AS gap_first_laps,
+                    'missing' AS gap_previous_kind,
+                    CAST(NULL AS DOUBLE) AS gap_previous_seconds,
+                    CAST(NULL AS INTEGER) AS gap_previous_laps
                 FROM enriched_csv_pdf_participants
             """)
 
@@ -156,7 +188,46 @@ class GoldRaceCarSummaryTests(unittest.TestCase):
                     ),
                 ],
             )
-            self.assertEqual(len(result.columns), 29)
+            self.assertEqual(len(result.columns), 45)
+
+            sporting_fields = result.project(
+                "season, team_name, completed_laps, "
+                "fastest_lap_number, fastest_lap_speed_kph"
+            ).order("season").fetchall()
+
+            self.assertEqual(
+                sporting_fields,
+                [
+                    (2023, "Team CSV", 100, 42, 219.6),
+                    (2024, "Team JSON", 120, 55, 220.3),
+                ],
+            )
+
+            duration_fields = result.project(
+                "season, total_time_raw, total_time_seconds, "
+                "fastest_lap_time_raw, fastest_lap_time_seconds"
+            ).order("season").fetchall()
+
+            self.assertEqual(
+                duration_fields,
+                [
+                    (2023, "1:00:00.000", 3600.0, "1:30.000", 90.0),
+                    (2024, "2:00:00.000", 7200.0, None, None),
+                ],
+            )
+
+            gap_fields = result.project(
+                "season, gap_first_raw, gap_previous_raw, "
+                "gap_first_kind, gap_first_seconds, gap_first_laps, "
+                "gap_previous_kind, gap_previous_seconds, gap_previous_laps"
+            ).order("season").fetchall()
+            self.assertEqual(
+                gap_fields,
+                [
+                    (2023, "+1:17.343", "2 Laps", "time", 77.343, None, "laps", None, 2),
+                    (2024, "-", None, "marker", None, None, "missing", None, None),
+                ],
+            )
 
     def test_rejects_duplicate_participant_keys(self):
         with duckdb.connect() as connection:

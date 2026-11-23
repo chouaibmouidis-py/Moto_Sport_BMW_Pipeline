@@ -28,11 +28,11 @@ The configuration follows the official GitHub Actions syntax and uv integration:
 
 `Build and publish IMSA Gold` is a separate workflow, triggered manually or on
 Mondays at 23:59 in `Africa/Casablanca`. It installs the locked orchestration
-dependencies, initializes temporary Airflow metadata and executes the 13-task
+dependencies, initializes temporary Airflow metadata and executes the seven-task
 DAG with `airflow dags test`. This executes real tasks without hosting a
 permanent scheduler or web interface.
 
-The DAG restores the pinned 110-file source archive, rebuilds both source-format
+The DAG restores the pinned 114-file source archive, rebuilds both source-format
 paths and publishes Gold to MotherDuck after validation. The repository secret
 `MOTHERDUCK_TOKEN` is supplied through the environment. Concurrent executions of
 this workflow are serialized, and Airflow logs are retained for seven days even
@@ -41,3 +41,13 @@ trigger remains to be observed.
 
 The [live dashboard](https://bmw-imsa-analytics.streamlit.app/) reads the active
 Gold share with a separate account. See the [hosting guide](dashboard_hosting.md).
+
+The seven tasks are manifest validation, archive restoration, Raw, Bronze,
+processing, Gold and MotherDuck publication. A push starts CI, not this workflow.
+Source archival, additive history migration and share provisioning are separate
+maintenance operations; `airflow db migrate` only initializes Airflow metadata.
+On 23 November 2026 the archive and remote history schema were prepared for
+Daytona 2022, but the new 1,453-participant Gold had not been deployed. After the
+code and updated archive pin are pushed, verify CI and dispatch this workflow,
+then check the published run and dashboard. No new workflow execution is claimed
+by these local changes.

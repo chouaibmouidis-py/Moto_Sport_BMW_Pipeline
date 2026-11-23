@@ -3,11 +3,12 @@
 import argparse
 import json
 import logging
+import uuid
 from pathlib import Path
 
 from .bronze import build_source
 from .gold import build_gold_candidate
-from .logging_config import configure_logging
+from .logging_config import configure_logging, log_operation
 from .manifest import select_documents
 from .paths import PROJECT_DIR
 from .pipeline import build_processing_run
@@ -18,18 +19,22 @@ logger = logging.getLogger(__name__)
 
 def run_stages(project_directory, documents, *, stage="all", refresh=False, verbose=False):
     """Use one sequence for JSON, CSV and PDF; exceptions stop execution."""
-    if stage in ("raw", "all"):
-        for source in documents:
-            prepare_source(project_directory, source, refresh=refresh)
-    if stage in ("bronze", "all"):
-        for source in documents:
-            prepare_source(project_directory, source)
-        for source in documents:
-            build_source(project_directory, source)
-    if stage in ("process", "all"):
-        build_processing_run(project_directory, documents, verbose=verbose)
-    if stage in ("gold", "all"):
-        return build_gold_candidate(project_directory, expected_source_ids=[source["source_id"] for source in documents])
+    with log_operation(
+        logger, "Execute selected pipeline stages",
+        run_id=uuid.uuid4().hex, stage="orchestration", source_id="-",
+    ):
+        if stage in ("raw", "all"):
+            for source in documents:
+                prepare_source(project_directory, source, refresh=refresh)
+        if stage in ("bronze", "all"):
+            for source in documents:
+                prepare_source(project_directory, source)
+            for source in documents:
+                build_source(project_directory, source)
+        if stage in ("process", "all"):
+            build_processing_run(project_directory, documents, verbose=verbose)
+        if stage in ("gold", "all"):
+            return build_gold_candidate(project_directory, expected_source_ids=[source["source_id"] for source in documents])
 
 
 def main(argv=(), *, project_directory=None):

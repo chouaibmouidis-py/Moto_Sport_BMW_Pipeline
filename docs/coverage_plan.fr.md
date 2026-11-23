@@ -9,17 +9,17 @@ rolling five-year window. The 2021 archives are a possible extension.
 This document organizes the research. It does not claim that all races
 below have been inventoried or tested, or that BMW is present at every round.
 
-> Current-status clarification: the IMSA row below preserves the earlier
-> integration status. Its description of 2023 as outside the active run still
-> applies to the main JSON run, but is incomplete as a current coverage claim:
-> the separate Gold now combines 2023–2025 race entries. It is not yet a common
-> table of all detailed stops. See [the Gold documentation](gold.fr.md).
+> Status on 23 November 2026: local Gold covers Daytona 2022 and the eleven
+> qualified races in each of 2023–2025: 1,453 participations, including 140 BMW.
+> The hosted publication remains at 1,392 participations until deployment.
+> This is not a shared table of every detailed stop or worldwide coverage.
+> See [the Gold documentation](gold.fr.md).
 
 ## Initial register of families to cover
 
 | Discipline | Family | Starting source | Status |
 | --- | --- | --- | --- |
-| Car racing | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Eleven 2024 races and eleven 2025 races integrated; eleven exploratory 2023 summaries outside the active run; 2022 and 2026 to qualify. See the annual coverage documents. |
+| Car racing | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Daytona 2022 and eleven races in each of 2023–2025 integrated in local Gold; new remote publication pending. Remaining 2022 races and 2026 require qualification. |
 | Car racing | IMSA Michelin Pilot Challenge, GT4 | Same IMSA portal | Season archives and participation to inventory |
 | Car racing | FIA WEC | https://fiawec.alkamelsystems.com/ | Portal identified; current archive access to resolve |
 | Car racing | GT World Challenge Europe, Sprint and Endurance | https://www.gt-world-challenge-europe.com/results | Public results identified; collection and schemas to test |

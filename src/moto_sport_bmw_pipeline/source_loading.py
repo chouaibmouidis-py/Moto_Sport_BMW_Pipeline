@@ -4,6 +4,8 @@ from pathlib import Path
 import hashlib
 import logging
 
+from .logging_config import log_operation
+
 logger = logging.getLogger(__name__)
 
 
@@ -59,32 +61,34 @@ def load_pit_stop_bronze(
     """)
 
     for source in sources:
-        bronze_path = (
-         project_directory
-            / "data"
-            / "bronze"
-            / source["source_id"]
-            / "document.parquet"
-        )
+        with log_operation(logger, "Load JSON Bronze report",
+                           stage="load_bronze", source_id=source["source_id"]):
+            bronze_path = (
+             project_directory
+                / "data"
+                / "bronze"
+                / source["source_id"]
+                / "document.parquet"
+            )
 
-        bronze_sha256 = hashlib.sha256(
-            bronze_path.read_bytes()
-        ).hexdigest()
+            bronze_sha256 = hashlib.sha256(
+                bronze_path.read_bytes()
+            ).hexdigest()
 
-        connection.execute(
-            """
-            INSERT INTO bronze_document
-            SELECT session, pit_stop_analysis, ?, ?
-            FROM read_parquet(?)
-            """,
-            [
-                source["source_id"],
-                bronze_sha256,
-                str(bronze_path),
-            ],
-        )
+            connection.execute(
+                """
+                INSERT INTO bronze_document
+                SELECT session, pit_stop_analysis, ?, ?
+                FROM read_parquet(?)
+                """,
+                [
+                    source["source_id"],
+                    bronze_sha256,
+                    str(bronze_path),
+                ],
+            )
 
-        logger.info("Bronze source loaded: %s", source["source_id"])
+            logger.info("Bronze source loaded: %s", source["source_id"])
 
 def select_pit_stop_sources(documents, *, format=None):
     selected_sources = []
@@ -129,38 +133,40 @@ def load_classification_sources(
     """)
 
     for source in sources:
-        bronze_path = (
-         project_directory
-            / "data"
-            / "bronze"
-            / source["source_id"]
-            / "document.parquet"
-        )
-
-        if not bronze_path.is_file():
-            raise FileNotFoundError(
-                "Classification loading rejected: missing Bronze file "
-                f"for source '{source['source_id']}': {bronze_path}"
+        with log_operation(logger, "Load JSON Bronze report",
+                           stage="load_bronze", source_id=source["source_id"]):
+            bronze_path = (
+             project_directory
+                / "data"
+                / "bronze"
+                / source["source_id"]
+                / "document.parquet"
             )
 
-        bronze_sha256 = hashlib.sha256(
-            bronze_path.read_bytes()
-        ).hexdigest()
+            if not bronze_path.is_file():
+                raise FileNotFoundError(
+                    "Classification loading rejected: missing Bronze file "
+                    f"for source '{source['source_id']}': {bronze_path}"
+                )
 
-        connection.execute(
-            """
-            INSERT INTO bronze_classification
-            SELECT session, fastest_lap, classification, ?, ?
-            FROM read_parquet(?)
-            """,
-            [
-                source["source_id"],
-                bronze_sha256,
-                str(bronze_path),
-            ],
-        )
+            bronze_sha256 = hashlib.sha256(
+                bronze_path.read_bytes()
+            ).hexdigest()
 
-        logger.info("Bronze source loaded: %s", source["source_id"])
+            connection.execute(
+                """
+                INSERT INTO bronze_classification
+                SELECT session, fastest_lap, classification, ?, ?
+                FROM read_parquet(?)
+                """,
+                [
+                    source["source_id"],
+                    bronze_sha256,
+                    str(bronze_path),
+                ],
+            )
+
+            logger.info("Bronze source loaded: %s", source["source_id"])
 
 def load_classification_csv_bronze(
     connection,

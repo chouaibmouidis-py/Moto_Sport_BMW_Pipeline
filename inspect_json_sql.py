@@ -28,6 +28,12 @@ def main() -> None:
         document = connection.read_json(str(args.path), format="unstructured")
         document.create_view("raw_document")
         logger.debug('%s %s', "Root columns:", document.columns)
+        duration_parser_path = (
+            Path(__file__).resolve().parent
+            / "sql"
+            / "21_create_duration_parser.sql"
+        )
+        connection.execute(duration_parser_path.read_text(encoding="utf-8"))
         result = connection.sql(query_path.read_text(encoding="utf-8"))
         result.show()
 

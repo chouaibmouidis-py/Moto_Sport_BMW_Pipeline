@@ -9,11 +9,24 @@ from moto_sport_bmw_pipeline.integrity import verify_local_file
 import getpass
 import os
 import duckdb
+import argparse
 
 logger = logging.getLogger("moto_sport_bmw_pipeline.archive_sources")
 
 
+def pin_archive_reference(reference_path, archive_id, file_count):
+    """Pin a verified archive atomically; called only after the remote commit."""
+    temporary_path = reference_path.with_name(reference_path.name + '.part')
+    temporary_path.write_text(json.dumps({
+        'archive_id': archive_id, 'file_count': file_count,
+    }, indent=2) + '\n', encoding='utf-8')
+    temporary_path.replace(reference_path)
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--pin', action='store_true', help='Update the local archive reference after remote verification.')
+    args = parser.parse_args()
     configure_logging()
 
     manifest_path = PROJECT_DIR / "config" / "sources.json"
@@ -219,6 +232,9 @@ def main():
             raise
 
     logger.info("Source archive verified: %s files", len(source_files))
+    if args.pin:
+        pin_archive_reference(PROJECT_DIR / 'config/source_archive.json', archive_id, len(source_files))
+        logger.info('Pinned verified source archive: %s', archive_id)
 
 
 if __name__ == "__main__":

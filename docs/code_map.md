@@ -18,6 +18,10 @@ The production pipeline is organized by responsibility, not by season or file fo
 | Gold input snapshots, verification and activation | `src/moto_sport_bmw_pipeline/gold.py` |
 | Stage ordering and CLI arguments | `src/moto_sport_bmw_pipeline/orchestration.py` |
 | Scheduling the shared stages | `dags/bmw_pipeline.py` |
+| Source archival and verified local pin | `archive_sources.py --pin` |
+| Additive MotherDuck history migration | `migrate_motherduck_schema.py` |
+| Transactional remote data publication | `publish_motherduck.py` |
+| Separate share provisioning | `configure_motherduck_share.py` |
 
 ## Shared execution
 
@@ -103,9 +107,12 @@ the active Gold separately. No refactor deployment or remote refresh is implicit
 
 ## Verification of this refactor
 
-The 201-test suite passes. Integration scenarios cover JSON-only, CSV/PDF-only
-and mixed runs, report-write failure, wrong Gold selection and changed outputs.
-The seven-task DAG imports successfully. A complete offline rebuild on temporary
-copies of the 66 qualified reports reproduces 1,392 participants and 137 BMW
-entries (2023: 455; 2024: 468; 2025: 469). This check does not deploy the refactor
-or change the active local/cloud dataset.
+The latest suite has 222 passing tests. Scenarios cover JSON-only, CSV/PDF-only
+and mixed runs, report-write failure, wrong Gold selection, changed inputs,
+logging context, additive migration and archive pinning on success/failure.
+A complete local rebuild using the 68 enabled reports produced 1,453 participants
+and 140 BMW entries across 45 columns (2022: 61; 2023: 455; 2024: 468; 2025: 469).
+The active local Gold includes Daytona 2022. The 114-file archive was renewed and
+restored for verification; MotherDuck history received 16 additional columns.
+Its active publication and public view remain on the previous 1,392-participant
+dataset until the new publication workflow succeeds.

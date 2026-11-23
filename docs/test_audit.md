@@ -1,5 +1,10 @@
 # Test audit
 
+Historical test-consolidation audit. Its 186/188-method counts and module inventory
+describe that audit only. The current suite has 222 passing tests as of 23 November
+2026; see [the project reference](project_reference.md) for current validation,
+including migration, archive pinning, logging and Daytona 2022 integration.
+
 ## Scope and execution
 
 The audit covered the 51 tracked Python test modules present at its start,

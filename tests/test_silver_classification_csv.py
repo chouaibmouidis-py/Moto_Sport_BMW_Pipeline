@@ -8,6 +8,35 @@ from moto_sport_bmw_pipeline.quality import validate_classification_gaps, build_
 
 
 class SilverClassificationCsvTests(unittest.TestCase):
+    def test_applies_only_exact_model_manufacturer_corrections(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW bronze_classification_csv AS
+                SELECT 'source' AS source_id, 'hash' AS bronze_sha256,
+                    NUMBER, VEHICLE, IMSA_ManufacturerId,
+                    '1' AS POSITION, 'GTD' AS CLASS, 'Classified' AS STATUS,
+                    NULL::VARCHAR AS TEAM, NULL::VARCHAR AS LAPS,
+                    NULL::VARCHAR AS FL_LAPNUM, NULL::VARCHAR AS FL_KPH,
+                    NULL::VARCHAR AS TOTAL_TIME, NULL::VARCHAR AS FL_TIME,
+                    NULL::VARCHAR AS GAP_FIRST, NULL::VARCHAR AS GAP_PREVIOUS
+                FROM (VALUES
+                    ('15', ' Mercedes-AMG GT3 ', '7643'),
+                    ('13', 'Duqueine D08', '7665'),
+                    ('24', 'Unknown GT3', '9999')
+                ) AS t(NUMBER, VEHICLE, IMSA_ManufacturerId)
+            """)
+            result = transform_classification_csv(connection, Path(__file__).resolve().parent.parent)
+            self.assertCountEqual(result.project(
+                'car_number, manufacturer_source_id, manufacturer, manufacturer_mapping_status'
+            ).fetchall(), [
+                ('15', '7643', 'Mercedes', 'matched_override'),
+                ('13', '7665', 'Duqueine', 'matched_override'),
+                ('24', '9999', None, None),
+            ])
+            self.assertEqual(connection.sql(
+                "SELECT VEHICLE FROM bronze_classification_csv WHERE NUMBER = '15'"
+            ).fetchone()[0], ' Mercedes-AMG GT3 ')
+
     def test_normalizes_fields_and_preserves_car_number(self):
         with duckdb.connect() as connection:
             connection.execute("""
@@ -58,6 +87,8 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     "laps",                        # gap_previous_kind
                     None,                          # gap_previous_seconds
                     1,                             # gap_previous_laps
+                    None,                          # manufacturer: no targeted correction
+                    None,                          # manufacturer_mapping_status
                 )],
             )
 
@@ -125,6 +156,8 @@ class SilverClassificationCsvTests(unittest.TestCase):
                     "missing",          # gap_previous_kind
                     None,               # gap_previous_seconds
                     None,               # gap_previous_laps
+                    None,               # manufacturer
+                    None,               # manufacturer_mapping_status
                 )],
             )
 

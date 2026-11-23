@@ -7,7 +7,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from moto_sport_bmw_pipeline.logging_config import configure_logging, log_context
+from moto_sport_bmw_pipeline.logging_config import (
+    RunContextFilter, configure_logging, log_context, log_operation,
+)
 
 
 class ApplicationLoggingTests(unittest.TestCase):
@@ -52,6 +54,76 @@ class ApplicationLoggingTests(unittest.TestCase):
             logging.getLogger("moto_sport_bmw_pipeline.test").debug("Diagnostic details")
         self.assertIn("DEBUG", stream.getvalue())
         self.assertIn("Diagnostic details", stream.getvalue())
+
+    def test_nested_source_inherits_run_and_stage_then_restores_them(self):
+        stream = io.StringIO()
+        with patch.dict("os.environ", {"BMW_LOG_LEVEL": "INFO", "BMW_LOG_FILE": ""}), patch("sys.stderr", stream):
+            configure_logging()
+            child = logging.getLogger("moto_sport_bmw_pipeline.test")
+            child.info("Before context")
+            with log_context("run-42", stage="bronze"):
+                with log_context(source_id="source-a"):
+                    child.info("Inside source")
+                child.info("After source")
+            child.info("After run")
+
+        lines = stream.getvalue().splitlines()
+        self.assertIn("run=- | stage=- | source_id=- | Before context", lines[0])
+        self.assertIn("run=run-42 | stage=bronze | source_id=source-a | Inside source", lines[1])
+        self.assertIn("run=run-42 | stage=bronze | source_id=- | After source", lines[2])
+        self.assertIn("run=- | stage=- | source_id=- | After run", lines[3])
+
+    def test_exception_restores_context_and_is_propagated(self):
+        context_filter = RunContextFilter()
+        with log_context("outer-run", stage="process", source_id="outer-source"):
+            with self.assertRaisesRegex(ValueError, "test failure"):
+                with log_context("inner-run", stage="gold", source_id="inner-source"):
+                    raise ValueError("test failure")
+            record = logging.makeLogRecord({})
+            context_filter.filter(record)
+            self.assertEqual(
+                (record.run_id, record.stage, record.source_id),
+                ("outer-run", "process", "outer-source"),
+            )
+
+        record = logging.makeLogRecord({})
+        context_filter.filter(record)
+        self.assertEqual((record.run_id, record.stage, record.source_id), ("-", "-", "-"))
+
+    def test_filter_preserves_explicit_fields_and_completes_missing_ones(self):
+        with log_context("run-42", stage="bronze", source_id="context-source"):
+            record = logging.makeLogRecord({"source_id": "explicit-source"})
+            self.assertTrue(RunContextFilter().filter(record))
+        self.assertEqual(
+            (record.run_id, record.stage, record.source_id),
+            ("run-42", "bronze", "explicit-source"),
+        )
+
+    def test_operation_success_has_context_and_no_duplicate_messages(self):
+        stream = io.StringIO()
+        with patch.dict("os.environ", {"BMW_LOG_LEVEL": "INFO", "BMW_LOG_FILE": ""}), patch("sys.stderr", stream):
+            configure_logging()
+            child = logging.getLogger("moto_sport_bmw_pipeline.test")
+            with log_operation(child, "Normalize report", run_id="run-42", stage="silver", source_id="source-a"):
+                child.info("Rows validated")
+        lines = stream.getvalue().splitlines()
+        self.assertEqual(len(lines), 3)
+        for line in lines:
+            self.assertIn("run=run-42 | stage=silver | source_id=source-a", line)
+
+    def test_failed_operation_output_contains_context_and_propagates(self):
+        stream = io.StringIO()
+        with patch.dict("os.environ", {"BMW_LOG_LEVEL": "INFO", "BMW_LOG_FILE": ""}), patch("sys.stderr", stream):
+            configure_logging()
+            child = logging.getLogger("moto_sport_bmw_pipeline.test")
+            with self.assertRaisesRegex(ValueError, "invalid input"):
+                with log_operation(child, "Normalize report", run_id="run-42", stage="silver", source_id="source-a"):
+                    raise ValueError("invalid input")
+            child.info("After failure")
+        output = stream.getvalue()
+        self.assertIn("run=run-42 | stage=silver | source_id=source-a | Failed: Normalize report", output)
+        self.assertNotIn("Completed: Normalize report", output)
+        self.assertIn("run=- | stage=- | source_id=- | After failure", output)
 
     def test_workflow_propagates_logging_options_to_common_stages(self):
         from moto_sport_bmw_pipeline.orchestration import main

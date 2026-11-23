@@ -14,6 +14,7 @@ class SilverCarEntriesTests(unittest.TestCase):
                 "number": "04",
                 "vehicle": "BMW M4 GT3 EVO",
                 "manufacturer": "BMW",
+                "imsa_manufacturerid": " 74 ",
                 "class": "GTD",
                 "team": "Test team",
                 "group": " Test group ",
@@ -56,14 +57,14 @@ class SilverCarEntriesTests(unittest.TestCase):
             result.create_view("silver_car_entries")
 
             attributes = connection.sql("""
-                SELECT car_group, tires
+                SELECT car_group, tires, manufacturer_source_id
                 FROM silver_car_entries
                 WHERE source_entry_index = '0'
             """).fetchone()
 
             self.assertEqual(
                 attributes,
-                ("Test group", "Michelin"),
+                ("Test group", "Michelin", "74"),
             )
 
             rows = connection.sql("""

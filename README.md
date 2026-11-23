@@ -13,7 +13,7 @@ independently of BMW and IMSA.
 
 **Python · SQL · DuckDB · Airflow · GitHub Actions · MotherDuck · Streamlit**
 
-## Current coverage
+## Hosted dashboard coverage
 
 | Season | Source formats | Race entries | BMW entries |
 | --- | --- | ---: | ---: |
@@ -26,22 +26,39 @@ The common Gold participant table contains **29 columns**, including session
 context, stop statistics, source provenance and quality statuses. The JSON
 workflow covers 8,307 detailed stops; the 2023 PDF path covers 3,953.
 
+## Locally validated coverage
+
+The local pipeline also includes **Daytona 2022**: 61 participants (3 BMW) and
+1,762 extracted pit stops. Both sources are enabled in the manifest after a
+complete local Raw → Bronze → Silver → Gold run. Local Gold now contains
+**1,453 participants, including 140 BMW, across 34 races, with 45 columns**.
+The previous 1,392 participant records are preserved, apart from the documented
+targeted manufacturer corrections. Exact model corrections are computed in
+Silver and retained in Gold with `matched_override` / `silver_override` statuses.
+
+These changes are **not deployed to the hosted dashboard yet**. The source archive
+has been renewed to 114 files, including the two 2022 reports and their metadata,
+and the MotherDuck history schema has received the 16 additional columns.
+The existing public view and active publication remain unchanged. After the code
+and archive reference are pushed and CI passes, run the publication workflow and
+verify the dashboard. Local activation does not publish a new remote Gold run.
+
 ## Data flow
 
 ```text
 Official IMSA reports
     ├── 2024–2025 JSON → Raw → Bronze → Silver → quality reports and marts
-    └── 2023 CSV/PDF  → Raw → Bronze → Silver → per-event marts
+    └── 2022–2023 CSV/PDF → Raw → Bronze → Silver → per-event marts
                                                         │
 Both participant-mart paths + manufacturer evidence ─────┘
     ↓
-Common 2023–2025 Gold participants + provenance snapshots
+Local 2022–2025 Gold participants + provenance snapshots
     ↓
-MotherDuck publication → hosted Streamlit dashboard
+MotherDuck publication → hosted Streamlit dashboard (extension pending deployment)
 ```
 
-GitHub Actions restores a pinned archive of **110 source and metadata files**
-from MotherDuck and executes the **13-task Airflow DAG**. Validated Gold data is
+GitHub Actions restores the pinned source and metadata archive
+from MotherDuck and executes the manifest-driven Airflow DAG. Validated Gold data is
 published transactionally. The workflow is scheduled for Mondays at **23:59,
 Africa/Casablanca**, and can also be triggered manually. The remote path has
 completed successfully; the first scheduled execution remains to be observed.
@@ -107,6 +124,16 @@ are no longer production inputs. A selected season/event builds a correspondingl
 scoped Gold; run without selection to restore the complete configured coverage.
 No command publishes to MotherDuck unless `publish_motherduck.py` is invoked.
 
+Gold publication and dashboard sharing are separate operations.
+`publish_motherduck.py` writes and validates the data, then commits the active
+run in one transaction. It does not create shares or change access grants.
+Run `uv run --locked --no-sync python configure_motherduck_share.py` separately
+when setting up the `bmw_gold` share or its `explorer` read access. This command
+does not publish data and is not part of the recurring Airflow publication task.
+The existing share uses automatic updates; its configuration is not repeated
+for each Gold run. An existing remote history schema must be migrated separately
+before publishing a Gold run with additional columns.
+
 Build Gold from the already completed processing run:
 
 
@@ -114,10 +141,10 @@ Build Gold from the already completed processing run:
 uv run --locked python build_gold.py
 ```
 
-The [execution guide](docs/project_reference.md#setup-and-execution) covers
-refreshing JSON sources. The [2023 guide](docs/imsa_2023_season_coverage.fr.md)
-and [detailed reference](docs/project_reference.md#current-project-scope) describe
-the separate CSV/PDF batch commands and required local inputs.
+The [execution guide](docs/project_reference.md#execution-order) covers the shared
+commands, source refresh and selection. The [2023 qualification](docs/imsa_2023_season_coverage.fr.md)
+retains historical findings; the [current reference](docs/project_reference.md#responsibilities-and-active-paths)
+describes the common production paths for JSON and CSV/PDF.
 
 ## Dashboard
 
@@ -153,7 +180,7 @@ and tables in an update use the same downloaded Gold snapshot.
 | Configuring source reports | [Configuration guide](config/README.fr.md) |
 | Qualified sources and remaining coverage | [Source inventory](docs/source_inventory.fr.md) and [coverage plan](docs/coverage_plan.fr.md) |
 | Automated checks and manual source smoke check | [CI guide](docs/ci.fr.md) |
-| Original learning assignment | [Project brief](docs/mission_stage_personnel.fr.md) |
+| Assignment, acceptance criteria and current milestones | [Project brief](docs/mission_stage_personnel.fr.md) |
 
 Public documentation is in English. Historical `.fr.md` filenames are retained
 to preserve previously shared links.
@@ -172,10 +199,10 @@ The JSON run and Gold have independent activation. The 2023 exploratory marts
 are published per event. Remote-change detection, concurrent publication and
 hardware-crash recovery remain areas for further work. Gold snapshots retain
 input data and SQL; reproduction also depends on the code revision and Python
-environment. Full details are in the [reference](docs/project_reference.md#checks-and-current-limitations)
+environment. Full details are in the [reference](docs/project_reference.md#validation-and-limits)
 and [Gold guide](docs/gold.fr.md).
 
 Working files stay under the ignored `data/` directory. Versioned source bytes
 are also retained in the restricted MotherDuck archive for remote reconstruction.
 The pinned archive does not automatically discover new races or official report
-corrections. See the [reuse notes](docs/project_reference.md#github-actions-and-reuse).
+corrections. See the [reuse notes](docs/project_reference.md#remaining-work-and-historical-evidence).

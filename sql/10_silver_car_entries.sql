@@ -14,6 +14,9 @@ SELECT
         TRIM(json_extract_string(entry.value, '$.manufacturer')), ''
     ) AS manufacturer,
     NULLIF(
+        TRIM(json_extract_string(entry.value, '$.imsa_manufacturerid')), ''
+    ) AS manufacturer_source_id,
+    NULLIF(
         TRIM(json_extract_string(entry.value, '$.class')), ''
     ) AS car_class,
     NULLIF(

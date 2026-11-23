@@ -12,6 +12,7 @@ from pathlib import Path
 
 import duckdb
 
+from .logging_config import log_operation
 from .parquet_writer import publish_parquet
 from .pdf_parser import extract_stops
 
@@ -20,21 +21,22 @@ logger = logging.getLogger(__name__)
 
 def build_source(project_directory: Path, source: dict) -> Path:
     """Extract one source using its declared document role and file format."""
-    source_path = project_directory / "data/raw" / source["source_id"] / source["filename"]
-    output = project_directory / "data/bronze" / source["source_id"] / "document.parquet"
-    key = (source["document_type"], source["format"])
-    builders = {
-        ("pit_stops", "json"): build_document,
-        ("classification", "json"): build_classification_document,
-        ("classification", "csv"): build_classification_csv,
-    }
-    if key == ("pit_stops", "pdf"):
-        build_pdf_pit_stop_bronze(source_path, output, source["source_id"])
-    elif key in builders:
-        builders[key](source_path, output)
-    else:
-        raise ValueError(f"Unsupported Bronze reader: {key}")
-    return output
+    with log_operation(logger, "Extract source", stage="bronze", source_id=source["source_id"]):
+        source_path = project_directory / "data/raw" / source["source_id"] / source["filename"]
+        output = project_directory / "data/bronze" / source["source_id"] / "document.parquet"
+        key = (source["document_type"], source["format"])
+        builders = {
+            ("pit_stops", "json"): build_document,
+            ("classification", "json"): build_classification_document,
+            ("classification", "csv"): build_classification_csv,
+        }
+        if key == ("pit_stops", "pdf"):
+            build_pdf_pit_stop_bronze(source_path, output, source["source_id"])
+        elif key in builders:
+            builders[key](source_path, output)
+        else:
+            raise ValueError(f"Unsupported Bronze reader: {key}")
+        return output
 
 
 def build_pdf_pit_stop_bronze(

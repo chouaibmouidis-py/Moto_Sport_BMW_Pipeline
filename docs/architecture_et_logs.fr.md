@@ -27,8 +27,22 @@ All stages run in the same Python process when using the complete CLI. Logging
 configuration is shared; there is no subprocess environment to synchronize.
 Airflow invokes stages in separate processes, each using the same logging setup.
 INFO records progress and publications, DEBUG adds diagnostics, and exceptions
-propagate to the caller. Run context is attached where the existing builders
-establish it; a missing context is displayed as `run=-`.
+propagate to the caller. Records include the emitting module, `run`, `stage`
+and `source_id`. Raw and Bronze use an invocation ID; processing and Gold use
+their candidate directory IDs. Logs explicitly link the JSON adapter run to
+the processing run and the processing run to the Gold run. Airflow task logs
+remain the cross-process execution history.
+
+`log_context` supplies values to nested calls and restores previous values on
+exit. `log_operation` additionally records start, completion or failure, and
+re-raises failures before restoring the context. Parent operations may also
+report the propagated failure; the innermost record identifies its operation.
+Per-source acquisition, extraction and CSV/PDF processing identify the source.
+JSON batch transformations and Gold aggregation use `source_id=-` because they
+combine reports rather than processing one source. SQL view errors include the
+query filename and view name. Source restoration logs the archive ID;
+MotherDuck publication logs the selected Gold ID. These remote operations are
+not executed by the local logging checks.
 
 This architecture does not prove that an official report is correct, discover
 source revisions, or remove PDF layout limitations. Those remain source

@@ -9,7 +9,7 @@ import logging
 import csv
 import requests
 from pypdf import PdfReader
-from moto_sport_bmw_pipeline.logging_config import configure_logging
+from moto_sport_bmw_pipeline.logging_config import configure_logging, log_operation
 
 logger = logging.getLogger(__name__)
 
@@ -66,37 +66,38 @@ VALIDATORS = {"json": validate_json, "csv": validate_classification_csv, "pdf": 
 
 def prepare_source(project_directory: Path, source: dict, *, refresh=False) -> Path:
     """Acquire or verify one source; choose its validator from the declared format."""
-    from .integrity import verify_local_file
+    with log_operation(logger, "Prepare source", stage="raw", source_id=source["source_id"]):
+        from .integrity import verify_local_file
 
-    directory = project_directory / "data/raw" / source["source_id"]
-    target = directory / source["filename"]
-    metadata_path = directory / "metadata.json"
-    validator = VALIDATORS[source["format"]]
-    expected = source.get("expected_sha256")
-    if target.is_file() and not refresh:
-        if expected:
-            if hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+        directory = project_directory / "data/raw" / source["source_id"]
+        target = directory / source["filename"]
+        metadata_path = directory / "metadata.json"
+        validator = VALIDATORS[source["format"]]
+        expected = source.get("expected_sha256")
+        if target.is_file() and not refresh:
+            if expected:
+                if hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+                    raise ValueError(f"Raw fingerprint mismatch: {source['source_id']}")
+            else:
+                verify_local_file(target, metadata_path)
+            validator(target)
+            return target
+        directory.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=directory) as temporary:
+            candidate = download(source["url"], temporary, source["filename"], source["format"])
+            digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
+            if expected and digest != expected:
                 raise ValueError(f"Raw fingerprint mismatch: {source['source_id']}")
-        else:
-            verify_local_file(target, metadata_path)
-        validator(target)
+            metadata = {
+                "source_id": source["source_id"], "url": source["url"],
+                "filename": source["filename"], "sha256": digest,
+                "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            }
+            candidate_metadata = Path(temporary) / "metadata.json"
+            candidate_metadata.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+            candidate.replace(target)
+            candidate_metadata.replace(metadata_path)
         return target
-    directory.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=directory) as temporary:
-        candidate = download(source["url"], temporary, source["filename"], source["format"])
-        digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
-        if expected and digest != expected:
-            raise ValueError(f"Raw fingerprint mismatch: {source['source_id']}")
-        metadata = {
-            "source_id": source["source_id"], "url": source["url"],
-            "filename": source["filename"], "sha256": digest,
-            "downloaded_at": datetime.now(timezone.utc).isoformat(),
-        }
-        candidate_metadata = Path(temporary) / "metadata.json"
-        candidate_metadata.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-        candidate.replace(target)
-        candidate_metadata.replace(metadata_path)
-    return target
 
 def download(
     url: str,

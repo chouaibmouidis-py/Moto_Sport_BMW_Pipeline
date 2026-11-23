@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 from pathlib import Path
 import shutil
 import tempfile
@@ -12,6 +13,7 @@ import duckdb
 from pypdf import PdfWriter
 
 from moto_sport_bmw_pipeline.manifest import select_documents
+from moto_sport_bmw_pipeline.logging_config import RunContextFilter
 from moto_sport_bmw_pipeline.orchestration import main, run_stages
 from moto_sport_bmw_pipeline.pipeline import build_processing_run
 from moto_sport_bmw_pipeline.parquet_writer import publish_parquet
@@ -29,6 +31,49 @@ def documents(season=2022, formats=("csv", "pdf")):
 
 
 class RunPipelineTests(unittest.TestCase):
+    def test_csv_pdf_logs_identify_source_and_aggregate_boundaries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = self.prepare_csv_pdf(root)
+            with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[]):
+                with self.assertLogs("moto_sport_bmw_pipeline", level="INFO") as captured:
+                    # assertLogs installs its own handler; attach the same context
+                    # filter used by normal console/file handlers before execution.
+                    handler = logging.getLogger("moto_sport_bmw_pipeline").handlers[0]
+                    handler.addFilter(RunContextFilter())
+                    run_stages(root, sources)
+            records = captured.records
+            for stage, source_id in (
+                ("raw", "2022-classification"), ("raw", "2022-pit_stops"),
+                ("bronze", "2022-classification"), ("bronze", "2022-pit_stops"),
+                ("silver", "2022-classification"), ("silver", "2022-pit_stops"),
+            ):
+                with self.subTest(stage=stage, source_id=source_id):
+                    matching = [r for r in records if r.stage == stage and r.source_id == source_id]
+                    self.assertTrue(matching)
+                    self.assertTrue(all(r.run_id != "-" for r in matching))
+            processing = get_current_run(root / "data/processing").name
+            gold = get_current_run(root / "data/gold").name
+            self.assertTrue(any(r.run_id == processing and r.stage == "process" for r in records))
+            self.assertTrue(any(r.run_id == gold and r.stage == "gold_write" and r.source_id == "-" for r in records))
+
+    def test_raw_failure_is_logged_with_source_before_propagation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = self.prepare_csv_pdf(root)
+            sources[0]["expected_sha256"] = "0" * 64
+            with self.assertLogs("moto_sport_bmw_pipeline", level="INFO") as captured:
+                logging.getLogger("moto_sport_bmw_pipeline").handlers[0].addFilter(RunContextFilter())
+                with self.assertRaisesRegex(ValueError, "Raw fingerprint mismatch"):
+                    run_stages(root, sources)
+            failures = [r for r in captured.records if r.levelno >= logging.ERROR]
+            self.assertTrue(any(
+                r.stage == "raw" and r.source_id == "2022-classification"
+                and r.run_id != "-" and r.exc_info is not None
+                for r in failures
+            ))
+            self.assertFalse((root / "data/processing/current.json").exists())
+
     def test_manifest_selects_formats_and_season_without_mutating_input(self):
         sources = documents(2022) + documents(2024, ("json", "json"))
         original = json.dumps(sources)
@@ -163,7 +208,18 @@ class RunPipelineTests(unittest.TestCase):
                 selected = json_sources + csv_sources if mixed else json_sources
                 (root / "config/sources.json").write_text(json.dumps({"documents": selected}))
                 with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[]):
-                    run = main([], project_directory=root)
+                    with patch("moto_sport_bmw_pipeline.orchestration.configure_logging"):
+                        with self.assertLogs("moto_sport_bmw_pipeline", level="INFO") as captured:
+                            logging.getLogger("moto_sport_bmw_pipeline").handlers[0].addFilter(RunContextFilter())
+                            run = main([], project_directory=root)
                 with duckdb.connect() as connection:
                     actual = connection.read_parquet(str(run / "race_car_summary.parquet")).project("season").order("season").fetchall()
                 self.assertEqual(actual, [(2022,), (2024,)] if mixed else [(2024,)])
+                self.assertTrue(any(
+                    record.stage == "load_bronze" and record.source_id == "2024-classification"
+                    and record.run_id != "-" for record in captured.records
+                ))
+                self.assertTrue(any(
+                    record.stage == "silver" and record.source_id == "-"
+                    and record.run_id != "-" for record in captured.records
+                ))

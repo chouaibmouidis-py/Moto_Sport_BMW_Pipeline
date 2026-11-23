@@ -9,14 +9,14 @@ Exploratory qualification and publication carried out on November 13, 2026.
 The eleven Official classification CSV / pit-stop PDF pairs are described in
 `config/sources.json`. The 22 files were retained locally
 in `data/raw` after downloading and checking that the copies were identical.
-This catalog is independent of `config/sources.json`: no 2023 source
-is enabled in the main pipeline.
+The former exploratory catalog has since been consolidated into that single
+manifest; all eleven pairs are now enabled in the multiformat pipeline.
 
-> Current-status clarification: the separate three-season Gold now includes the
-> 2023 CSV/PDF marts alongside the 2024–2025 JSON inputs. Statements below that
-> these summaries are not yet integrated into Gold describe an earlier stage
-> and are stale as current claims. The 2023 catalog remains separate from the
-> main JSON run. See [the Gold documentation](gold.fr.md).
+> Status on 23 November 2026: all eleven 2023 races are included in local Gold,
+> alongside Daytona 2022 and 2024–2025. The hosted publication still covers
+> 2023–2025. Earlier output paths and pending integration statements below
+> describe the historical qualification, not current runtime. See
+> [the Gold documentation](gold.fr.md).
 
 | Race | Session | Scope | Classification entries | BMW | Extracted stops | BMW stops |
 | --- | --- | --- | ---: | ---: | ---: | ---: |

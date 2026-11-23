@@ -23,6 +23,7 @@ SELECT
     pit_stop_bronze_sha256,
     CASE
         WHEN manufacturer_mapping_status = 'matched' THEN 'reference'
+        WHEN manufacturer_mapping_status = 'matched_override' THEN 'silver_override'
         ELSE 'unresolved'
     END AS manufacturer_origin,
     manufacturer_mapping_status,
@@ -33,7 +34,23 @@ SELECT
     manufacturer_name_count,
     stop_detail_status,
     overall_position,
-    CAST(NULL AS BOOLEAN) AS not_finished
+    CAST(NULL AS BOOLEAN) AS not_finished,
+    team_name,
+    completed_laps,
+    fastest_lap_number,
+    fastest_lap_speed_kph,
+    total_time_raw,
+    total_time_seconds,
+    fastest_lap_time_raw,
+    fastest_lap_time_seconds,
+    gap_first_raw,
+    gap_previous_raw,
+    gap_first_kind,
+    gap_first_seconds,
+    gap_first_laps,
+    gap_previous_kind,
+    gap_previous_seconds,
+    gap_previous_laps
 FROM enriched_csv_pdf_participants
 
 UNION ALL
@@ -74,5 +91,21 @@ SELECT
         ELSE 'available'
     END AS stop_detail_status,
     overall_position,
-    not_finished
+    not_finished,
+    team_name,
+    completed_laps,
+    fastest_lap_number,
+    fastest_lap_speed_kph,
+    total_time_raw,
+    total_time_seconds,
+    fastest_lap_time_raw,
+    fastest_lap_time_seconds,
+    gap_first_raw,
+    gap_previous_raw,
+    gap_first_kind,
+    gap_first_seconds,
+    gap_first_laps,
+    gap_previous_kind,
+    gap_previous_seconds,
+    gap_previous_laps
 FROM json_race_car_summary;

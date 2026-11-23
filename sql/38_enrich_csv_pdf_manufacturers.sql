@@ -2,9 +2,10 @@
 -- Preserve every participant and expose unresolved mappings explicitly.
 
 SELECT
-    participant.*,
-    reference.manufacturer,
+    participant.* EXCLUDE (manufacturer, manufacturer_mapping_status),
+    COALESCE(participant.manufacturer, reference.manufacturer) AS manufacturer,
     COALESCE(
+        participant.manufacturer_mapping_status,
         reference.manufacturer_mapping_status,
         'unmapped'
     ) AS manufacturer_mapping_status,

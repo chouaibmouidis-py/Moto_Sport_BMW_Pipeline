@@ -5,20 +5,14 @@ from pathlib import Path
 import json
 import logging
 import uuid
-
 import duckdb
-
-from .logging_config import log_context
+from .logging_config import log_operation
 from .marts import (
     build_gold_race_car_summary, build_manufacturer_reference,
     enrich_csv_pdf_manufacturers,
 )
 from .publication import GOLD_OUTPUT_VIEWS, GOLD_REQUIRED_OUTPUTS, publish_run_outputs
 from .run_reference import activate_run, get_current_run
-from .source_loading import (
-    load_classification_sources, load_pit_stop_bronze,
-    select_classification_sources, select_pit_stop_sources,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -110,13 +104,21 @@ def _empty_participants(connection, view_name):
         "session_id": "VARCHAR", "source_id": "VARCHAR", "bronze_sha256": "VARCHAR",
         "car_number": "VARCHAR", "car_model": "VARCHAR", "manufacturer": "VARCHAR",
         "manufacturer_source_id": "VARCHAR", "car_class": "VARCHAR",
+        "manufacturer_mapping_status": "VARCHAR",
         "classification_status": "VARCHAR", "source_entry_index": "VARCHAR",
         "not_finished": "BOOLEAN", "reported_pit_stop_count": "INTEGER",
         "observed_pit_stop_count": "BIGINT", "valid_duration_count": "BIGINT",
         "invalid_duration_count": "BIGINT", "average_pit_time_seconds": "DOUBLE",
         "duration_coverage_percent": "DOUBLE", "comparison_status": "VARCHAR",
         "pit_stop_source_id": "VARCHAR", "pit_stop_bronze_sha256": "VARCHAR",
-        "pdf_sha256": "VARCHAR", "stop_detail_status": "VARCHAR", "overall_position": "INTEGER",
+        "pdf_sha256": "VARCHAR", "stop_detail_status": "VARCHAR", "overall_position": "INTEGER","team_name": "VARCHAR",
+        "completed_laps": "INTEGER", "fastest_lap_number": "INTEGER", "fastest_lap_speed_kph": "DOUBLE",
+        "total_time_raw": "VARCHAR", "total_time_seconds": "DOUBLE",
+        "fastest_lap_time_raw": "VARCHAR", "fastest_lap_time_seconds": "DOUBLE",
+        "gap_first_raw": "VARCHAR", "gap_previous_raw": "VARCHAR",
+        "gap_first_kind": "VARCHAR", "gap_first_seconds": "DOUBLE",
+        "gap_first_laps": "INTEGER", "gap_previous_kind": "VARCHAR",
+        "gap_previous_seconds": "DOUBLE", "gap_previous_laps": "INTEGER",
     }
     query = ", ".join(f"CAST(NULL AS {kind}) AS {name}" for name, kind in columns.items())
     connection.execute(f"CREATE TEMP VIEW {view_name} AS SELECT {query} WHERE FALSE")
@@ -137,8 +139,10 @@ def build_gold_candidate(project_directory: Path, *, expected_source_ids=None) -
         records.append(record)
         return run_directory / record["snapshot_path"]
 
-    with log_context(run_directory.name):
+    with log_operation(logger, "Build Gold candidate",
+                       run_id=run_directory.name, stage="gold", source_id="-"):
         try:
+            logger.info("Gold input processing run: processing_run=%s", source_run.name)
             manifest_path = freeze((source_run / "sources.json").relative_to(project_directory), "source_manifest")
             descriptor_path = freeze((source_run / "outputs.json").relative_to(project_directory), "processing_run")
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -153,13 +157,6 @@ def build_gold_candidate(project_directory: Path, *, expected_source_ids=None) -
                 "38_enrich_csv_pdf_manufacturers.sql", "39_gold_race_car_summary.sql",
             ):
                 freeze(Path("sql") / name, "transformation_sql")
-            pit_sources = select_pit_stop_sources(manifest["documents"], format="json")
-            classification_sources = select_classification_sources(manifest["documents"], format="json")
-            for source in pit_sources + classification_sources:
-                relative = f"data/bronze/{source['source_id']}/document.parquet"
-                snapshot = freeze(relative, "manufacturer_evidence_bronze")
-                if hashlib.sha256(snapshot.read_bytes()).hexdigest() != descriptor["bronze_hashes"][relative]:
-                    raise ValueError(f"Gold rejected: Bronze changed after processing: {relative}")
             marts = {}
             for output in descriptor["outputs"]:
                 snapshot = freeze(output["path"], output["role"])
@@ -170,9 +167,27 @@ def build_gold_candidate(project_directory: Path, *, expected_source_ids=None) -
             write_gold_input_manifest(run_directory, source_run.name, records)
             validate_gold_inputs(run_directory)
             with duckdb.connect() as connection:
-                load_pit_stop_bronze(connection, pit_sources, frozen_project)
-                load_classification_sources(connection, classification_sources, frozen_project)
-                build_manufacturer_reference(connection, frozen_project)
+                roles = [
+                            ("json_silver_classification", "silver_classification"),
+                            ("json_silver_car_entries", "silver_car_entries"),
+                        ]
+                for role, view in roles:
+                    if marts.get(role):
+                        connection.read_parquet(marts[role]).create_view(view)
+                    elif any(source["format"] == "json" for source in manifest["documents"]):
+                        raise ValueError(f"Missing role: {role}")
+                    else:
+                        empty_view = connection.sql("""
+                                        SELECT
+                                            CAST(NULL AS VARCHAR) AS source_id,
+                                            CAST(NULL AS VARCHAR) AS bronze_sha256,
+                                            CAST(NULL AS VARCHAR) AS manufacturer_source_id,
+                                            CAST(NULL AS VARCHAR) AS manufacturer,
+                                        WHERE FALSE
+                                    """)
+                        empty_view.create_view(view)
+                with log_operation(logger, "Build manufacturer reference from Silver", stage="gold_reference"):
+                    build_manufacturer_reference(connection, frozen_project)
                 for role, view in (
                     ("json_participant_mart", "json_race_car_summary"),
                     ("csv_pdf_participant_mart", "csv_pdf_race_summary"),
@@ -181,9 +196,12 @@ def build_gold_candidate(project_directory: Path, *, expected_source_ids=None) -
                         connection.read_parquet(marts[role]).create_view(view)
                     else:
                         _empty_participants(connection, view)
-                enrich_csv_pdf_manufacturers(connection, frozen_project)
-                build_gold_race_car_summary(connection, frozen_project)
-                publish_run_outputs(connection, run_directory, GOLD_OUTPUT_VIEWS)
+                with log_operation(logger, "Enrich participant manufacturers", stage="gold_enrichment"):
+                    enrich_csv_pdf_manufacturers(connection, frozen_project)
+                with log_operation(logger, "Align Gold participants", stage="gold_build"):
+                    build_gold_race_car_summary(connection, frozen_project)
+                with log_operation(logger, "Write verified Gold outputs", stage="gold_write"):
+                    publish_run_outputs(connection, run_directory, GOLD_OUTPUT_VIEWS)
             validate_gold_inputs(run_directory)
             activate_run(run_directory, required_outputs=GOLD_REQUIRED_OUTPUTS)
         except Exception:

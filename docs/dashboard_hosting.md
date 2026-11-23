@@ -36,6 +36,12 @@ file is necessary. No local `data/` directory is required by this dashboard.
 
 ## Publication and refresh
 
+Status on 23 November 2026: the remote history schema and 114-file archive are
+prepared for the local 1,453-participant Gold. The active public view still serves
+the previous 1,392 participants. A push runs CI; publish the new dataset through
+the separate Gold workflow, then verify its run ID and dashboard counts. Schema
+migration and archive renewal do not themselves switch the public run.
+
 GitHub Actions restores the pinned source archive, executes the Airflow DAG,
 and publishes a validated Gold run to MotherDuck. The dashboard reads the active
 Gold view through the automatically updating share. Share propagation can add a

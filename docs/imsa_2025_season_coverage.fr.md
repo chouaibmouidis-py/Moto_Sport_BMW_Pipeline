@@ -37,7 +37,7 @@ an absence of BMWs. Non-BMW entries are retained.
 
 > Historical-status clarification: “active run” above refers to the recorded
 > 2025-only validation, not a claim about the current reference. The current
-> separate Gold covers 2023–2025; the 2025 figures and run identifier above are
+> local Gold covers Daytona 2022 and 2023–2025; the 2025 figures and run identifier above are
 > preserved as historical evidence. See [the Gold documentation](gold.fr.md).
 
 ## Progress by batch
@@ -59,8 +59,8 @@ an absence of BMWs. Non-BMW entries are retained.
 
 > Historical follow-up: the pending test-suite rerun in item 4 records that
 > delivery stage. It is stale as a statement of current overall validation:
-> the Gold documentation records a later first-publication check with 187 tests
-> passed. This does not retroactively change the checks recorded for that batch.
+> the current project reference records 222 passing tests. This does not
+> retroactively change the checks recorded for that batch.
 
 For each batch: qualified documents, explicit configuration, execution,
 per-race checks, mismatch documentation, and a local commit. No participant

@@ -7,7 +7,7 @@ Actual dates and sessions will be checked in the reports before activation.
 
 > Historical-status clarification: the future-tense activation check above
 > belongs to the initial inventory. The completed batches below and the current
-> separate 2023–2025 Gold supersede that pending status; the figures below
+> local Gold, including Daytona 2022 and 2023–2025, supersede that pending status; the figures below
 > retain their original two-season scope. See [the Gold documentation](gold.fr.md).
 
 ## Scope and batches

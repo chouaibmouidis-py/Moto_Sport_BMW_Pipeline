@@ -136,7 +136,12 @@ def transform_classification(connection, project_directory):
         project_directory / "sql" / "25_silver_classification.sql"
     )
     query = query_path.read_text(encoding="utf-8")
+
+    parser_path = project_directory / "sql" / "21_create_duration_parser.sql"
+    connection.execute(parser_path.read_text(encoding="utf-8"))
+
     classification = connection.sql(query)
+
     classification.create_view("silver_classification")
 
     checks = (

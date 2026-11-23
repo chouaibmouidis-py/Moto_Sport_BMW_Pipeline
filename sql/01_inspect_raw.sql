@@ -1,4 +1,4 @@
--- Explore nested Raw pit stops and convert duration components to seconds.
+-- Inspect Raw pit stops using the shared duration parser.
 
 WITH pit_stops AS (
     SELECT
@@ -11,48 +11,7 @@ WITH pit_stops AS (
         car.team AS team,
         stop.pit_number,
         stop.pit_time,
-        CASE
-            -- Reject invalid minute:second components
-            WHEN array_length(string_split(stop.pit_time, ':')) = 2
-                AND (
-                    TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) < 0
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) < 0
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) >= 60
-                )
-            THEN NULL
-
-            -- Reject invalid hour:minute:second components
-            WHEN array_length(string_split(stop.pit_time, ':')) = 3
-                AND (
-                    TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) < 0
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) < 0
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) >= 60
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 3) AS DOUBLE) < 0
-                    OR TRY_CAST(split_part(stop.pit_time, ':', 3) AS DOUBLE) >= 60
-                )
-            THEN NULL
-
-            -- Convert hours:minutes:seconds
-            WHEN array_length(string_split(stop.pit_time, ':')) = 3 THEN
-                TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) * 3600
-                + TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE) * 60
-                + TRY_CAST(split_part(stop.pit_time, ':', 3) AS DOUBLE)
-
-            -- Convert minutes:seconds
-            WHEN array_length(string_split(stop.pit_time, ':')) = 2 THEN
-                TRY_CAST(split_part(stop.pit_time, ':', 1) AS DOUBLE) * 60
-                + TRY_CAST(split_part(stop.pit_time, ':', 2) AS DOUBLE)
-
-            -- Convert standalone seconds when non-negative
-            WHEN array_length(string_split(stop.pit_time, ':')) = 1 THEN
-                CASE
-                    WHEN TRY_CAST(stop.pit_time AS DOUBLE) >= 0
-                    THEN TRY_CAST(stop.pit_time AS DOUBLE)
-                    ELSE NULL
-                END
-
-            ELSE NULL
-        END AS pit_time_in_seconds
+        parse_duration_seconds(stop.pit_time) AS pit_time_in_seconds
     FROM raw_document
     CROSS JOIN UNNEST(pit_stop_analysis) AS entries(car)
     CROSS JOIN UNNEST(car.pit_stops) AS stops(stop)

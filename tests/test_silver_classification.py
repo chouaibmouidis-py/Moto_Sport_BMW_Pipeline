@@ -12,11 +12,20 @@ class SilverClassificationTests(unittest.TestCase):
             {
                 "number": " 04 ",
                 "manufacturer": " BMW ",
+                "imsa_manufacturerid": " 74 ",
                 "vehicle": " BMW M4 GT3 EVO ",
                 "position": 48,
                 "class": " GTD ",
                 "pit_stops": "0",
                 "not_finished": True,
+                "team": " Team Test ",
+                "laps": "100",
+                "fastest_lap_number": "42",
+                "fastest_lap_kph": "219.6",
+                "elapsed_time": " 1:00:00.000 ",
+                "fastest_lap_time": " 1:30.000 ",
+                "gap_first": " +1:17.343 ",
+                "gap_previous": " 2 Laps ",
             }
         ]
         with duckdb.connect() as connection:
@@ -43,6 +52,8 @@ class SilverClassificationTests(unittest.TestCase):
             )
 
             query = query_path.read_text(encoding="utf-8")
+            parser_path = query_path.parent / "21_create_duration_parser.sql"
+            connection.execute(parser_path.read_text(encoding="utf-8"))
             rows = connection.sql(query).fetchall()
 
             self.assertEqual(
@@ -54,9 +65,26 @@ class SilverClassificationTests(unittest.TestCase):
                         "0",
                         "04",
                         "BMW",
+                        "74",
                         "BMW M4 GT3 EVO",
                         48,
                         "GTD",
+                        "Team Test",
+                        100,
+                        42,
+                        219.6,
+                        "1:00:00.000",
+                        3600.0,
+                        "1:30.000",
+                        90.0,
+                        "+1:17.343",
+                        "2 Laps",
+                        "time",
+                        77.343,
+                        None,
+                        "laps",
+                        None,
+                        2,
                         0,
                         True,
                     )
@@ -99,6 +127,8 @@ class SilverClassificationTests(unittest.TestCase):
             )
 
             query = query_path.read_text(encoding="utf-8")
+            parser_path = query_path.parent / "21_create_duration_parser.sql"
+            connection.execute(parser_path.read_text(encoding="utf-8"))
             rows = connection.sql(query).fetchall()
 
             self.assertEqual(
@@ -111,9 +141,26 @@ class SilverClassificationTests(unittest.TestCase):
                         "04",
                         None,
                         None,
+                        None,
                         48,
                         "GTD",
-                        None,
+                        None,  # team_name
+                        None,  # completed_laps
+                        None,  # fastest_lap_number
+                        None,  # fastest_lap_speed_kph
+                        None,  # total_time_raw
+                        None,  # total_time_seconds
+                        None,  # fastest_lap_time_raw
+                        None,  # fastest_lap_time_seconds
+                        None,  # gap_first_raw
+                        None,  # gap_previous_raw
+                        "missing",  # gap_first_kind
+                        None,  # gap_first_seconds
+                        None,  # gap_first_laps
+                        "missing",  # gap_previous_kind
+                        None,  # gap_previous_seconds
+                        None,  # gap_previous_laps
+                        None,  # reported_pit_stop_count
                         True,
                     )
                 ],

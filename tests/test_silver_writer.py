@@ -57,14 +57,12 @@ class SilverWriterTests(unittest.TestCase):
                     "duckdb.DuckDBPyConnection.read_parquet",
                     return_value=different_content,
                 ):
-                    self.assertRaisesRegex(
+                    with self.assertRaisesRegex(
                         ValueError,
-                        "Silver rejected: saved content differs",
-                        publish_silver,
-                        connection,
-                        converted,
-                        output_path,
-                    )
+                        "Parquet publication rejected: saved content differs",
+                    ) as raised:
+                        publish_silver(connection, converted, output_path)
+                    self.assertIn(f"path={output_path}", str(raised.exception))
 
                 objects_after = connection.sql("SHOW TABLES").fetchall()
 
@@ -121,14 +119,13 @@ class SilverWriterTests(unittest.TestCase):
                     "duckdb.DuckDBPyConnection.read_parquet",
                     return_value=different_content,
                 ):
-                    self.assertRaisesRegex(
+                    with self.assertRaisesRegex(
                         ValueError,
-                        "Silver rejected: row count mismatch",
-                        publish_silver,
-                        connection,
-                        converted,
-                        output_path,
-                    )
+                        "Parquet publication rejected: row count mismatch",
+                    ) as raised:
+                        publish_silver(connection, converted, output_path)
+                    self.assertIn(f"path={output_path}", str(raised.exception))
+                    self.assertIn("expected=2, saved=1", str(raised.exception))
 
             self.assertEqual(
                 output_path.read_bytes(),

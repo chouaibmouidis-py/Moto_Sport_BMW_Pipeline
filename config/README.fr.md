@@ -15,8 +15,8 @@ The qualified pairings are JSON + JSON and CSV + PDF. Unsupported combinations
 are rejected explicitly rather than guessed. The parser validates structure;
 normalization and business consistency belong to Silver and quality controls.
 
-The current enabled scope is 44 JSON reports for 2024–2025 and 22 CSV/PDF reports
-for 2023. Daytona 2022 remains disabled until its integration is qualified.
+The enabled scope is 44 JSON reports for 2024–2025, 22 CSV/PDF reports
+for 2023, and the qualified CSV/PDF pair for Daytona 2022: 68 reports in total.
 The previous season-specific catalog is retired. URLs, filenames and source
 context for 2023 have been migrated into this manifest.
 
@@ -42,3 +42,5 @@ selection as the active processing run.
 source inventory. `catalogs_to_explore` contains discovery portals, not inputs
 to ingest automatically. Changes to source coverage also require updating the
 remote source archive before relying on a clean cloud runner.
+The current pin contains 114 verified files, including Daytona 2022 and its
+metadata. It was renewed and restored for verification on 23 November 2026.

@@ -6,7 +6,7 @@ inventory of all championships, seasons, or schemas.
 
 > Historical-status clarification: the proposed design decisions and work order
 > below describe the November 6 assessment, not the current implementation
-> backlog. The project now has a separate 2023–2025 Gold for race entries;
+> backlog. Local Gold now covers Daytona 2022 and 2023–2025 for race entries;
 > statements about “our current file” and introducing a source manifest are
 > stale if read as current claims. The source observations and unvalidated
 > compatibility caveats remain historical evidence, not fresh portal checks.

@@ -1,54 +1,80 @@
-# Simulated personal internship assignment — BMW racing data
+# Personal internship assignment — BMW racing data
 
-This document retains the original assignment and dated milestones. For current
-coverage, including the separate 2023–2025 Gold publication, see the
-[README](../README.md) and [Gold documentation](gold.fr.md).
+Status reviewed on 23 November 2026. Public documentation is maintained in English;
+historical filenames are retained to preserve existing links.
 
-Scoping version: November 10, 2026.
-Local milestone update: November 12, 2026.
+This is an independent educational portfolio project. BMW is the fictional
+recipient of the presentation; no commission, affiliation, internship agreement
+or validation by BMW is claimed.
 
-Independent educational project. BMW is the fictional recipient of the presentation: no commission, affiliation, internship agreement or validation by BMW is claimed. The portfolio deliverable presents the implemented pipeline, its validation scenarios, architecture decisions and limitations.
+## Business objective
 
-## Business need
+Make race participation and pit-stop data accessible through a browser, with
+sources, missing information and report discrepancies visible. Keep all
+competitors in the analytical dataset so BMW entries can be compared in context.
+A reported pit-stop duration is not a direct measure of mechanics' performance
+or net time lost on track.
 
-Enable a fictional sports analytics team to find BMW entries, their drivers and their stops, with verifiable race context and data quality.
+## Delivered scope and publication status
 
-The first results must answer three questions: which BMW entries appear in the available documents; which durations and driver changes are reported; and which information is missing, unreadable or inconsistent? A stop duration is not equated with mechanics' performance or a net loss of track time.
+| Deliverable | Verified state |
+| --- | --- |
+| Common source manifest and multiformat execution | One manifest and one orchestrator for JSON classification/stops and CSV classification/PDF stops; no per-season production workflow. |
+| Local coverage | 34 IMSA WeatherTech races: Daytona 2022 and eleven races in each of 2023, 2024 and 2025. Gold contains 1,453 participations, including 140 BMW. |
+| Daytona 2022 integration | Enabled and validated end to end: 61 participants, 3 BMW and 1,762 extracted stops. |
+| Layer responsibilities | Raw retains documents; Bronze extracts fields and provenance; Silver normalizes and applies explicit corrections; Gold combines checked results and reference evidence from Silver. |
+| Local analytical publication | 45-column Gold, with versioned inputs and independent activation after validation. |
+| Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
+| Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
+| Hosted dashboard | Available with the previous publication: 1,392 participations, including 137 BMW, for 2023–2025. The local 2022 extension is not yet published there. |
+| Validation | 222 passing unit and local integration tests; complete local rebuild and remote archive/schema checks performed separately. |
 
-## Scope and progression
+The original three-report pilot and its early figures describe earlier deliveries.
+They are not the current acceptance baseline. Annual qualification reports remain
+available as dated evidence; see the [project reference](project_reference.md).
 
-- Initial delivery baseline: three official IMSA 2025 reports, Road America, Long Beach and Daytona Hour 24; all competitors remain available to put BMW entries in context.
-- Data: preserve source documents and empty fields in Bronze; represent populated fields in Silver, with the source values needed for diagnosis.
-- Extension: assess and then integrate a first source with a different structure. The long-term goal remains to study BMW car and motorcycle participations across the 2022–2026 seasons; global coverage has not yet been demonstrated and will require a verified inventory.
-- First integrated pilot: Road America Official classification, 48 participants, matched to stop reports. Batch extended and validated locally: Long Beach (27 participants) and Daytona Hour 24 (61 participants). The three classifications total 136 participations, including 13 BMW; their Silver projection remains partial and fields not projected remain in Bronze. Joins and quality summaries separate sources and their versions.
-- Storage experiment: local emulation followed by targeted validation in a test cloud, with a budget agreed before use. No cloud deployment is required to accept the first local deliverable.
+## Acceptance criteria and evidence
 
-## Deliverables
+1. **Reconstruction:** uv restores the locked environment. `run_pipeline.py`
+   selects enabled report pairs and executes Raw, Bronze, processing and Gold.
+   Cached source identity and format are verified before reuse.
+2. **Preservation:** retain textual car numbers, source IDs, file fingerprints,
+   raw duration/gap values and extraction locations where available. Missing
+   observations remain NULL rather than becoming artificial zeros.
+3. **Consistency:** reject missing/duplicate keys, stops without a matching
+   classified participant, altered inputs, changed participant populations and
+   content differences after writing. Reported-versus-observed count differences
+   remain visible and do not alone reject the source.
+4. **Corrections:** known exact-model manufacturer corrections are calculated in
+   Silver, marked `matched_override`, and carried into Gold with origin
+   `silver_override`. Raw/Bronze and reference evidence remain intact.
+5. **Publication:** verify candidate files before activation. A failed Gold build
+   retains the previous Gold reference. MotherDuck checks data and switches its
+   active run inside one transaction; share provisioning is a separate operation.
+6. **Demonstration:** consumers use the hosted dashboard without installing tools.
+   Local and hosted coverage must be stated separately until deployment succeeds.
+7. **Understanding:** explain the implemented execution chain, input/output
+   contracts, failure paths and tests. A passing suite establishes tested software
+   behavior; it does not independently establish authorship or interview readiness.
 
-1. Reproducible local pipeline with one command, source configuration and dependencies restorable with uv.
-2. Separate Silver tables for session context per document, car entries, driver entries and stops; documented relationships and grains.
-3. Quality reports and an enriched stop mart, accessible from a consistent active run.
-4. Getting-started README, data dictionary, architecture and diagnosis/recovery procedure.
-5. Business demonstration, assignment report and oral presentation covering limitations, test evidence and technical decisions.
+## Remaining delivery milestones
 
-## Acceptance criteria for the first local deliverable
+1. Review the completed changes in execution order, including their inputs,
+   outputs, reasons and tests, before starting another implementation milestone.
+2. Review the staged Git diff and create the local commit for the complete lot.
+3. Push when authorized, check CI, then run the Gold publication workflow.
+4. Verify the published run, 1,453 participants, 140 BMW and dashboard refresh.
+5. Prepare the project demonstration and interview discussion around verified
+   decisions, limitations and practical exercises.
 
-- A documented procedure allows the environment to be restored and the launcher's five steps to be run from another directory.
-- The eleven integrated stop reports produce the reference volumes: 507 car entries, 1 344 driver entries and 4 117 stops; the BMW filter returns 388 stops. The eleven classifications produce 469 participations, including 48 BMW. These numbers are references for this dataset, not universal business constants.
-- The count summary is separate for each classification and version: Road America, 2 mismatches out of 48 (4,17 %); Long Beach, no `count_mismatch` out of 27; Daytona, 14 mismatches out of 61 (22,95 %). The Long Beach case without details remains flagged separately; this indicator does not measure all anomalies.
-- Textual numbers, provenance and version are preserved; joins do not unintentionally add or remove stops.
-- Conversions, keys, parent/child links and cumulative totals have tested valid and invalid scenarios. Absence and conversion failure are distinguished.
-- The twelve files of a run are prepared and checked before activation, including the classification, its comparison with stops and the per-participant summary. This summary rejects missing or duplicate keys and lost or added participants. A simulated failure leaves the old reference usable. Readers select a single run per read.
-- The test suite passes; the startup procedure and quality and mart readers are rerun as described in the README.
-- Limitations are explicit: still few sources, dates without a confirmed timezone, conditions for sporting comparisons, and no validation of concurrency or recovery after a machine power loss.
+## Later development
 
-## Milestones
+A dbt-duckdb pilot, pytest fixture consolidation and streaming integrity checks
+are planned separately and are not implemented milestones. Wider car/motorcycle
+coverage for 2022–2026 remains a research objective, not delivered coverage.
+Additional sources require qualification before activation.
 
-1. Stabilize the reference reader, documentation and existing local workflow.
-2. Assess a new source and document its differences before adapting the pipeline.
-3. Consolidate business results and present the demonstration.
-4. Conduct a code review and a graded practical assessment of the fundamentals required for independent work.
-
-Milestones follow source qualification, implementation, validation and technical
-review. Acceptance is assessed against the deliverables and data-quality
-criteria defined in this brief.
+Concurrency, recovery after hardware failure, automatic remote revision detection
+and a shared detailed-stop table are not established by this delivery. Machine
+learning is not an acceptance criterion; future consumers must assess temporal
+leakage and sporting comparability.

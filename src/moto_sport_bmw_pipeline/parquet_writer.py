@@ -40,7 +40,10 @@ def publish_parquet(
         saved_count = saved_silver.count("*").fetchone()[0]
 
         if saved_count != expected_count:
-            raise ValueError("Silver rejected: row count mismatch")
+            raise ValueError(
+                f"Parquet publication rejected: row count mismatch "
+                f"(path={silver_output_path}, expected={expected_count}, saved={saved_count})"
+            )
 
         missing_rows = connection.sql(f"""
             SELECT * FROM {quoted_expected_view}
@@ -50,7 +53,8 @@ def publish_parquet(
 
         if missing_rows:
             raise ValueError(
-                f"Silver rejected: saved content differs ({silver_output_path})"
+                f"Parquet publication rejected: saved content differs "
+                f"(path={silver_output_path})"
             )
 
         silver_temporary_path.replace(silver_output_path)
