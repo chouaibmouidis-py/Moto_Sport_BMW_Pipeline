@@ -107,12 +107,13 @@ the active Gold separately. No refactor deployment or remote refresh is implicit
 
 ## Verification of this refactor
 
-The latest suite has 222 passing tests. Scenarios cover JSON-only, CSV/PDF-only
+The latest suite has 227 passing tests. Scenarios cover JSON-only, CSV/PDF-only
 and mixed runs, report-write failure, wrong Gold selection, changed inputs,
 logging context, additive migration and archive pinning on success/failure.
 A complete local rebuild using the 68 enabled reports produced 1,453 participants
 and 140 BMW entries across 45 columns (2022: 61; 2023: 455; 2024: 468; 2025: 469).
 The active local Gold includes Daytona 2022. The 114-file archive was renewed and
 restored for verification; MotherDuck history received 16 additional columns.
-Its active publication and public view remain on the previous 1,392-participant
-dataset until the new publication workflow succeeds.
+The maintainer subsequently confirmed publication of the extended 1,453-participant
+scope on the dashboard. Case-handling and rollback-diagnostic fixes reviewed later
+are a separate maintenance lot; they are not marked remotely deployed by this check.

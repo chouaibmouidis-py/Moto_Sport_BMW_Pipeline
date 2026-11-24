@@ -228,7 +228,10 @@ def main():
             connection.execute("COMMIT")
 
         except Exception:
-            connection.execute("ROLLBACK")
+            try:
+                connection.execute("ROLLBACK")
+            except Exception:
+                logger.exception("Rollback failed; preserving the original transaction error. Transaction outcome must be verified.")
             raise
 
     logger.info("Source archive verified: %s files", len(source_files))

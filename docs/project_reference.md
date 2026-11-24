@@ -1,6 +1,6 @@
 # Detailed project reference
 
-Current implementation and delivery status, reviewed on 23 November 2026.
+Current implementation and delivery status, reviewed on 24 November 2026.
 The [assignment](mission_stage_personnel.fr.md) defines the business objective;
 this document describes the implemented pipeline. Annual qualification reports
 retain their original measurements and dates rather than defining current runtime.
@@ -21,11 +21,12 @@ Gold currently publishes participation summaries, not a common table of all
 individual stops. These volumes qualify the selected documents, not every race
 or every BMW activity worldwide.
 
-The [hosted dashboard](https://bmw-imsa-analytics.streamlit.app/) still reads the
-previous 2023–2025 publication: 1,392 participations and 137 BMW. The remote
-archive now contains 114 verified files. MotherDuck history has the expanded
-schema, but its active run and public projection were preserved during migration.
-The new Gold awaits code push, successful CI and publication workflow execution.
+The [hosted dashboard](https://bmw-imsa-analytics.streamlit.app/) includes the
+Daytona 2022 extension, confirmed by the maintainer after publication. The remote
+archive contains 114 verified files. The additive migration preserved the previous
+publication during preparation; the later data publication exposed the expanded
+schema. Subsequent case-handling and rollback-diagnostic fixes belong to a separate
+maintenance lot, whose local tests do not establish remote deployment.
 
 ## Execution order
 
@@ -161,7 +162,20 @@ exceptions propagate to the caller. See [architecture and logs](architecture_et_
 
 ## Validation and limits
 
-The latest local suite has 222 passing tests. Synthetic and temporary-file tests
+Schema migration currently materializes historical and visible rows in Python
+with fetchall and Counter. This preserves occurrence-sensitive comparisons but
+scales client memory and data transfer with the history size. No large-history
+benchmark is established. An engine-side exact-comparison milestone is recorded
+in [Gold operations](gold.fr.md#migration-memory-limit-and-planned-optimization);
+it is planned, not deployed, and must preserve the current content contract.
+
+Source archival also reads and hashes files once for validation and again for
+upload preparation. These two reads can observe different file versions. A
+[single-read validation milestone](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation)
+will validate and archive the same bytes, removing redundant work. Holding all
+file contents in memory is a separate limitation; this change is not yet implemented.
+
+The latest local suite has 227 passing tests. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,
 publication failure, context restoration, additive schema migration and archive
 pinning. They establish only the behaviors asserted by those scenarios.
@@ -182,9 +196,10 @@ is assigned when the source does not establish it.
 
 ## Remaining work and historical evidence
 
-The immediate delivery path is review, local commit, authorized push, CI,
-publication workflow and dashboard verification. The implementation review must
-explain the execution chain and contracts before another development milestone.
+The recent implementation review is complete. Close its maintenance lot with a
+final diff and test check, local commit, authorized push and CI. Data publication
+is a separate workflow when rebuilding/publishing is required. The next development
+milestone follows the documented test-first workflow.
 A dbt-duckdb pilot, pytest fixture refactor and streaming hashes remain planned.
 
 Historical source qualifications:

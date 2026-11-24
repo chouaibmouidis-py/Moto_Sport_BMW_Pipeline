@@ -36,11 +36,12 @@ file is necessary. No local `data/` directory is required by this dashboard.
 
 ## Publication and refresh
 
-Status on 23 November 2026: the remote history schema and 114-file archive are
-prepared for the local 1,453-participant Gold. The active public view still serves
-the previous 1,392 participants. A push runs CI; publish the new dataset through
-the separate Gold workflow, then verify its run ID and dashboard counts. Schema
-migration and archive renewal do not themselves switch the public run.
+Status reviewed on 24 November 2026: the maintainer confirmed the published
+Daytona 2022 extension on the dashboard (1,453 participants, including 140 BMW).
+The source archive contains 114 verified files. A push runs CI; later transformed
+data must be published through the separate Gold workflow and its run ID/counts
+verified. Schema migration and archive renewal do not themselves switch the public
+run. Local tests of subsequent maintenance fixes are not proof of their deployment.
 
 GitHub Actions restores the pinned source archive, executes the Airflow DAG,
 and publishes a validated Gold run to MotherDuck. The dashboard reads the active

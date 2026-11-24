@@ -1,16 +1,17 @@
 -- Resolve unique manufacturer names and flag ambiguous or unnamed identifiers.
--- Input values must be cleaned; absent identifiers are handled by the caller.
+-- Silver values are cleaned; case-only name variants represent one name.
+-- MIN retains one deterministic source spelling, without merging different names.
 
 SELECT
     manufacturer_source_id,
-    COUNT(DISTINCT manufacturer) AS manufacturer_name_count,
+    COUNT(DISTINCT lower(manufacturer)) AS manufacturer_name_count,
     CASE
-        WHEN COUNT(DISTINCT manufacturer) = 0 THEN 'unmapped'
-        WHEN COUNT(DISTINCT manufacturer) = 1 THEN 'matched'
+        WHEN COUNT(DISTINCT lower(manufacturer)) = 0 THEN 'unmapped'
+        WHEN COUNT(DISTINCT lower(manufacturer)) = 1 THEN 'matched'
         ELSE 'ambiguous'
     END AS manufacturer_mapping_status,
     CASE
-        WHEN COUNT(DISTINCT manufacturer) = 1 THEN MIN(manufacturer)
+        WHEN COUNT(DISTINCT lower(manufacturer)) = 1 THEN MIN(manufacturer)
         ELSE NULL
     END AS manufacturer
 FROM manufacturer_reference_input

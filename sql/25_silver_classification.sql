@@ -42,7 +42,7 @@ qualified AS (
             WHEN gap_first_raw = '-' THEN 'marker'
             WHEN starts_with(gap_first_raw, '+')
                 AND gap_first_parsed_seconds IS NOT NULL THEN 'time'
-            WHEN regexp_full_match(gap_first_raw, '[0-9]+ Laps?') THEN 'laps'
+            WHEN regexp_full_match(lower(gap_first_raw), '[0-9]+ laps?') THEN 'laps'
             ELSE 'unrecognized'
         END AS gap_first_kind,
         CASE
@@ -50,7 +50,7 @@ qualified AS (
             WHEN gap_previous_raw = '-' THEN 'marker'
             WHEN starts_with(gap_previous_raw, '+')
                 AND gap_previous_parsed_seconds IS NOT NULL THEN 'time'
-            WHEN regexp_full_match(gap_previous_raw, '[0-9]+ Laps?') THEN 'laps'
+            WHEN regexp_full_match(lower(gap_previous_raw), '[0-9]+ laps?') THEN 'laps'
             ELSE 'unrecognized'
         END AS gap_previous_kind
     FROM converted

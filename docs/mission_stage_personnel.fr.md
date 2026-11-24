@@ -1,6 +1,6 @@
 # Personal internship assignment — BMW racing data
 
-Status reviewed on 23 November 2026. Public documentation is maintained in English;
+Status reviewed on 24 November 2026. Public documentation is maintained in English;
 historical filenames are retained to preserve existing links.
 
 This is an independent educational portfolio project. BMW is the fictional
@@ -26,8 +26,8 @@ or net time lost on track.
 | Local analytical publication | 45-column Gold, with versioned inputs and independent activation after validation. |
 | Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
-| Hosted dashboard | Available with the previous publication: 1,392 participations, including 137 BMW, for 2023–2025. The local 2022 extension is not yet published there. |
-| Validation | 222 passing unit and local integration tests; complete local rebuild and remote archive/schema checks performed separately. |
+| Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
+| Validation | 227 passing unit and local integration tests; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain
@@ -59,11 +59,14 @@ available as dated evidence; see the [project reference](project_reference.md).
 
 ## Remaining delivery milestones
 
-1. Review the completed changes in execution order, including their inputs,
-   outputs, reasons and tests, before starting another implementation milestone.
-2. Review the staged Git diff and create the local commit for the complete lot.
-3. Push when authorized, check CI, then run the Gold publication workflow.
-4. Verify the published run, 1,453 participants, 140 BMW and dashboard refresh.
+The recent-change review and the Daytona 2022 dashboard publication are complete.
+The remaining closure work concerns the later maintenance lot:
+
+1. Review its final Git diff and rerun the tests before committing.
+2. Commit and push when authorized, then inspect CI.
+3. Rebuild/publish and verify the dashboard separately when deploying changed data
+   transformations; a push alone does not execute that publication workflow.
+4. Resume the planned development milestones with tests before implementation.
 5. Prepare the project demonstration and interview discussion around verified
    decisions, limitations and practical exercises.
 
@@ -73,6 +76,18 @@ A dbt-duckdb pilot, pytest fixture consolidation and streaming integrity checks
 are planned separately and are not implemented milestones. Wider car/motorcycle
 coverage for 2022–2026 remains a research objective, not delivered coverage.
 Additional sources require qualification before activation.
+
+An additional scalability milestone replaces migration-time Python fetchall/Counter
+comparisons with exact engine-side checks and scalar results. Tests precede the
+implementation; memory, transfers, temporary storage and execution cost must be
+measured without weakening historical-content preservation. See the documented
+[current memory limitation](gold.fr.md#migration-memory-limit-and-planned-optimization).
+
+Source archival has a related single-read milestone: validate and archive the
+same source and metadata bytes instead of reading the source twice. This addresses
+redundant I/O/hash work and the possibility of a file changing between validation
+and archival. Tests precede implementation; bounded archive-memory handling remains
+a distinct goal. See the [archive limitation](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
 
 Concurrency, recovery after hardware failure, automatic remote revision detection
 and a shared detailed-stop table are not established by this delivery. Machine

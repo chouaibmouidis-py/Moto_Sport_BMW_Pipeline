@@ -78,7 +78,10 @@ def migrate_schema(connection, mart_path: Path, *, apply=False):
             raise ValueError('Gold schema migration rejected: visible content changed')
         connection.execute('COMMIT')
     except Exception:
-        connection.execute('ROLLBACK')
+        try:
+            connection.execute('ROLLBACK')
+        except Exception:
+            logger.exception('Rollback failed; preserving the original transaction error. Transaction outcome must be verified.')
         raise
     logger.info('Gold history migration committed; active run and public columns preserved')
     return missing

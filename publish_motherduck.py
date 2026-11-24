@@ -114,7 +114,10 @@ def publish_gold(connection, mart_path, publication_run_id):
         connection.execute("COMMIT")
 
     except Exception:
-        connection.execute("ROLLBACK")
+        try:
+            connection.execute("ROLLBACK")
+        except Exception:
+            logger.exception("Rollback failed; preserving the original transaction error. Transaction outcome must be verified.")
         raise
 
     logger.info("Gold committed: publication_run_id=%s, participant_count=%s",

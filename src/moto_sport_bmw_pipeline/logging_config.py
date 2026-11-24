@@ -73,7 +73,7 @@ def log_context(run_id=None, *, stage=None, source_id=None):
                 tokens.append((variable, token))
         yield
     finally:
-        for variable, token in reversed(tokens):
+        for variable, token in tokens:
             variable.reset(token)
 
 

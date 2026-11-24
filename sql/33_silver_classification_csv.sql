@@ -38,7 +38,7 @@ qualified AS (
             WHEN gap_first_raw = '-' THEN 'marker'
             WHEN starts_with(gap_first_raw, '+')
                 AND gap_first_parsed_seconds IS NOT NULL THEN 'time'
-            WHEN regexp_full_match(gap_first_raw, '[0-9]+ Laps?') THEN 'laps'
+            WHEN regexp_full_match(lower(gap_first_raw), '[0-9]+ laps?') THEN 'laps'
             ELSE 'unrecognized'
         END AS gap_first_kind,
         CASE
@@ -46,7 +46,7 @@ qualified AS (
             WHEN gap_previous_raw = '-' THEN 'marker'
             WHEN starts_with(gap_previous_raw, '+')
                 AND gap_previous_parsed_seconds IS NOT NULL THEN 'time'
-            WHEN regexp_full_match(gap_previous_raw, '[0-9]+ Laps?') THEN 'laps'
+            WHEN regexp_full_match(lower(gap_previous_raw), '[0-9]+ laps?') THEN 'laps'
             ELSE 'unrecognized'
         END AS gap_previous_kind
     FROM converted
@@ -78,12 +78,12 @@ SELECT
     CASE WHEN gap_previous_kind = 'laps' THEN TRY_CAST(split_part(gap_previous_raw, ' ', 1) AS INTEGER) ELSE NULL END AS gap_previous_laps,
     -- Targeted model corrections; never infer a constructor from a partial name.
     CASE
-        WHEN car_model = 'Mercedes-AMG GT3' THEN 'Mercedes'
-        WHEN car_model = 'Duqueine D08' THEN 'Duqueine'
+        WHEN lower(car_model) = 'mercedes-amg gt3' THEN 'Mercedes'
+        WHEN lower(car_model) = 'duqueine d08' THEN 'Duqueine'
         ELSE NULL
     END AS manufacturer,
     CASE
-        WHEN car_model IN ('Mercedes-AMG GT3', 'Duqueine D08') THEN 'matched_override'
+        WHEN lower(car_model) IN ('mercedes-amg gt3', 'duqueine d08') THEN 'matched_override'
         ELSE NULL
     END AS manufacturer_mapping_status
 FROM qualified;

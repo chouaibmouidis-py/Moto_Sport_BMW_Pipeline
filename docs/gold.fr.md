@@ -12,7 +12,9 @@ The 2023–2025 participant records were compared in both directions with EXCEPT
 against the previous active Gold, excluding the three intentionally corrected
 manufacturer fields; no other differences were found in their shared columns.
 The pinned archive was subsequently renewed to 114 files and restored for verification.
-The hosted participant dataset still awaits publication of the new Gold run.
+The maintainer subsequently confirmed the Daytona 2022 extension on the hosted
+dashboard. The later case-handling and rollback-diagnostic fixes remain a separate
+maintenance delivery; local tests alone do not establish their remote deployment.
 Sources are stacked using
 UNION ALL, without silent deduplication. Missing or repeated keys
 (`source_id`, `bronze_sha256`, `car_number`) block the result.
@@ -45,6 +47,74 @@ public view projection are checked and preserved transactionally. The next norma
 publication exposes the expanded schema together with its new run. Publication
 compares stored rows in candidate column order because EXCEPT ALL is positional,
 whereas INSERT BY NAME and ALTER TABLE may leave a different physical order.
+
+If an operation fails, publication, schema migration and source archival attempt
+ROLLBACK. If that attempt also fails, its exception is logged separately and the
+original operation exception is re-raised. A failed rollback is not confirmation
+that the remote transaction was undone. After connection loss, particularly around
+COMMIT, verify the remote history, active reference or archive inventory after
+reconnection before deciding how to recover. Regression tests simulate the double
+failure locally; they do not simulate an actual MotherDuck network outage.
+
+### Migration memory limit and planned optimization
+
+The current schema migration fetches historical rows and the public view into
+Python before and after the change, then compares row multiplicities with Counter.
+It checks content rather than counts alone, but retains complete result sets and
+Python counting structures. Memory usage grows with row count and width, and
+remote reads transfer the compared data to the client. The successful migration
+on the qualified dataset is not a large-history memory or performance benchmark.
+A larger history can exhaust client memory; an exception handler does not provide
+recovery from process termination or an operating-system kill.
+
+The planned optimization moves the exact comparison into the database engine:
+capture the previous column projection, compare before/after with EXCEPT ALL in
+both directions, and return only difference counts to Python. Engine placement,
+temporary storage, memory limits, transfer volume and runtime costs must be measured
+for the actual DuckDB/MotherDuck execution environment. This is not implemented.
+
+COUNT alone does not establish unchanged content. COUNT plus an aggregated hash
+is a compact fingerprint, not an exact multiset equality check; XOR also cancels
+pairs of identical row hashes. These alternatives must not silently replace the
+existing preservation contract. The new implementation must start with regression
+tests for changed content at equal counts, duplicate multiplicities, NULL values,
+row order, and rollback, followed by a representative memory/cost benchmark.
+
+### Archive repeated reads and planned single-read validation
+
+The current archiver reads each source file to verify its expected SHA-256, then
+reads it again when preparing the content, size and hash stored in the archive.
+The second buffer is not compared again with the originally expected source hash.
+A file changed between the two reads could therefore be archived as a different
+version from the one initially validated. Remote read-back checks verify what
+was uploaded, not whether this second version matches the original expectation.
+
+The planned change reads each source once and uses the same bytes for expected-hash
+validation, size calculation and archival. Metadata-backed validation must use
+the same metadata bytes retained for archival as well. This removes a redundant
+full-file read and hash computation without relying on operating-system caching,
+and ties validation to the content actually submitted. It does not by itself
+eliminate the current retention of all archive contents in client memory; bounded
+file-by-file handling belongs to the related memory/streaming milestone.
+
+Tests must precede implementation: one source-content read, rejection of an
+incorrect expected hash, identical validated/archived bytes, both manifest-hash
+and metadata-hash paths, and preservation of the archive pin on validation failure.
+Measure representative I/O, CPU, peak memory and runtime before claiming savings.
+This optimization is recorded but not implemented.
+
+The related bounded-memory archive milestone processes one file at a time inside
+the archive transaction: read and validate, insert, verify the saved bytes, then
+release the content before handling the next file. Only lightweight inventory
+records are retained across files. The full inventory is verified before COMMIT;
+the local pin changes afterward. This bounds accumulated Python file payloads by
+the largest file in flight rather than their total size; it does not cap total
+process memory or remove DuckDB/driver buffers. Chunked handling of an individually
+oversized BLOB requires separate interface validation. Tests must check incremental
+processing and preservation of the previous pin on a later-file failure, with a
+representative peak-memory measurement. The current dataset has not established
+a measured universal 1 GB memory bound. This is preventive planned work, not an
+implemented streaming guarantee.
 
 ```text
 data/gold/current.json
@@ -87,6 +157,9 @@ column and a laps column. Time gaps require a leading `+`; the shared duration
 parser supports seconds, minutes/seconds and hours/minutes/seconds. Lap gaps
 remain integers and are never converted to seconds. Missing, marker and unknown
 values do not become zero. Unrecognized text remains visible in Gold.
+Lap-label recognition ignores letter case while retaining raw text. The
+[case contract](data_case_contract.md) also covers model corrections, manufacturer
+reference ambiguity and session temperature validation.
 
 ## Meaning of missing fields and manufacturers
 
@@ -116,7 +189,7 @@ race or as a prediction variable free of temporal leakage risk.
 
 ## Historical checks for the first 2023–2025 publication
 
-The figures below describe that first publication, not the current 222-test
+The figures below describe that first publication, not the current 227-test
 baseline or the later manufacturer corrections. Current local coverage and
 remote preparation status are recorded at the start of this document.
 

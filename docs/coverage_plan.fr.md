@@ -11,7 +11,7 @@ below have been inventoried or tested, or that BMW is present at every round.
 
 > Status on 23 November 2026: local Gold covers Daytona 2022 and the eleven
 > qualified races in each of 2023–2025: 1,453 participations, including 140 BMW.
-> The hosted publication remains at 1,392 participations until deployment.
+> The maintainer subsequently confirmed this extended scope on the hosted dashboard.
 > This is not a shared table of every detailed stop or worldwide coverage.
 > See [the Gold documentation](gold.fr.md).
 
@@ -19,7 +19,7 @@ below have been inventoried or tested, or that BMW is present at every round.
 
 | Discipline | Family | Starting source | Status |
 | --- | --- | --- | --- |
-| Car racing | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Daytona 2022 and eleven races in each of 2023–2025 integrated in local Gold; new remote publication pending. Remaining 2022 races and 2026 require qualification. |
+| Car racing | IMSA WeatherTech | https://imsa.results.alkamelcloud.com/ | Daytona 2022 and eleven races in each of 2023–2025 integrated in local Gold; extended dashboard publication confirmed by the maintainer. Remaining 2022 races and 2026 require qualification. |
 | Car racing | IMSA Michelin Pilot Challenge, GT4 | Same IMSA portal | Season archives and participation to inventory |
 | Car racing | FIA WEC | https://fiawec.alkamelsystems.com/ | Portal identified; current archive access to resolve |
 | Car racing | GT World Challenge Europe, Sprint and Endurance | https://www.gt-world-challenge-europe.com/results | Public results identified; collection and schemas to test |

@@ -22,6 +22,10 @@ class SilverClassificationCsvTests(unittest.TestCase):
                 FROM (VALUES
                     ('15', ' Mercedes-AMG GT3 ', '7643'),
                     ('13', 'Duqueine D08', '7665'),
+                    ('16', 'MERCEDES-AMG GT3', '7643'),
+                    ('17', 'mercedes-amg gt3', '7643'),
+                    ('18', 'DUQUEINE D08', '7665'),
+                    ('19', 'duqueine d08', '7665'),
                     ('24', 'Unknown GT3', '9999')
                 ) AS t(NUMBER, VEHICLE, IMSA_ManufacturerId)
             """)
@@ -31,11 +35,16 @@ class SilverClassificationCsvTests(unittest.TestCase):
             ).fetchall(), [
                 ('15', '7643', 'Mercedes', 'matched_override'),
                 ('13', '7665', 'Duqueine', 'matched_override'),
+                ('16', '7643', 'Mercedes', 'matched_override'),
+                ('17', '7643', 'Mercedes', 'matched_override'),
+                ('18', '7665', 'Duqueine', 'matched_override'),
+                ('19', '7665', 'Duqueine', 'matched_override'),
                 ('24', '9999', None, None),
             ])
             self.assertEqual(connection.sql(
                 "SELECT VEHICLE FROM bronze_classification_csv WHERE NUMBER = '15'"
             ).fetchone()[0], ' Mercedes-AMG GT3 ')
+            self.assertEqual(result.filter("car_number = '16'").project('car_model').fetchone()[0], 'MERCEDES-AMG GT3')
 
     def test_normalizes_fields_and_preserves_car_number(self):
         with duckdb.connect() as connection:

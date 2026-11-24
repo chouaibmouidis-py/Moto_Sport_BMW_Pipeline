@@ -48,8 +48,10 @@ was checked with EXCEPT ALL in both directions.
 Both 2022 sources are enabled and marked `tested_locally`. The remote 114-file
 archive includes their reports and metadata, and restoration was verified in a
 temporary directory. MotherDuck history has received the 16 additional sporting
-columns. Its active publication and public view remain unchanged: the hosted
-2022 extension is pending code push, CI and Gold publication workflow execution.
+columns. The migration preserved the previous publication during preparation.
+The maintainer subsequently confirmed the hosted Daytona 2022 extension after
+publication; later maintenance changes require their own delivery checks.
 
-The latest complete local suite has 222 passing tests. No common detailed-stop
-Gold table, remaining 2022 races or remote 2022 publication is claimed here.
+The qualification baseline had 222 passing tests; the later review maintenance
+lot has 227. No common detailed-stop Gold table or remaining 2022-race coverage
+is claimed here.

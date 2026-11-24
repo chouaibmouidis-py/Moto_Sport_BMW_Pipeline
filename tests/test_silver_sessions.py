@@ -9,6 +9,24 @@ import duckdb
 
 
 class SilverSessionsTests(unittest.TestCase):
+    def test_celsius_case_does_not_change_values_or_quality_statuses(self):
+        query = Path(__file__).resolve().parent.parent / 'sql/16_silver_sessions.sql'
+        cases = [('17.72 ºC', 17.72, 'valid'), ('17.72 ºc', 17.72, 'valid'),
+                 ('17.72 ºF', None, 'invalid'), ('17.72 ºf', None, 'invalid')]
+        with duckdb.connect() as connection:
+            connection.execute('CREATE TEMP TABLE bronze_document (source_id VARCHAR, bronze_sha256 VARCHAR, session JSON)')
+            for raw, expected, status in cases:
+                with self.subTest(raw=raw):
+                    connection.execute('DELETE FROM bronze_document')
+                    session = {'weather': {'air_temperature': raw, 'track_temperature': raw}}
+                    connection.execute('INSERT INTO bronze_document VALUES (?, ?, ?)',
+                                       ['source', 'hash', json.dumps(session)])
+                    result = connection.sql(query.read_text()).project(
+                        'air_temperature_raw, air_temperature_celsius, air_temperature_status, '
+                        'track_temperature_raw, track_temperature_celsius, track_temperature_status'
+                    ).fetchone()
+                    self.assertEqual(result, (raw, expected, status, raw, expected, status))
+
     def test_converts_dates_and_temperatures(self):
         session = {
             "session_date": "25/01/2025 01:40",

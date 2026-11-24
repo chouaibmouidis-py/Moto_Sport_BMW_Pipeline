@@ -36,8 +36,8 @@ The DAG restores the pinned 114-file source archive, rebuilds both source-format
 paths and publishes Gold to MotherDuck after validation. The repository secret
 `MOTHERDUCK_TOKEN` is supplied through the environment. Concurrent executions of
 this workflow are serialized, and Airflow logs are retained for seven days even
-after failures. The first manual remote execution succeeded; the first weekly
-trigger remains to be observed.
+after failures. Manual publication has succeeded. Check actual scheduled runs in
+GitHub Actions; the configured schedule alone does not establish their outcome.
 
 The [live dashboard](https://bmw-imsa-analytics.streamlit.app/) reads the active
 Gold share with a separate account. See the [hosting guide](dashboard_hosting.md).
@@ -46,8 +46,8 @@ The seven tasks are manifest validation, archive restoration, Raw, Bronze,
 processing, Gold and MotherDuck publication. A push starts CI, not this workflow.
 Source archival, additive history migration and share provisioning are separate
 maintenance operations; `airflow db migrate` only initializes Airflow metadata.
-On 23 November 2026 the archive and remote history schema were prepared for
-Daytona 2022, but the new 1,453-participant Gold had not been deployed. After the
-code and updated archive pin are pushed, verify CI and dispatch this workflow,
-then check the published run and dashboard. No new workflow execution is claimed
-by these local changes.
+The archive and remote history schema were prepared on 23 November 2026, and the
+maintainer subsequently confirmed Daytona 2022 on the hosted dashboard. For the
+later maintenance changes, verify CI after push, then dispatch publication when
+a rebuild is required and check the published run/dashboard separately. Local
+review and test execution do not dispatch this workflow.

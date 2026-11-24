@@ -2,7 +2,7 @@
 
 ### [Explore the live dashboard →](https://bmw-imsa-analytics.streamlit.app/)
 
-Compare BMW pit-stop records across **33 IMSA races, 2023–2025**. Filter by
+Compare BMW pit-stop records across **34 IMSA races, Daytona 2022 and 2023–2025**. Filter by
 season, event and class; inspect missing observations, count discrepancies and
 source provenance. **Open in your browser — no installation required.**
 
@@ -17,14 +17,16 @@ independently of BMW and IMSA.
 
 | Season | Source formats | Race entries | BMW entries |
 | --- | --- | ---: | ---: |
+| 2022 — Daytona | Classification CSV and pit-stop PDF | 61 | 3 |
 | 2023 | Classification CSV and pit-stop PDF | 455 | 51 |
 | 2024 | Classification and pit-stop JSON | 468 | 38 |
 | 2025 | Classification and pit-stop JSON | 469 | 48 |
-| **Total** | **33 races** | **1,392** | **137** |
+| **Total** | **34 races** | **1,453** | **140** |
 
-The common Gold participant table contains **29 columns**, including session
+The common Gold participant table contains **45 columns**, including session
 context, stop statistics, source provenance and quality statuses. The JSON
-workflow covers 8,307 detailed stops; the 2023 PDF path covers 3,953.
+workflow covers 8,307 detailed stops; the CSV/PDF path covers 3,953 in 2023
+and 1,762 in Daytona 2022.
 
 ## Locally validated coverage
 
@@ -36,12 +38,29 @@ The previous 1,392 participant records are preserved, apart from the documented
 targeted manufacturer corrections. Exact model corrections are computed in
 Silver and retained in Gold with `matched_override` / `silver_override` statuses.
 
-These changes are **not deployed to the hosted dashboard yet**. The source archive
-has been renewed to 114 files, including the two 2022 reports and their metadata,
-and the MotherDuck history schema has received the 16 additional columns.
-The existing public view and active publication remain unchanged. After the code
-and archive reference are pushed and CI passes, run the publication workflow and
-verify the dashboard. Local activation does not publish a new remote Gold run.
+The Daytona 2022 extension has been published, with its dashboard operation
+confirmed by the maintainer. The source archive contains 114 verified files and
+MotherDuck history has received the 16 additional columns. The subsequent
+case-handling and rollback-diagnostic changes are a separate maintenance lot:
+local test results do not by themselves establish their remote deployment.
+
+## Delivered milestones
+
+| Milestone | Result and evidence |
+| --- | --- |
+| Multiformat integration | One manifest and orchestrator for 68 enabled reports: JSON/JSON and CSV/PDF pairs across 34 races. |
+| Layer boundaries | Bronze extracts source data; Silver normalizes and applies explicit corrections; Gold consumes checked Silver evidence and marts rather than re-extracting Bronze. |
+| Sporting data preservation | Gold expanded from 29 to 45 columns, retaining team, laps, fastest-lap metrics, raw/converted durations and separately typed time/lap gaps. |
+| Daytona 2022 | 61 participants, 3 BMW and 1,762 extracted stops integrated; previous participant records compared in both directions, excluding intentional manufacturer corrections. |
+| Traceability and publication | Versioned inputs, SHA-256 checks, verified Parquet writes and independent Gold activation. Remote publication validates content before switching the active run in a transaction. |
+| Remote reconstruction and access | 114-file source archive renewed and restored for verification; additive history migration completed; hosted dashboard uses a separate read-only identity. |
+| Review maintenance — locally validated | Case-independent coherence rules, contextual logs, and preservation of the original exception if rollback also fails. These later fixes are distinct from the already published data extension. |
+| Regression coverage | Latest full local run on 24 November 2026: **227 passing tests**, including mutation, publication failure, migration and archive scenarios. |
+
+Tests are launched explicitly or by CI; running the pipeline alone does not run
+the `tests/` suite. Data validation inside production modules still executes on
+every applicable pipeline run. New development follows a test-first workflow:
+define the contract, observe the intended failing test, implement, then refactor.
 
 ## Data flow
 
@@ -54,14 +73,15 @@ Both participant-mart paths + manufacturer evidence ─────┘
     ↓
 Local 2022–2025 Gold participants + provenance snapshots
     ↓
-MotherDuck publication → hosted Streamlit dashboard (extension pending deployment)
+MotherDuck publication → hosted Streamlit dashboard
 ```
 
 GitHub Actions restores the pinned source and metadata archive
 from MotherDuck and executes the manifest-driven Airflow DAG. Validated Gold data is
 published transactionally. The workflow is scheduled for Mondays at **23:59,
 Africa/Casablanca**, and can also be triggered manually. The remote path has
-completed successfully; the first scheduled execution remains to be observed.
+completed successfully. The schedule is configured; a scheduled-run outcome
+should be checked in GitHub Actions rather than inferred from a manual run.
 
 Controls cover source integrity, conversion, keys, relationships and participant
 preservation. Each output is written to a temporary Parquet and checked after
@@ -84,12 +104,17 @@ uv run --locked python -m unittest discover -s tests -v
 uv run --locked python run_pipeline.py
 ```
 
-Read results from the active main run:
+Optional diagnostics for the legacy JSON main-run reference:
 
 ```bash
 uv run --locked python inspect_marts.py
 uv run --locked python inspect_quality.py
 ```
+
+These readers follow `data/current.json`, which the shared multiformat path does
+not activate. For current common results, use the dashboard or read
+`data/gold/current.json` and the selected Gold Parquet as described in the
+[execution reference](docs/project_reference.md#responsibilities-and-active-paths).
 
 Enable detailed tables and retain execution logs:
 
@@ -177,6 +202,7 @@ and tables in an update use the same downloaded Gold snapshot.
 | Commands, output schemas, reconciliation rules and failure handling | [Detailed project reference](docs/project_reference.md) |
 | Gold inputs, publication and limitations | [Gold guide](docs/gold.fr.md) |
 | Module organization and logging | [Architecture guide](docs/architecture_et_logs.fr.md) |
+| Case-independent interpretation of source labels | [Case contract](docs/data_case_contract.md) |
 | Configuring source reports | [Configuration guide](config/README.fr.md) |
 | Qualified sources and remaining coverage | [Source inventory](docs/source_inventory.fr.md) and [coverage plan](docs/coverage_plan.fr.md) |
 | Automated checks and manual source smoke check | [CI guide](docs/ci.fr.md) |
@@ -187,22 +213,45 @@ to preserve previously shared links.
 
 ## Validation and boundaries
 
-The automated suite covers unit and local integration scenarios, including
-publication failures and reconstruction from copied inputs.
+| Current limitation | Implication |
+| --- | --- |
+| Qualified report coverage | The dataset covers the selected IMSA reports, not all of 2022, other championships or worldwide BMW activity. Gold is a participation table, not a common publication of every detailed stop. |
+| Source accuracy and interpretation | Hashes establish byte identity, not sporting truth. Missing observations remain NULL; source count discrepancies remain visible. Clock-derived durations assume a stop under 24 hours. |
+| Historical manufacturer evidence | Some earlier-season name resolution uses later reports. Assess temporal leakage before predictive or pre-race use; explicit model corrections retain their status and provenance. |
+| Migration client memory | `fetchall()` plus `Counter` retains historical/visible rows in Python. Memory and transfer volume grow with the history; no large-history memory/cost benchmark is established. |
+| Archive repeated reads and memory | Sources are read for validation and read again for upload preparation. A change between reads can separate the validated and archived versions. All file payloads currently accumulate in Python before upload. |
+| Failed candidate retention | Local candidate files may remain after failure. Automatic expiration and cleanup are not implemented. |
+| Operational failure boundaries | Concurrency and hardware-crash recovery are not qualified. If connection loss prevents rollback, the remote outcome must be verified after reconnection; preserving the exception does not confirm rollback. |
+| Reconstruction and source revisions | Snapshots retain inputs and SQL, not the Python implementation/environment. Preserve the code revision and lockfile. The pinned archive does not discover new races or upstream corrections automatically. |
 
-Source fields unavailable in a report remain `NULL`; quality statuses expose
-missing values and count discrepancies. Clock-derived stop durations assume
-less than 24 hours. Manufacturer resolution for 2023 uses later-season evidence,
-which requires a temporal-leakage assessment for predictive uses.
-
-The JSON run and Gold have independent activation. The 2023 exploratory marts
-are published per event. Remote-change detection, concurrent publication and
-hardware-crash recovery remain areas for further work. Gold snapshots retain
-input data and SQL; reproduction also depends on the code revision and Python
-environment. Full details are in the [reference](docs/project_reference.md#validation-and-limits)
-and [Gold guide](docs/gold.fr.md).
+Full behavior and evidence are documented in the
+[project reference](docs/project_reference.md#validation-and-limits) and
+[Gold guide](docs/gold.fr.md). A passing suite covers its defined scenarios;
+it is not a guarantee for untested source formats, volumes or failure modes.
 
 Working files stay under the ignored `data/` directory. Versioned source bytes
 are also retained in the restricted MotherDuck archive for remote reconstruction.
 The pinned archive does not automatically discover new races or official report
 corrections. See the [reuse notes](docs/project_reference.md#remaining-work-and-historical-evidence).
+
+## Planned milestones
+
+The following work is **planned, not implemented**. Complete the current review
+maintenance commit and CI before opening the next implementation milestone.
+Tests precede each behavioral change; measurements precede performance claims.
+
+| Milestone | Target and acceptance |
+| --- | --- |
+| Exact migration checks inside the engine | Replace Python-wide historical copies with occurrence-sensitive before/after comparisons and scalar results. Preserve content, duplicate, NULL and rollback semantics; measure engine placement, RAM, transfers and temporary-storage cost. COUNT alone or an aggregated fingerprint must not silently weaken the contract. |
+| Single-read archival | Use the same source and metadata bytes for validation and archival. Test one content read, invalid-hash rejection, unchanged pin on failure and identity of validated/stored bytes. |
+| File-by-file archive processing | Validate, insert, reread and release one payload before the next; retain a lightweight inventory and commit only after full verification. Test a later-file failure and measure peak memory. Handling a single oversized BLOB in chunks remains a separate interface question. |
+| Failed-candidate retention | Add explicit failure status/time, a configurable retention period and a dry-run cleanup command. Protect active, running and successful historical runs; test selection and deletion safeguards before enabling a real scheduled trigger. |
+| dbt-duckdb pilot | Move a bounded vertical slice of transformations/tests while preserving contracts and explicit publication/activation guarantees. Expand only after equivalence is verified. |
+| pytest fixture refactor | Share setup code without sharing mutable state between tests; preserve visible scenario inputs, expected outputs and existing assertions. |
+| Streaming integrity helpers | Reduce full-file hashing/copy memory with a measured, tested common implementation while keeping hashes tied to the bytes actually processed. |
+| Wider source coverage | Qualify additional report families and races before activation, including the remaining 2022 scope and future car/motorcycle sources. Worldwide 2022–2026 coverage remains an objective. |
+
+Detailed delivery scope and acceptance criteria are maintained in the
+[project brief](docs/mission_stage_personnel.fr.md). The next milestone is chosen
+explicitly rather than inferred from this backlog; no delivery dates or measured
+savings are claimed for work not yet executed.

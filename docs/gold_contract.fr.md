@@ -1,6 +1,6 @@
 # Gold participation contract
 
-Implementation status reviewed on 23 November 2026. The original design was
+Implementation status reviewed on 24 November 2026. The original design was
 written on 12 November; this contract now describes the implemented participant
 publication. See [Gold operations](gold.fr.md) for snapshots and deployment.
 
@@ -12,8 +12,8 @@ Championship, season, event and session are explicit columns; consumers need not
 decode source IDs to identify a race.
 
 Local Gold covers Daytona 2022 and eleven races in each of 2023–2025: 1,453 rows,
-including 140 BMW, across 45 columns. The hosted view still exposes the previous
-1,392-row publication pending deployment. Coverage for other 2022 races, 2026 and
+including 140 BMW, across 45 columns. The maintainer confirmed publication of
+this extended scope on the hosted dashboard. Coverage for other 2022 races, 2026 and
 other championships remains outside the validated dataset.
 
 Individual-stop and cross-format quality-summary Gold tables are not delivered
@@ -56,7 +56,7 @@ schema migration are not automatically performed on push.
 
 ## Evidence and limits
 
-The 222-test suite includes preservation, invalid-input, mutation, failure,
+The 227-test suite includes preservation, invalid-input, mutation, failure,
 rollback and migration scenarios. Real local reconstruction and remote archive
 restoration were also checked. These checks do not establish completeness of
 all reports, concurrent-publication safety or hardware-crash recovery. Preserve

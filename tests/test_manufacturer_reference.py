@@ -8,6 +8,26 @@ import duckdb
 
 
 class ManufacturerReferenceTests(unittest.TestCase):
+    def test_case_only_names_match_but_different_names_remain_ambiguous(self):
+        with duckdb.connect() as connection:
+            connection.execute("""
+                CREATE TEMP VIEW manufacturer_reference_input AS
+                SELECT * FROM (VALUES
+                    ('74', 'BMW'), ('74', 'bmw'), ('74', 'BmW'),
+                    ('7643', 'Mercedes AMG'), ('7643', 'MERCEDES AMG'),
+                    ('7643', 'Mercedes-AMG'), ('unknown', NULL)
+                ) AS t(manufacturer_source_id, manufacturer)
+            """)
+            query = Path(__file__).resolve().parent.parent / 'sql/36_manufacturer_reference.sql'
+            self.assertCountEqual(connection.sql(query.read_text()).fetchall(), [
+                ('74', 1, 'matched', 'BMW'),
+                ('7643', 2, 'ambiguous', None),
+                ('unknown', 0, 'unmapped', None),
+            ])
+            self.assertCountEqual(connection.sql(
+                "SELECT manufacturer FROM manufacturer_reference_input WHERE manufacturer_source_id = '74'"
+            ).fetchall(), [('BMW',), ('bmw',), ('BmW',)])
+
     def test_silver_correction_takes_precedence_over_ambiguous_reference(self):
         with duckdb.connect() as connection:
             connection.execute("""

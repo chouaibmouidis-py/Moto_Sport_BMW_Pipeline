@@ -44,14 +44,14 @@ SELECT
         AS air_temperature_raw,
     CASE
         WHEN ends_with(
-            TRIM(json_extract_string(session, '$.weather.air_temperature')),
-            'ºC'
+            lower(TRIM(json_extract_string(session, '$.weather.air_temperature'))),
+            'ºc'
         )
         THEN TRY_CAST(
             TRIM(
                 replace(
-                    json_extract_string(session, '$.weather.air_temperature'),
-                    'ºC',
+                    lower(json_extract_string(session, '$.weather.air_temperature')),
+                    'ºc',
                     ''
                 )
             ) AS DOUBLE
@@ -67,14 +67,14 @@ SELECT
         AS track_temperature_raw,
         CASE
     WHEN ends_with(
-        TRIM(json_extract_string(session, '$.weather.track_temperature')),
-        'ºC'
+        lower(TRIM(json_extract_string(session, '$.weather.track_temperature'))),
+        'ºc'
     )
     THEN TRY_CAST(
         TRIM(
             replace(
-                json_extract_string(session, '$.weather.track_temperature'),
-                'ºC',
+                lower(json_extract_string(session, '$.weather.track_temperature')),
+                'ºc',
                 ''
             )
         ) AS DOUBLE
