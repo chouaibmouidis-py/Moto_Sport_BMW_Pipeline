@@ -169,13 +169,13 @@ benchmark is established. An engine-side exact-comparison milestone is recorded
 in [Gold operations](gold.fr.md#migration-memory-limit-and-planned-optimization);
 it is planned, not deployed, and must preserve the current content contract.
 
-Source archival also reads and hashes files once for validation and again for
-upload preparation. These two reads can observe different file versions. A
-[single-read validation milestone](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation)
-will validate and archive the same bytes, removing redundant work. Holding all
-file contents in memory is a separate limitation; this change is not yet implemented.
+Source archival now reads each source once and uses the validated bytes for its
+archive payload. Metadata-backed sources also retain the exact metadata bytes
+used to obtain the expected hash. See the [single-read archive contract](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
+All payloads still accumulate before insertion; file-by-file bounded-memory
+handling remains planned and is not delivered by this change.
 
-The latest local pytest run has 296 passing tests and 97 passing subtests.
+The latest local pytest run has 302 passing tests and 97 passing subtests.
 Parametrization exposes former inner cases separately; the changed count does
 not represent additional behavioral coverage. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,

@@ -5,7 +5,6 @@ import logging
 import hashlib
 from moto_sport_bmw_pipeline.paths import PROJECT_DIR
 from moto_sport_bmw_pipeline.logging_config import configure_logging
-from moto_sport_bmw_pipeline.integrity import verify_local_file
 import getpass
 import os
 import duckdb
@@ -16,16 +15,44 @@ logger = logging.getLogger("moto_sport_bmw_pipeline.archive_sources")
 
 def pin_archive_reference(reference_path, archive_id, file_count):
     """Pin a verified archive atomically; called only after the remote commit."""
-    temporary_path = reference_path.with_name(reference_path.name + '.part')
-    temporary_path.write_text(json.dumps({
-        'archive_id': archive_id, 'file_count': file_count,
-    }, indent=2) + '\n', encoding='utf-8')
+    temporary_path = reference_path.with_name(reference_path.name + ".part")
+    temporary_path.write_text(
+        json.dumps(
+            {
+                "archive_id": archive_id,
+                "file_count": file_count,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     temporary_path.replace(reference_path)
+
+
+def prepare_archive_file(project_directory, source_id, source_path, expected_sha256):
+    content = source_path.read_bytes()
+    actual_sha = hashlib.sha256(content).hexdigest()
+
+    if actual_sha != expected_sha256:
+        raise ValueError(f"Raw fingerprint mismatch: {source_id}")
+
+    return {
+        "source_id": source_id,
+        "relative_path": source_path.relative_to(project_directory).as_posix(),
+        "sha256": actual_sha,
+        "size_bytes": len(content),
+        "content": content,
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--pin', action='store_true', help='Update the local archive reference after remote verification.')
+    parser.add_argument(
+        "--pin",
+        action="store_true",
+        help="Update the local archive reference after remote verification.",
+    )
     args = parser.parse_args()
     configure_logging()
 
@@ -39,57 +66,51 @@ def main():
             continue
 
         source_path = (
-            PROJECT_DIR
-            / "data"
-            / "raw"
-            / source["source_id"]
-            / source["filename"]
+            PROJECT_DIR / "data" / "raw" / source["source_id"] / source["filename"]
         )
 
         if not source_path.is_file():
             raise FileNotFoundError(f"Raw source not found: {source_path}")
 
-        source_files.append({
-            "source_id": source["source_id"],
-            "relative_path": source_path.relative_to(PROJECT_DIR).as_posix(),
-        })
-
         metadata_path = source_path.parent / "metadata.json"
 
         if source.get("expected_sha256"):
-            if hashlib.sha256(source_path.read_bytes()).hexdigest() != source["expected_sha256"]:
-                raise ValueError(f"Raw fingerprint mismatch: {source["source_id"]}")
+            source_file = prepare_archive_file(
+                PROJECT_DIR,
+                source["source_id"],
+                source_path,
+                source["expected_sha256"],
+            )
+            source_files.append(source_file)
             continue
 
         if not metadata_path.is_file():
-            raise FileNotFoundError(
-                f"Raw metadata not found: {metadata_path}"
-            )
+            raise FileNotFoundError(f"Raw metadata not found: {metadata_path}")
 
-        verify_local_file(source_path, metadata_path)
+        metadata_content = metadata_path.read_bytes()
+        metadata = json.loads(metadata_content)
 
-        source_files.append({
-            "source_id": source["source_id"],
-            "relative_path": metadata_path.relative_to(PROJECT_DIR).as_posix(),
-        })
+        source_file = prepare_archive_file(
+            PROJECT_DIR, source["source_id"], source_path, metadata["sha256"]
+        )
+
+        source_files.append(source_file)
+        source_files.append(
+            {
+                "source_id": source["source_id"],
+                "relative_path": metadata_path.relative_to(PROJECT_DIR).as_posix(),
+                "sha256": hashlib.sha256(metadata_content).hexdigest(),
+                "size_bytes": len(metadata_content),
+                "content": metadata_content,
+            }
+        )
 
         logger.info("Source: %s | Path: %s", source["source_id"], source_path)
 
-    relative_paths = [
-        source_file["relative_path"]
-        for source_file in source_files
-    ]
+    relative_paths = [source_file["relative_path"] for source_file in source_files]
 
     if len(relative_paths) != len(set(relative_paths)):
         raise ValueError("Duplicate archive paths")
-
-    for source_file in source_files:
-        source_path = PROJECT_DIR / source_file["relative_path"]
-        content = source_path.read_bytes()
-
-        source_file["sha256"] = hashlib.sha256(content).hexdigest()
-        source_file["size_bytes"] = len(content)
-        source_file["content"] = content
 
     inventory = sorted(
         [
@@ -114,9 +135,7 @@ def main():
     logger.info("Inventoried source files: %s", len(source_files))
 
     if not os.environ.get("motherduck_token"):
-        os.environ["motherduck_token"] = getpass.getpass(
-            "Token MotherDuck : "
-        ).strip()
+        os.environ["motherduck_token"] = getpass.getpass("Token MotherDuck : ").strip()
 
     with duckdb.connect("md:bmw_analytics") as connection:
         connection.execute("""
@@ -216,14 +235,11 @@ def main():
             ).fetchall()
 
             expected_inventory = [
-                (item["relative_path"], item["sha256"])
-                for item in inventory
+                (item["relative_path"], item["sha256"]) for item in inventory
             ]
 
             if saved_inventory != expected_inventory:
-                raise ValueError(
-                    "Source archive rejected: saved inventory differs"
-                )
+                raise ValueError("Source archive rejected: saved inventory differs")
 
             connection.execute("COMMIT")
 
@@ -231,13 +247,17 @@ def main():
             try:
                 connection.execute("ROLLBACK")
             except Exception:
-                logger.exception("Rollback failed; preserving the original transaction error. Transaction outcome must be verified.")
+                logger.exception(
+                    "Rollback failed; preserving the original transaction error. Transaction outcome must be verified."
+                )
             raise
 
     logger.info("Source archive verified: %s files", len(source_files))
     if args.pin:
-        pin_archive_reference(PROJECT_DIR / 'config/source_archive.json', archive_id, len(source_files))
-        logger.info('Pinned verified source archive: %s', archive_id)
+        pin_archive_reference(
+            PROJECT_DIR / "config/source_archive.json", archive_id, len(source_files)
+        )
+        logger.info("Pinned verified source archive: %s", archive_id)
 
 
 if __name__ == "__main__":

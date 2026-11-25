@@ -80,28 +80,27 @@ existing preservation contract. The new implementation must start with regressio
 tests for changed content at equal counts, duplicate multiplicities, NULL values,
 row order, and rollback, followed by a representative memory/cost benchmark.
 
-### Archive repeated reads and planned single-read validation
+<a id="archive-repeated-reads-and-planned-single-read-validation"></a>
+### Single-read archival and remaining memory limit
 
-The current archiver reads each source file to verify its expected SHA-256, then
-reads it again when preparing the content, size and hash stored in the archive.
-The second buffer is not compared again with the originally expected source hash.
-A file changed between the two reads could therefore be archived as a different
-version from the one initially validated. Remote read-back checks verify what
-was uploaded, not whether this second version matches the original expectation.
+The archiver now reads each source once, validates its expected SHA-256 and keeps
+those same bytes for size calculation, hashing and archival. Manifest-backed
+sources provide the expected hash directly; metadata-backed sources obtain it
+from metadata.json. Metadata bytes are read once and retained unchanged for the
+archive as well. The former second preparation/read loop has been removed.
 
-The planned change reads each source once and uses the same bytes for expected-hash
-validation, size calculation and archival. Metadata-backed validation must use
-the same metadata bytes retained for archival as well. This removes a redundant
-full-file read and hash computation without relying on operating-system caching,
-and ties validation to the content actually submitted. It does not by itself
-eliminate the current retention of all archive contents in client memory; bounded
-file-by-file handling belongs to the related memory/streaming milestone.
+Local tests verify both source-hash paths, a single source read, a single metadata
+read, exact metadata content/size/hash in the local archive, rejection of incorrect
+expected hashes and preservation of the previous pin after validation failure.
+The existing saved-content corruption scenario still rejects publication and
+preserves the prior pin. These checks run against temporary files/local DuckDB,
+not against the live MotherDuck archive. No production performance or cost gain
+has been measured; this code change has not been deployed to the remote workflow.
 
-Tests must precede implementation: one source-content read, rejection of an
-incorrect expected hash, identical validated/archived bytes, both manifest-hash
-and metadata-hash paths, and preservation of the archive pin on validation failure.
-Measure representative I/O, CPU, peak memory and runtime before claiming savings.
-This optimization is recorded but not implemented.
+All prepared file payloads still accumulate in source_files before the database
+connection opens. Single reading removes redundant I/O and keeps validation tied
+to the submitted bytes; it does not bound cumulative payload memory. File-by-file
+processing is the next separate milestone.
 
 The related bounded-memory archive milestone processes one file at a time inside
 the archive transaction: read and validate, insert, verify the saved bytes, then
@@ -190,7 +189,7 @@ race or as a prediction variable free of temporal leakage risk.
 ## Historical checks for the first 2023–2025 publication
 
 The figures below describe that first publication, not the current pytest
-baseline (296 tests and 97 subtests passing) or the later manufacturer corrections. Current local coverage and
+baseline (302 tests and 97 subtests passing) or the later manufacturer corrections. Current local coverage and
 remote preparation status are recorded at the start of this document.
 
 187 tests passed, including checks for schema, alignment, keys, copying,

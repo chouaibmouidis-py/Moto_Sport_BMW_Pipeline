@@ -107,7 +107,7 @@ the active Gold separately. No refactor deployment or remote refresh is implicit
 
 ## Verification of this refactor
 
-The latest pytest suite has 296 passing tests and 97 passing subtests. Scenarios cover JSON-only, CSV/PDF-only
+The latest pytest suite has 302 passing tests and 97 passing subtests. Scenarios cover JSON-only, CSV/PDF-only
 and mixed runs, report-write failure, wrong Gold selection, changed inputs,
 logging context, additive migration and archive pinning on success/failure.
 A complete local rebuild using the 68 enabled reports produced 1,453 participants

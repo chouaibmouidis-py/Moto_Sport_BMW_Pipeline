@@ -27,7 +27,7 @@ or net time lost on track.
 | Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
 | Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
-| Validation | 296 passing pytest tests and 97 passing subtests; complete local rebuild and remote archive/schema checks performed separately. |
+| Validation | 302 passing pytest tests and 97 passing subtests; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain
@@ -86,11 +86,12 @@ implementation; memory, transfers, temporary storage and execution cost must be
 measured without weakening historical-content preservation. See the documented
 [current memory limitation](gold.fr.md#migration-memory-limit-and-planned-optimization).
 
-Source archival has a related single-read milestone: validate and archive the
-same source and metadata bytes instead of reading the source twice. This addresses
-redundant I/O/hash work and the possibility of a file changing between validation
-and archival. Tests precede implementation; bounded archive-memory handling remains
-a distinct goal. See the [archive limitation](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
+Single-read source archival is implemented and validated locally: the same source
+bytes are checked and submitted, and metadata bytes are retained unchanged.
+Tests cover both expected-hash paths, read counts, archived metadata fields and
+preservation of the previous pin on invalid metadata hashes. The file-by-file
+memory milestone remains separate: all payloads still accumulate before insertion.
+See the [archive contract and memory limit](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
 
 Concurrency, recovery after hardware failure, automatic remote revision detection
 and a shared detailed-stop table are not established by this delivery. Machine

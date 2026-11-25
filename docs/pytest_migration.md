@@ -74,6 +74,7 @@ collected. Tests run explicitly or through CI; starting the pipeline does not
 implicitly execute the tests directory. Production data controls remain in their
 own modules and still execute during applicable pipeline stages.
 
-The migration does not implement single-read archival, streaming BLOB handling,
-engine-side migration comparisons, candidate retention or dbt. New behavior still
+The migration itself did not implement single-read archival; that subsequent
+archive milestone is now validated locally. Streaming BLOB handling,
+engine-side migration comparisons, candidate retention and dbt remain planned. New behavior still
 starts with a contract and a meaningful failing test before implementation.

@@ -1,7 +1,7 @@
 # Test audit
 
 Historical test-consolidation audit. Its 186/188-method counts and module inventory
-describe that audit only. The latest pytest run has 296 passing tests and 97 passing subtests on
+describe that audit only. The latest pytest run has 302 passing tests and 97 passing subtests on
 25 November 2026; see [the project reference](project_reference.md) for current validation,
 including migration, archive pinning, logging and Daytona 2022 integration.
 
