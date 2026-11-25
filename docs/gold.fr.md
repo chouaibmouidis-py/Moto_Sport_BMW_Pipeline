@@ -189,8 +189,8 @@ race or as a prediction variable free of temporal leakage risk.
 
 ## Historical checks for the first 2023–2025 publication
 
-The figures below describe that first publication, not the current 227-test
-baseline or the later manufacturer corrections. Current local coverage and
+The figures below describe that first publication, not the current pytest
+baseline (296 tests and 97 subtests passing) or the later manufacturer corrections. Current local coverage and
 remote preparation status are recorded at the start of this document.
 
 187 tests passed, including checks for schema, alignment, keys, copying,

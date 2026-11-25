@@ -2,131 +2,157 @@
 
 import hashlib
 from pathlib import Path
-import tempfile
-import unittest
 from unittest.mock import patch
 
 import duckdb
+import pytest
 
 from moto_sport_bmw_pipeline.batch_processing import build_pdf_bronze_batch
 
 
-class PdfPitStopBronzeBatchTests(unittest.TestCase):
-    def test_missing_later_input_prevents_any_bronze_publication(self):
-        """A single missing PDF must abort the batch before creating any output."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            first_pdf = root / "data" / "raw" / "source-a" / "report.pdf"
-            first_pdf.parent.mkdir(parents=True)
-            first_pdf.write_bytes(b"%PDF-1.4 mock")
+def test_missing_later_input_prevents_any_bronze_publication(tmp_path):
+    """A single missing PDF must abort the batch before creating any output."""
+    directory = tmp_path
+    root = Path(directory)
+    first_pdf = root / "data" / "raw" / "source-a" / "report.pdf"
+    first_pdf.parent.mkdir(parents=True)
+    first_pdf.write_bytes(b"%PDF-1.4 mock")
 
-            catalog = {
-                "season": 2023,
-                "events": [
-                    {"event_id": "course-a", "pdf_path": str(first_pdf.relative_to(root))},
-                    {"event_id": "course-b", "pdf_path": "data/raw/source-b/report.pdf"},
-                ],
+    catalog = {
+        "season": 2023,
+        "events": [
+            {"event_id": "course-a", "pdf_path": str(first_pdf.relative_to(root))},
+            {"event_id": "course-b", "pdf_path": "data/raw/source-b/report.pdf"},
+        ],
+    }
+
+    with pytest.raises(FileNotFoundError):
+        build_pdf_bronze_batch(root, catalog)
+
+    # Verification that no bronze directory was created
+    assert not (root / "data" / "bronze").exists()
+
+
+def test_rejects_duplicate_source_ids(tmp_path):
+    """Duplicate source directory names must be rejected before execution."""
+    directory = tmp_path
+    root = Path(directory)
+    pdf = root / "data" / "raw" / "source-a" / "report.pdf"
+    pdf.parent.mkdir(parents=True)
+    pdf.write_bytes(b"%PDF-1.4 mock")
+
+    catalog_duplicate_sources = {
+        "season": 2023,
+        "events": [
+            {"event_id": "course-1", "pdf_path": str(pdf.relative_to(root))},
+            {"event_id": "course-2", "pdf_path": str(pdf.relative_to(root))},
+        ],
+    }
+    with pytest.raises(ValueError, match="duplicate source IDs"):
+        build_pdf_bronze_batch(root, catalog_duplicate_sources)
+
+
+def test_rejects_duplicate_event_ids(tmp_path):
+    """Duplicate event IDs with distinct sources must be rejected before execution."""
+    directory = tmp_path
+    root = Path(directory)
+    pdf_1 = root / "data" / "raw" / "source-a" / "report.pdf"
+    pdf_1.parent.mkdir(parents=True)
+    pdf_1.write_bytes(b"%PDF-1.4 mock")
+
+    pdf_2 = root / "data" / "raw" / "source-b" / "report.pdf"
+    pdf_2.parent.mkdir(parents=True)
+    pdf_2.write_bytes(b"%PDF-1.4 mock")
+
+    catalog_duplicate_events = {
+        "season": 2023,
+        "events": [
+            {"event_id": "same-event", "pdf_path": str(pdf_1.relative_to(root))},
+            {"event_id": "same-event", "pdf_path": str(pdf_2.relative_to(root))},
+        ],
+    }
+    with pytest.raises(ValueError, match="duplicate event IDs"):
+        build_pdf_bronze_batch(root, catalog_duplicate_events)
+
+
+def test_builds_bronze_per_event_with_exact_schema_and_provenance(tmp_path):
+    """Batch creates separate Bronze Parquet files with 9 raw columns and SHA-256."""
+    mock_record = {
+        "car_number": "24",
+        "pit_number": 1,
+        "pit_time_raw": "1:28.481",
+        "page_number": 1,
+        "column_number": 1,
+        "block_line_number": 2,
+        "source_line": "1 10:00:00 10:01:28 1:28.481",
+    }
+
+    directory = tmp_path
+    root = Path(directory)
+    events = []
+    for event_id in ("daytona", "sebring"):
+        source_id = f"imsa-2023-{event_id}-race-pit-stops"
+        pdf = root / "data" / "raw" / source_id / "report.pdf"
+        pdf.parent.mkdir(parents=True)
+        pdf.write_bytes(f"%PDF-1.4 content {event_id}".encode("utf-8"))
+        events.append(
+            {
+                "event_id": event_id,
+                "pdf_path": str(pdf.relative_to(root)),
             }
+        )
 
-            with self.assertRaises(FileNotFoundError):
-                build_pdf_bronze_batch(root, catalog)
+    catalog = {"season": 2023, "events": events}
 
-            # Verification that no bronze directory was created
-            self.assertFalse((root / "data" / "bronze").exists())
+    with patch(
+        "moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[mock_record]
+    ):
+        results = build_pdf_bronze_batch(root, catalog)
 
-    def test_rejects_duplicate_source_ids(self):
-        """Duplicate source directory names must be rejected before execution."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            pdf = root / "data" / "raw" / "source-a" / "report.pdf"
-            pdf.parent.mkdir(parents=True)
-            pdf.write_bytes(b"%PDF-1.4 mock")
+    assert len(results) == 2
+    for res in results:
+        assert res["stops"] == 1
 
-            catalog_duplicate_sources = {
-                "season": 2023,
-                "events": [
-                    {"event_id": "course-1", "pdf_path": str(pdf.relative_to(root))},
-                    {"event_id": "course-2", "pdf_path": str(pdf.relative_to(root))},
-                ],
-            }
-            with self.assertRaisesRegex(ValueError, "duplicate source IDs"):
-                build_pdf_bronze_batch(root, catalog_duplicate_sources)
+    # Verify on disk schema and content
+    for event in events:
+        source_id = Path(event["pdf_path"]).parent.name
+        bronze_path = root / "data" / "bronze" / source_id / "document.parquet"
+        assert bronze_path.is_file()
 
-    def test_rejects_duplicate_event_ids(self):
-        """Duplicate event IDs with distinct sources must be rejected before execution."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            pdf_1 = root / "data" / "raw" / "source-a" / "report.pdf"
-            pdf_1.parent.mkdir(parents=True)
-            pdf_1.write_bytes(b"%PDF-1.4 mock")
-
-            pdf_2 = root / "data" / "raw" / "source-b" / "report.pdf"
-            pdf_2.parent.mkdir(parents=True)
-            pdf_2.write_bytes(b"%PDF-1.4 mock")
-
-            catalog_duplicate_events = {
-                "season": 2023,
-                "events": [
-                    {"event_id": "same-event", "pdf_path": str(pdf_1.relative_to(root))},
-                    {"event_id": "same-event", "pdf_path": str(pdf_2.relative_to(root))},
-                ],
-            }
-            with self.assertRaisesRegex(ValueError, "duplicate event IDs"):
-                build_pdf_bronze_batch(root, catalog_duplicate_events)
-
-    def test_builds_bronze_per_event_with_exact_schema_and_provenance(self):
-        """Batch creates separate Bronze Parquet files with 9 raw columns and SHA-256."""
-        mock_record = {
-            "car_number": "24",
-            "pit_number": 1,
-            "pit_time_raw": "1:28.481",
-            "page_number": 1,
-            "column_number": 1,
-            "block_line_number": 2,
-            "source_line": "1 10:00:00 10:01:28 1:28.481",
-        }
-
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            events = []
-            for event_id in ("daytona", "sebring"):
-                source_id = f"imsa-2023-{event_id}-race-pit-stops"
-                pdf = root / "data" / "raw" / source_id / "report.pdf"
-                pdf.parent.mkdir(parents=True)
-                pdf.write_bytes(f"%PDF-1.4 content {event_id}".encode("utf-8"))
-                events.append({
-                    "event_id": event_id,
-                    "pdf_path": str(pdf.relative_to(root)),
-                })
-
-            catalog = {"season": 2023, "events": events}
-
-            with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[mock_record]):
-                results = build_pdf_bronze_batch(root, catalog)
-
-            self.assertEqual(len(results), 2)
-            for res in results:
-                self.assertEqual(res["stops"], 1)
-
-            # Verify on disk schema and content
-            for event in events:
-                source_id = Path(event["pdf_path"]).parent.name
-                bronze_path = root / "data" / "bronze" / source_id / "document.parquet"
-                self.assertTrue(bronze_path.is_file())
-
-                with duckdb.connect() as conn:
-                    saved = conn.read_parquet(str(bronze_path))
-                    self.assertEqual(saved.columns, [
-                        "source_id", "pdf_sha256", "car_number", "pit_number",
-                        "pit_time_raw", "page_number", "column_number",
-                        "block_line_number", "source_line",
-                    ])
-                    self.assertEqual([str(dtype) for dtype in saved.types], [
-                        "VARCHAR", "VARCHAR", "VARCHAR", "INTEGER", "VARCHAR",
-                        "INTEGER", "INTEGER", "INTEGER", "VARCHAR",
-                    ])
-                    self.assertEqual(saved.fetchall(), [(
-                        source_id,
-                        hashlib.sha256((root / event["pdf_path"]).read_bytes()).hexdigest(),
-                        "24", 1, "1:28.481", 1, 1, 2, mock_record["source_line"],
-                    )])
+        with duckdb.connect() as conn:
+            saved = conn.read_parquet(str(bronze_path))
+            assert saved.columns == [
+                "source_id",
+                "pdf_sha256",
+                "car_number",
+                "pit_number",
+                "pit_time_raw",
+                "page_number",
+                "column_number",
+                "block_line_number",
+                "source_line",
+            ]
+            assert [str(dtype) for dtype in saved.types] == [
+                "VARCHAR",
+                "VARCHAR",
+                "VARCHAR",
+                "INTEGER",
+                "VARCHAR",
+                "INTEGER",
+                "INTEGER",
+                "INTEGER",
+                "VARCHAR",
+            ]
+            assert saved.fetchall() == [
+                (
+                    source_id,
+                    hashlib.sha256((root / event["pdf_path"]).read_bytes()).hexdigest(),
+                    "24",
+                    1,
+                    "1:28.481",
+                    1,
+                    1,
+                    2,
+                    mock_record["source_line"],
+                )
+            ]

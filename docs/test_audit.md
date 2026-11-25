@@ -1,8 +1,8 @@
 # Test audit
 
 Historical test-consolidation audit. Its 186/188-method counts and module inventory
-describe that audit only. The current suite has 227 passing tests as of 23 November
-2026; see [the project reference](project_reference.md) for current validation,
+describe that audit only. The latest pytest run has 296 passing tests and 97 passing subtests on
+25 November 2026; see [the project reference](project_reference.md) for current validation,
 including migration, archive pinning, logging and Daytona 2022 integration.
 
 ## Scope and execution
@@ -87,5 +87,5 @@ and additional schema/format boundaries.
 ## Run the suite
 
 ```sh
-uv run python -m unittest discover -s tests -v
+uv run python -m pytest -v
 ```

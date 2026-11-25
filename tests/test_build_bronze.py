@@ -1,109 +1,93 @@
 """Verify pit-stop Bronze round trips and preservation of previous files on failure."""
 
-import json
-import tempfile
 import hashlib
-import unittest
-from pathlib import Path
-from build_bronze import build_document, main
+import json
 from unittest.mock import patch
 
-from download import SOURCE_FILENAME, download
+import pytest
+
+from build_bronze import build_document, main
 
 
-class DownloadTests(unittest.TestCase):
-    def setUp(self):
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
-        self.destination = Path(self.directory.name) / "raw"
-        self.target = self.destination / SOURCE_FILENAME
-        self.url = "https://example.invalid/source.json"
+def test_invalid_json_preserves_previous_file(tmp_path):
+    source_path = tmp_path / "source.json"
+    output_path = tmp_path / "document.parquet"
+    source_path.write_bytes(b'{"session":')
+    output_path.write_bytes(b"ancienne version")
+    with pytest.raises(json.JSONDecodeError):
+        build_document(source_path, output_path)
+    assert output_path.read_bytes() == b"ancienne version"
 
-    def test_invalid_json_preserves_previous_file(self):
-        source_path = Path(self.directory.name) / "source.json"
-        output_path = Path(self.directory.name) / "document.parquet"
-        source_path.write_bytes(b'{"session":')
-        output_path.write_bytes(b"ancienne version")
-        self.assertRaises(json.JSONDecodeError, build_document, source_path, output_path)
-        self.assertEqual(output_path.read_bytes(), b"ancienne version")
 
-    def test_rejects_non_parquet_output(self):
-        directory = Path(self.directory.name)
-        source_path = directory / "source.json"
-        output_path = directory / "metadata.json"
-        self.assertRaises(ValueError, build_document, source_path, output_path)
+def test_rejects_non_parquet_output(tmp_path):
+    directory = tmp_path
+    source_path = directory / "source.json"
+    output_path = directory / "metadata.json"
+    with pytest.raises(ValueError):
+        build_document(source_path, output_path)
 
-    def test_write_failure_preserves_previous_files(self):
-        directory = Path(self.directory.name)
-        source_path = directory / "source.json"
-        output_path = directory / "document.parquet"
-        source_path.write_bytes(b'{"session": {}, "pit_stop_analysis": []}')
-        output_path.write_bytes(b"ancienne version")
-        with patch(
-            "duckdb.DuckDBPyRelation.write_parquet",
-            side_effect=OSError("Simulated write failure")
-        ):
-            self.assertRaises(
-                OSError,
-                build_document,
-                source_path,
-                output_path,
-            )
-            self.assertEqual(output_path.read_bytes(), b"ancienne version")
 
-    def test_main_reads_filename_from_manifest(self):
-        root = Path(self.directory.name)
-        source_id = "imsa-2024-daytona-race-hour24-pit-stops"
-        filename = "20_Pit Stops Time Cards.JSON"
+def test_write_failure_preserves_previous_files(tmp_path):
+    directory = tmp_path
+    source_path = directory / "source.json"
+    output_path = directory / "document.parquet"
+    source_path.write_bytes(b'{"session": {}, "pit_stop_analysis": []}')
+    output_path.write_bytes(b"ancienne version")
+    with patch(
+        "duckdb.DuckDBPyRelation.write_parquet",
+        side_effect=OSError("Simulated write failure"),
+    ):
+        with pytest.raises(OSError):
+            build_document(source_path, output_path)
+        assert output_path.read_bytes() == b"ancienne version"
 
-        config_directory = root / "config"
-        config_directory.mkdir()
 
-        manifest = {
-            "documents": [{
+def test_main_reads_filename_from_manifest(tmp_path):
+    root = tmp_path
+    source_id = "imsa-2024-daytona-race-hour24-pit-stops"
+    filename = "20_Pit Stops Time Cards.JSON"
+
+    config_directory = root / "config"
+    config_directory.mkdir()
+
+    manifest = {
+        "documents": [
+            {
                 "source_id": source_id,
                 "enabled": True,
                 "document_type": "pit_stops",
                 "filename": filename,
-            }]
-        }
-        (config_directory / "sources.json").write_text(
-            json.dumps(manifest),
-            encoding="utf-8",
-        )
+            }
+        ]
+    }
+    (config_directory / "sources.json").write_text(
+        json.dumps(manifest),
+        encoding="utf-8",
+    )
 
-        raw_directory = root / "data" / "raw" / source_id
-        raw_directory.mkdir(parents=True)
+    raw_directory = root / "data" / "raw" / source_id
+    raw_directory.mkdir(parents=True)
 
-        content = json.dumps({
+    content = json.dumps(
+        {
             "session": {"event_name": "Daytona"},
             "pit_stop_analysis": [],
-        }).encode("utf-8")
+        }
+    ).encode("utf-8")
 
-        (raw_directory / filename).write_bytes(content)
+    (raw_directory / filename).write_bytes(content)
 
-        (raw_directory / "metadata.json").write_text(
-            json.dumps({
+    (raw_directory / "metadata.json").write_text(
+        json.dumps(
+            {
                 "sha256": hashlib.sha256(content).hexdigest(),
-            }),
-            encoding="utf-8",
-        )
+            }
+        ),
+        encoding="utf-8",
+    )
 
-        with patch("build_bronze.PROJECT_DIR", root):
-            main()
+    with patch("build_bronze.PROJECT_DIR", root):
+        main()
 
-        output_path = (
-            root / "data" / "bronze" / source_id / "document.parquet"
-        )
-        self.assertTrue(output_path.is_file())
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    unittest.main()
+    output_path = root / "data" / "bronze" / source_id / "document.parquet"
+    assert output_path.is_file()

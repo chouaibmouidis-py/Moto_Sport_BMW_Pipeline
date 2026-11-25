@@ -1,304 +1,312 @@
 """Verify normalization of classification CSV fields from Bronze."""
 
-import unittest
+from collections import Counter
 from pathlib import Path
+
+import pytest
+
+from moto_sport_bmw_pipeline.quality import (
+    build_classification_gap_issues,
+    validate_classification_gaps,
+)
 from moto_sport_bmw_pipeline.silver import transform_classification_csv
-import duckdb
-from moto_sport_bmw_pipeline.quality import validate_classification_gaps, build_classification_gap_issues
 
 
-class SilverClassificationCsvTests(unittest.TestCase):
-    def test_applies_only_exact_model_manufacturer_corrections(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP VIEW bronze_classification_csv AS
-                SELECT 'source' AS source_id, 'hash' AS bronze_sha256,
-                    NUMBER, VEHICLE, IMSA_ManufacturerId,
-                    '1' AS POSITION, 'GTD' AS CLASS, 'Classified' AS STATUS,
-                    NULL::VARCHAR AS TEAM, NULL::VARCHAR AS LAPS,
-                    NULL::VARCHAR AS FL_LAPNUM, NULL::VARCHAR AS FL_KPH,
-                    NULL::VARCHAR AS TOTAL_TIME, NULL::VARCHAR AS FL_TIME,
-                    NULL::VARCHAR AS GAP_FIRST, NULL::VARCHAR AS GAP_PREVIOUS
-                FROM (VALUES
-                    ('15', ' Mercedes-AMG GT3 ', '7643'),
-                    ('13', 'Duqueine D08', '7665'),
-                    ('16', 'MERCEDES-AMG GT3', '7643'),
-                    ('17', 'mercedes-amg gt3', '7643'),
-                    ('18', 'DUQUEINE D08', '7665'),
-                    ('19', 'duqueine d08', '7665'),
-                    ('24', 'Unknown GT3', '9999')
-                ) AS t(NUMBER, VEHICLE, IMSA_ManufacturerId)
-            """)
-            result = transform_classification_csv(connection, Path(__file__).resolve().parent.parent)
-            self.assertCountEqual(result.project(
-                'car_number, manufacturer_source_id, manufacturer, manufacturer_mapping_status'
-            ).fetchall(), [
-                ('15', '7643', 'Mercedes', 'matched_override'),
-                ('13', '7665', 'Duqueine', 'matched_override'),
-                ('16', '7643', 'Mercedes', 'matched_override'),
-                ('17', '7643', 'Mercedes', 'matched_override'),
-                ('18', '7665', 'Duqueine', 'matched_override'),
-                ('19', '7665', 'Duqueine', 'matched_override'),
-                ('24', '9999', None, None),
-            ])
-            self.assertEqual(connection.sql(
-                "SELECT VEHICLE FROM bronze_classification_csv WHERE NUMBER = '15'"
-            ).fetchone()[0], ' Mercedes-AMG GT3 ')
-            self.assertEqual(result.filter("car_number = '16'").project('car_model').fetchone()[0], 'MERCEDES-AMG GT3')
+def test_applies_only_exact_model_manufacturer_corrections(connection):
+    connection.execute("""
+        CREATE TEMP VIEW bronze_classification_csv AS
+        SELECT 'source' AS source_id, 'hash' AS bronze_sha256,
+            NUMBER, VEHICLE, IMSA_ManufacturerId,
+            '1' AS POSITION, 'GTD' AS CLASS, 'Classified' AS STATUS,
+            NULL::VARCHAR AS TEAM, NULL::VARCHAR AS LAPS,
+            NULL::VARCHAR AS FL_LAPNUM, NULL::VARCHAR AS FL_KPH,
+            NULL::VARCHAR AS TOTAL_TIME, NULL::VARCHAR AS FL_TIME,
+            NULL::VARCHAR AS GAP_FIRST, NULL::VARCHAR AS GAP_PREVIOUS
+        FROM (VALUES
+            ('15', ' Mercedes-AMG GT3 ', '7643'),
+            ('13', 'Duqueine D08', '7665'),
+            ('16', 'MERCEDES-AMG GT3', '7643'),
+            ('17', 'mercedes-amg gt3', '7643'),
+            ('18', 'DUQUEINE D08', '7665'),
+            ('19', 'duqueine d08', '7665'),
+            ('24', 'Unknown GT3', '9999')
+        ) AS t(NUMBER, VEHICLE, IMSA_ManufacturerId)
+    """)
+    result = transform_classification_csv(
+        connection, Path(__file__).resolve().parent.parent
+    )
+    assert Counter(
+        result.project(
+            "car_number, manufacturer_source_id, manufacturer, manufacturer_mapping_status"
+        ).fetchall()
+    ) == Counter(
+        [
+            ("15", "7643", "Mercedes", "matched_override"),
+            ("13", "7665", "Duqueine", "matched_override"),
+            ("16", "7643", "Mercedes", "matched_override"),
+            ("17", "7643", "Mercedes", "matched_override"),
+            ("18", "7665", "Duqueine", "matched_override"),
+            ("19", "7665", "Duqueine", "matched_override"),
+            ("24", "9999", None, None),
+        ]
+    )
+    assert (
+        connection.sql(
+            "SELECT VEHICLE FROM bronze_classification_csv WHERE NUMBER = '15'"
+        ).fetchone()[0]
+        == " Mercedes-AMG GT3 "
+    )
+    assert (
+        result.filter("car_number = '16'").project("car_model").fetchone()[0]
+        == "MERCEDES-AMG GT3"
+    )
 
-    def test_normalizes_fields_and_preserves_car_number(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP VIEW bronze_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-bronze-hash' AS bronze_sha256,
-                    *
-                FROM (VALUES
-                    (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ', ' 74 ', 	' Team Test ', '100', '42', '219.6', '1:00:00.000', '1:30.000', '+3.028', '1 Lap')
-                ) AS t(
-                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId, TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME, GAP_FIRST, GAP_PREVIOUS
-                )
-            """)
 
-            project_directory = Path(__file__).resolve().parent.parent
+def test_normalizes_fields_and_preserves_car_number(connection):
+    connection.execute("""
+        CREATE TEMP VIEW bronze_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-bronze-hash' AS bronze_sha256,
+            *
+        FROM (VALUES
+            (' 04 ', ' BMW M4 GT3 ', '4', ' GTD ', ' Classified ', ' 74 ', 	' Team Test ', '100', '42', '219.6', '1:00:00.000', '1:30.000', '+3.028', '1 Lap')
+        ) AS t(
+            NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId, TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME, GAP_FIRST, GAP_PREVIOUS
+        )
+    """)
 
-            result = transform_classification_csv(
-                connection,
-                project_directory,
+    project_directory = Path(__file__).resolve().parent.parent
+
+    result = transform_classification_csv(
+        connection,
+        project_directory,
+    )
+    rows = result.fetchall()
+
+    assert rows == [
+        (
+            "test-source",
+            "test-bronze-hash",
+            "04",
+            "BMW M4 GT3",
+            4,
+            "GTD",
+            "Classified",
+            "74",
+            "Team Test",
+            100,
+            42,
+            219.6,
+            "1:00:00.000",
+            3600.0,
+            "1:30.000",
+            90.0,
+            "+3.028",
+            "1 Lap",
+            "time",
+            3.028,
+            None,
+            "laps",
+            None,
+            1,
+            None,
+            None,
+        )
+    ]
+
+
+def test_keeps_participant_with_invalid_position(connection):
+    connection.execute("""
+        CREATE TEMP VIEW bronze_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-bronze-hash' AS bronze_sha256,
+            *
+        FROM (VALUES
+            (
+                '24', 'BMW M Hybrid V8', 'inconnue',
+                'GTP', 'Classified', CAST(NULL AS VARCHAR),
+                CAST(NULL AS VARCHAR), -- TEAM
+                CAST(NULL AS VARCHAR), -- LAPS
+                CAST(NULL AS VARCHAR), -- FL_LAPNUM
+                CAST(NULL AS VARCHAR), -- FL_KPH
+                CAST(NULL AS VARCHAR), -- TOTAL_TIME
+                CAST(NULL AS VARCHAR), -- FL_TIME
+                CAST(NULL AS VARCHAR), -- GAP_FIRST
+                CAST(NULL AS VARCHAR)  -- GAP_PREVIOUS
             )
-            rows = result.fetchall()
+        ) AS t(
+            NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId,
+            TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME,
+            GAP_FIRST, GAP_PREVIOUS
+        )
+    """)
 
-            self.assertEqual(
-                rows,
-                [(
-                    "test-source",                  # source_id
-                    "test-bronze-hash",             # bronze_sha256
-                    "04",                          # car_number
-                    "BMW M4 GT3",                   # car_model
-                    4,                             # overall_position
-                    "GTD",                         # car_class
-                    "Classified",                  # classification_status
-                    "74",                          # manufacturer_source_id
-                    "Team Test",                   # team_name
-                    100,                           # completed_laps
-                    42,                            # fastest_lap_number
-                    219.6,                         # fastest_lap_speed_kph
-                    "1:00:00.000",                  # total_time_raw
-                    3600.0,                        # total_time_seconds
-                    "1:30.000",                     # fastest_lap_time_raw
-                    90.0,                          # fastest_lap_time_seconds
-                    "+3.028",                      # gap_first_raw
-                    "1 Lap",                       # gap_previous_raw
-                    "time",                        # gap_first_kind
-                    3.028,                         # gap_first_seconds
-                    None,                          # gap_first_laps
-                    "laps",                        # gap_previous_kind
-                    None,                          # gap_previous_seconds
-                    1,                             # gap_previous_laps
-                    None,                          # manufacturer: no targeted correction
-                    None,                          # manufacturer_mapping_status
-                )],
-            )
+    project_directory = Path(__file__).resolve().parent.parent
 
-    def test_keeps_participant_with_invalid_position(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP VIEW bronze_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-bronze-hash' AS bronze_sha256,
-                    *
-                FROM (VALUES
-                    (
-                        '24', 'BMW M Hybrid V8', 'inconnue',
-                        'GTP', 'Classified', CAST(NULL AS VARCHAR),
-                        CAST(NULL AS VARCHAR), -- TEAM
-                        CAST(NULL AS VARCHAR), -- LAPS
-                        CAST(NULL AS VARCHAR), -- FL_LAPNUM
-                        CAST(NULL AS VARCHAR), -- FL_KPH
-                        CAST(NULL AS VARCHAR), -- TOTAL_TIME
-                        CAST(NULL AS VARCHAR), -- FL_TIME
-                        CAST(NULL AS VARCHAR), -- GAP_FIRST
-                        CAST(NULL AS VARCHAR)  -- GAP_PREVIOUS
-                    )
-                ) AS t(
-                    NUMBER, VEHICLE, POSITION, CLASS, STATUS, IMSA_ManufacturerId,
-                    TEAM, LAPS, FL_LAPNUM, FL_KPH, TOTAL_TIME, FL_TIME,
-                    GAP_FIRST, GAP_PREVIOUS
-                )
-            """)
+    result = transform_classification_csv(
+        connection,
+        project_directory,
+    )
 
-            project_directory = Path(__file__).resolve().parent.parent
+    rows = result.fetchall()
 
-            result = transform_classification_csv(
-                connection,
-                project_directory,
-            )
+    assert rows == [
+        (
+            "test-source",
+            "test-bronze-hash",
+            "24",
+            "BMW M Hybrid V8",
+            None,
+            "GTP",
+            "Classified",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "missing",
+            None,
+            None,
+            "missing",
+            None,
+            None,
+            None,
+            None,
+        )
+    ]
 
-            rows = result.fetchall()
 
-            self.assertEqual(
-                rows,
-                [(
-                    "test-source",       # source_id
-                    "test-bronze-hash",  # bronze_sha256
-                    "24",               # car_number
-                    "BMW M Hybrid V8",   # car_model
-                    None,               # overall_position : "inconnue" non convertible
-                    "GTP",              # car_class
-                    "Classified",       # classification_status
-                    None,               # manufacturer_source_id
-                    None,               # team_name
-                    None,               # completed_laps
-                    None,               # fastest_lap_number
-                    None,               # fastest_lap_speed_kph
-                    None,               # total_time_raw
-                    None,               # total_time_seconds
-                    None,               # fastest_lap_time_raw
-                    None,               # fastest_lap_time_seconds
-                    None,               # gap_first_raw
-                    None,               # gap_previous_raw
-                    "missing",          # gap_first_kind
-                    None,               # gap_first_seconds
-                    None,               # gap_first_laps
-                    "missing",          # gap_previous_kind
-                    None,               # gap_previous_seconds
-                    None,               # gap_previous_laps
-                    None,               # manufacturer
-                    None,               # manufacturer_mapping_status
-                )],
-            )
+def test_rejects_duplicate_car_numbers_before_transformation(connection):
+    connection.execute("""
+        CREATE TEMP VIEW bronze_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-bronze-hash' AS bronze_sha256,
+            *
+        FROM (VALUES
+            ('24', 'BMW M Hybrid V8', '1', 'GTP', 'Classified'),
+            (' 24 ', 'BMW M Hybrid V8', '2', 'GTP', 'Classified')
+        ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
+    """)
 
-    def test_rejects_duplicate_car_numbers_before_transformation(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP VIEW bronze_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-bronze-hash' AS bronze_sha256,
-                    *
-                FROM (VALUES
-                    ('24', 'BMW M Hybrid V8', '1', 'GTP', 'Classified'),
-                    (' 24 ', 'BMW M Hybrid V8', '2', 'GTP', 'Classified')
-                ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
-            """)
+    project_directory = Path(__file__).resolve().parent.parent
 
-            project_directory = Path(__file__).resolve().parent.parent
+    with pytest.raises(ValueError, match="duplicate car numbers"):
+        transform_classification_csv(
+            connection,
+            project_directory,
+        )
 
-            with self.assertRaisesRegex(
-                ValueError,
-                "duplicate car numbers",
-            ):
-                transform_classification_csv(
-                    connection,
-                    project_directory,
-                )
 
-    def test_rejects_missing_car_number_before_transformation(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP VIEW bronze_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-bronze-hash' AS bronze_sha256,
-                    *
-                FROM (VALUES
-                    ('   ', 'BMW M Hybrid V8', '1', 'GTP', 'Classified')
-                ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
-            """)
+def test_rejects_missing_car_number_before_transformation(connection):
+    connection.execute("""
+        CREATE TEMP VIEW bronze_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-bronze-hash' AS bronze_sha256,
+            *
+        FROM (VALUES
+            ('   ', 'BMW M Hybrid V8', '1', 'GTP', 'Classified')
+        ) AS t(NUMBER, VEHICLE, POSITION, CLASS, STATUS)
+    """)
 
-            project_directory = Path(__file__).resolve().parent.parent
+    project_directory = Path(__file__).resolve().parent.parent
 
-            with self.assertRaisesRegex(
-                ValueError,
-                "missing car number",
-            ):
-                transform_classification_csv(
-                    connection,
-                    project_directory,
-                )
+    with pytest.raises(ValueError, match="missing car number"):
+        transform_classification_csv(
+            connection,
+            project_directory,
+        )
 
-    def test_rejects_time_gap_without_seconds(self):
-        with duckdb.connect() as connection:
-            connection.execute("""
-                    CREATE TEMP VIEW silver_classification_csv AS
-                    SELECT
-                        'time' AS gap_first_kind,
-                        CAST(NULL AS DOUBLE) AS gap_first_seconds,
-                        CAST(NULL AS INTEGER) AS gap_first_laps,
-                        'marker' AS gap_previous_kind,
-                        CAST(NULL AS DOUBLE) AS gap_previous_seconds,
-                        CAST(NULL AS INTEGER) AS gap_previous_laps
-                """)
 
-            with self.assertRaisesRegex(
-                ValueError,
-                "1 inconsistent rows"
-            ):
-                validate_classification_gaps(connection)
+def test_rejects_time_gap_without_seconds(connection):
+    connection.execute("""
+            CREATE TEMP VIEW silver_classification_csv AS
+            SELECT
+                'time' AS gap_first_kind,
+                CAST(NULL AS DOUBLE) AS gap_first_seconds,
+                CAST(NULL AS INTEGER) AS gap_first_laps,
+                'marker' AS gap_previous_kind,
+                CAST(NULL AS DOUBLE) AS gap_previous_seconds,
+                CAST(NULL AS INTEGER) AS gap_previous_laps
+        """)
 
-    def test_reports_unrecognized_first_gap(self):
+    with pytest.raises(ValueError, match="1 inconsistent rows"):
+        validate_classification_gaps(connection)
 
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP TABLE silver_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-hash' AS bronze_sha256,
-                    '24' AS car_number,
-                    'to be confirmed' AS gap_first_raw,
-                    'unrecognized' AS gap_first_kind,
-                    '-' AS gap_previous_raw,
-                    'marker' AS gap_previous_kind
-                """)
 
-            gap_issues = build_classification_gap_issues(connection)
+def test_reports_unrecognized_first_gap(connection):
+    connection.execute("""
+        CREATE TEMP TABLE silver_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-hash' AS bronze_sha256,
+            '24' AS car_number,
+            'to be confirmed' AS gap_first_raw,
+            'unrecognized' AS gap_first_kind,
+            '-' AS gap_previous_raw,
+            'marker' AS gap_previous_kind
+        """)
 
-            rows = gap_issues.fetchall()
+    gap_issues = build_classification_gap_issues(connection)
 
-            self.assertEqual(
-                rows,
-                [(
-                    "test-source",
-                    "test-hash",
-                    "24",
-                    "GAP_FIRST",
-                    "to be confirmed",
-                    "unrecognized_gap_format",
-                )]
-            )
+    rows = gap_issues.fetchall()
 
-    def test_reports_both_unrecognized_gaps(self):
+    assert rows == [
+        (
+            "test-source",
+            "test-hash",
+            "24",
+            "GAP_FIRST",
+            "to be confirmed",
+            "unrecognized_gap_format",
+        )
+    ]
 
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP TABLE silver_classification_csv AS
-                SELECT
-                    'test-source' AS source_id,
-                    'test-hash' AS bronze_sha256,
-                    '24' AS car_number,
-                    'unrecognized' AS gap_first_kind,
-                    'to be confirmed' AS gap_first_raw,
-                    'unrecognized' AS gap_first_kind,
-                    'pending review' AS gap_previous_raw,
-                    'unrecognized' AS gap_previous_kind
-                """)
 
-            gap_issues = build_classification_gap_issues(connection)
+def test_reports_both_unrecognized_gaps(connection):
+    connection.execute("""
+        CREATE TEMP TABLE silver_classification_csv AS
+        SELECT
+            'test-source' AS source_id,
+            'test-hash' AS bronze_sha256,
+            '24' AS car_number,
+            'unrecognized' AS gap_first_kind,
+            'to be confirmed' AS gap_first_raw,
+            'unrecognized' AS gap_first_kind,
+            'pending review' AS gap_previous_raw,
+            'unrecognized' AS gap_previous_kind
+        """)
 
-            rows = gap_issues.fetchall()
+    gap_issues = build_classification_gap_issues(connection)
 
-            self.assertCountEqual(
-                rows,
-                [
-                    (
-                        "test-source", "test-hash", "24", "GAP_FIRST",
-                        "to be confirmed", "unrecognized_gap_format",
-                    ),
-                    (
-                        "test-source", "test-hash", "24", "GAP_PREVIOUS",
-                        "pending review", "unrecognized_gap_format",
-                    ),
-                ]
-            )
+    rows = gap_issues.fetchall()
+
+    assert Counter(rows) == Counter(
+        [
+            (
+                "test-source",
+                "test-hash",
+                "24",
+                "GAP_FIRST",
+                "to be confirmed",
+                "unrecognized_gap_format",
+            ),
+            (
+                "test-source",
+                "test-hash",
+                "24",
+                "GAP_PREVIOUS",
+                "pending review",
+                "unrecognized_gap_format",
+            ),
+        ]
+    )

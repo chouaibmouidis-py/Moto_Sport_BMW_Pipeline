@@ -27,7 +27,7 @@ or net time lost on track.
 | Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
 | Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
-| Validation | 227 passing unit and local integration tests; complete local rebuild and remote archive/schema checks performed separately. |
+| Validation | 296 passing pytest tests and 97 passing subtests; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain
@@ -72,8 +72,11 @@ The remaining closure work concerns the later maintenance lot:
 
 ## Later development
 
-A dbt-duckdb pilot, pytest fixture consolidation and streaming integrity checks
-are planned separately and are not implemented milestones. Wider car/motorcycle
+A dbt-duckdb pilot and streaming integrity checks remain unimplemented milestones.
+The pytest migration is complete locally: all non-empty test modules use native
+functions, explicit fixtures and isolated resources, retaining existing scenarios
+and assertions. See the [migration guide](pytest_migration.md).
+Wider car/motorcycle
 coverage for 2022–2026 remains a research objective, not delivered coverage.
 Additional sources require qualification before activation.
 

@@ -1,204 +1,116 @@
 """Verify session date and temperature normalization with missing and invalid inputs."""
 
 import json
-import unittest
 from datetime import datetime
 from pathlib import Path
 
-import duckdb
+import pytest
 
 
-class SilverSessionsTests(unittest.TestCase):
-    def test_celsius_case_does_not_change_values_or_quality_statuses(self):
-        query = Path(__file__).resolve().parent.parent / 'sql/16_silver_sessions.sql'
-        cases = [('17.72 ºC', 17.72, 'valid'), ('17.72 ºc', 17.72, 'valid'),
-                 ('17.72 ºF', None, 'invalid'), ('17.72 ºf', None, 'invalid')]
-        with duckdb.connect() as connection:
-            connection.execute('CREATE TEMP TABLE bronze_document (source_id VARCHAR, bronze_sha256 VARCHAR, session JSON)')
-            for raw, expected, status in cases:
-                with self.subTest(raw=raw):
-                    connection.execute('DELETE FROM bronze_document')
-                    session = {'weather': {'air_temperature': raw, 'track_temperature': raw}}
-                    connection.execute('INSERT INTO bronze_document VALUES (?, ?, ?)',
-                                       ['source', 'hash', json.dumps(session)])
-                    result = connection.sql(query.read_text()).project(
-                        'air_temperature_raw, air_temperature_celsius, air_temperature_status, '
-                        'track_temperature_raw, track_temperature_celsius, track_temperature_status'
-                    ).fetchone()
-                    self.assertEqual(result, (raw, expected, status, raw, expected, status))
+@pytest.fixture
+def session_input(connection):
+    """Create an empty input table; the scenario supplies its own session values."""
+    connection.execute("""
+        CREATE TEMP TABLE bronze_document (
+            source_id VARCHAR,
+            bronze_sha256 VARCHAR,
+            session JSON
+        )
+    """)
+    return connection
 
-    def test_converts_dates_and_temperatures(self):
-        session = {
-            "session_date": "25/01/2025 01:40",
-            "creation_date": "26/01/2025 02:00:29",
-            "weather": {
-                "air_temperature": "17.72 ºC",
-                "track_temperature": "33.60 ºC",
+
+@pytest.mark.parametrize(
+    "raw, expected, status",
+    [
+        ("17.72 ºC", 17.72, "valid"),
+        ("17.72 ºc", 17.72, "valid"),
+        ("17.72 ºF", None, "invalid"),
+        ("17.72 ºf", None, "invalid"),
+    ],
+)
+def test_celsius_case_does_not_change_values_or_quality_statuses(
+    session_input, raw, expected, status
+):
+    query = Path(__file__).resolve().parent.parent / "sql/16_silver_sessions.sql"
+    session = {"weather": {"air_temperature": raw, "track_temperature": raw}}
+    session_input.execute(
+        "INSERT INTO bronze_document VALUES (?, ?, ?)",
+        ["source", "hash", json.dumps(session)],
+    )
+    result = (
+        session_input.sql(query.read_text())
+        .project(
+            "air_temperature_raw, air_temperature_celsius, air_temperature_status, "
+            "track_temperature_raw, track_temperature_celsius, track_temperature_status"
+        )
+        .fetchone()
+    )
+    assert result == (raw, expected, status, raw, expected, status)
+
+
+@pytest.mark.parametrize(
+    "session, expected",
+    [
+        pytest.param(
+            {
+                "session_date": "25/01/2025 01:40",
+                "creation_date": "26/01/2025 02:00:29",
+                "weather": {
+                    "air_temperature": "17.72 ºC",
+                    "track_temperature": "33.60 ºC",
+                },
             },
-        }
-
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP TABLE bronze_document (
-                    source_id VARCHAR,
-                    bronze_sha256 VARCHAR,
-                    session JSON
-                )
-            """)
-
-            connection.execute(
-                "INSERT INTO bronze_document VALUES (?, ?, ?)",
-                ["test-source", "test-bronze-hash", json.dumps(session)],
-            )
-
-            query_path = (
-                Path(__file__).resolve().parent.parent
-                / "sql"
-                / "16_silver_sessions.sql"
-            )
-
-            sessions = connection.sql(
-                query_path.read_text(encoding="utf-8")
-            )
-            sessions.create_view("silver_sessions")
-
-            row = connection.sql("""
-                SELECT
-                    session_datetime,
-                    report_creation_datetime,
-                    air_temperature_celsius,
-                    track_temperature_celsius,
-                    air_temperature_status,
-                    track_temperature_status,
-                    session_datetime_status,
-                    report_creation_datetime_status
-                FROM silver_sessions
-            """).fetchone()
-
-            self.assertEqual(
-                row,
-                (
-                    datetime(2025, 1, 25, 1, 40),
-                    datetime(2025, 1, 26, 2, 0, 29),
-                    17.72,
-                    33.60,
-                    "valid",
-                    "valid",
-                    "valid",
-                    "valid",
-                ),
-            )
-
-
-    def test_invalid_dates_and_missing_temperatures_return_null(self):
-        session = {
-            "session_date": "date inconnue",
-            "creation_date": "",
-            "weather": {
-                "air_temperature": "inconnue",
-                "track_temperature": "inconnue",
+            (
+                datetime(2025, 1, 25, 1, 40),
+                datetime(2025, 1, 26, 2, 0, 29),
+                17.72,
+                33.60,
+                "valid",
+                "valid",
+                "valid",
+                "valid",
+            ),
+            id="valid-dates-and-temperatures",
+        ),
+        pytest.param(
+            {
+                "session_date": "date inconnue",
+                "creation_date": "",
+                "weather": {
+                    "air_temperature": "inconnue",
+                    "track_temperature": "inconnue",
+                },
             },
-        }
-
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP TABLE bronze_document (
-                    source_id VARCHAR,
-                    bronze_sha256 VARCHAR,
-                    session JSON
-                )
-            """)
-
-            connection.execute(
-                "INSERT INTO bronze_document VALUES (?, ?, ?)",
-                ["test-source", "test-bronze-hash", json.dumps(session)],
-            )
-
-            query_path = (
-                Path(__file__).resolve().parent.parent
-                / "sql"
-                / "16_silver_sessions.sql"
-            )
-
-            sessions = connection.sql(
-                query_path.read_text(encoding="utf-8")
-            )
-            sessions.create_view("silver_sessions")
-
-            row = connection.sql("""
-                SELECT
-                    session_datetime,
-                    report_creation_datetime,
-                    air_temperature_celsius,
-                    track_temperature_celsius,
-                    air_temperature_status,
-                    track_temperature_status,
-                    session_datetime_status,
-                    report_creation_datetime_status
-                FROM silver_sessions
-            """).fetchone()
-
-            self.assertEqual(
-                row,
-                (
-                    None, None, None, None,
-                    "invalid", "invalid", "invalid", "missing",
-                ),
-            )
-
-
-    def test_empty_temperatures_are_missing(self):
-        session = {
-            "session_date": "date inconnue",
-            "creation_date": "",
-            "weather": {
-                "air_temperature": "   ",
-              "track_temperature": "   ",
+            (None, None, None, None, "invalid", "invalid", "invalid", "missing"),
+            id="invalid-dates-and-temperatures",
+        ),
+        pytest.param(
+            {
+                "session_date": "date inconnue",
+                "creation_date": "",
+                "weather": {"air_temperature": "   ", "track_temperature": "   "},
             },
-        }
-
-        with duckdb.connect() as connection:
-            connection.execute("""
-                CREATE TEMP TABLE bronze_document (
-                    source_id VARCHAR,
-                    bronze_sha256 VARCHAR,
-                    session JSON
-                )
-            """)
-
-            connection.execute(
-                "INSERT INTO bronze_document VALUES (?, ?, ?)",
-                ["test-source", "test-bronze-hash", json.dumps(session)],
-            )
-
-            query_path = (
-                Path(__file__).resolve().parent.parent
-                / "sql"
-                / "16_silver_sessions.sql"
-            )
-
-            sessions = connection.sql(
-                query_path.read_text(encoding="utf-8")
-            )
-            sessions.create_view("silver_sessions")
-
-            row = connection.sql("""
-                SELECT
-                    session_datetime,
-                    report_creation_datetime,
-                    air_temperature_celsius,
-                    track_temperature_celsius,
-                    air_temperature_status,
-                    track_temperature_status,
-                    session_datetime_status,
-                    report_creation_datetime_status
-                FROM silver_sessions
-            """).fetchone()
-
-            self.assertEqual(
-                row,
-                (
-                    None, None, None, None,
-                    "missing", "missing", "invalid", "missing",
-                ),
-            )
+            (None, None, None, None, "missing", "missing", "invalid", "missing"),
+            id="missing-temperatures",
+        ),
+    ],
+)
+def test_session_normalization_preserves_expected_values_and_statuses(
+    session_input, session, expected
+):
+    session_input.execute(
+        "INSERT INTO bronze_document VALUES (?, ?, ?)",
+        ["test-source", "test-bronze-hash", json.dumps(session)],
+    )
+    query = Path(__file__).resolve().parent.parent / "sql/16_silver_sessions.sql"
+    row = (
+        session_input.sql(query.read_text(encoding="utf-8"))
+        .project(
+            "session_datetime, report_creation_datetime, air_temperature_celsius, "
+            "track_temperature_celsius, air_temperature_status, track_temperature_status, "
+            "session_datetime_status, report_creation_datetime_status"
+        )
+        .fetchone()
+    )
+    assert row == expected

@@ -1,162 +1,138 @@
 """Verify validated Parquet replacement and preservation of previous files on failure."""
 
-import tempfile
-import unittest
+from collections import Counter
 from pathlib import Path
 from unittest.mock import patch
 
-import duckdb
+import pytest
 
 from silver_writer import publish_silver
 
 
-class SilverWriterTests(unittest.TestCase):
-    def test_write_failure_preserves_previous_file(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "pit_stops.parquet"
-            output_path.write_bytes(b"previous version")
-            with duckdb.connect() as connection:
-                converted = connection.sql("""
-                    SELECT '24' AS car_number
-                """)
+def test_write_failure_preserves_previous_file(tmp_path, connection):
+    directory = tmp_path
+    output_path = Path(directory) / "pit_stops.parquet"
+    output_path.write_bytes(b"previous version")
+    converted = connection.sql("""
+        SELECT '24' AS car_number
+    """)
 
-                with patch(
-                    "duckdb.DuckDBPyRelation.write_parquet",
-                    side_effect=OSError("Simulated write failure"),
-                ):
-                    self.assertRaises(
-                        OSError,
-                        publish_silver,
-                        connection,
-                        converted,
-                        output_path,
-                    )
+    with patch(
+        "duckdb.DuckDBPyRelation.write_parquet",
+        side_effect=OSError("Simulated write failure"),
+    ):
+        with pytest.raises(OSError):
+            publish_silver(connection, converted, output_path)
 
-            self.assertEqual(
-                output_path.read_bytes(),
-                b"previous version",
-            )
+    assert output_path.read_bytes() == b"previous version"
 
-    def test_content_mismatch_preserves_previous_file(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "pit_stops.parquet"
-            output_path.write_bytes(b"previous version")
-            with duckdb.connect() as connection:
-                converted = connection.sql("""
-                    SELECT '24' AS car_number
-                """)
-                converted.create_view("silver_pit_stops")
 
-                different_content = connection.sql("""
-                    SELECT '25' AS car_number
-                """)
+def test_content_mismatch_preserves_previous_file(tmp_path, connection):
+    directory = tmp_path
+    output_path = Path(directory) / "pit_stops.parquet"
+    output_path.write_bytes(b"previous version")
+    converted = connection.sql("""
+        SELECT '24' AS car_number
+    """)
+    converted.create_view("silver_pit_stops")
 
-                objects_before = connection.sql("SHOW TABLES").fetchall()
+    different_content = connection.sql("""
+        SELECT '25' AS car_number
+    """)
 
-                with patch(
-                    "duckdb.DuckDBPyConnection.read_parquet",
-                    return_value=different_content,
-                ):
-                    with self.assertRaisesRegex(
-                        ValueError,
-                        "Parquet publication rejected: saved content differs",
-                    ) as raised:
-                        publish_silver(connection, converted, output_path)
-                    self.assertIn(f"path={output_path}", str(raised.exception))
+    objects_before = connection.sql("SHOW TABLES").fetchall()
 
-                objects_after = connection.sql("SHOW TABLES").fetchall()
+    with patch(
+        "duckdb.DuckDBPyConnection.read_parquet",
+        return_value=different_content,
+    ):
+        with pytest.raises(
+            ValueError, match="Parquet publication rejected: saved content differs"
+        ) as raised:
+            publish_silver(connection, converted, output_path)
+        assert f"path={output_path}" in str(raised.value)
 
-                self.assertCountEqual(objects_after, objects_before)
+    objects_after = connection.sql("SHOW TABLES").fetchall()
 
-                self.assertEqual(
-                    output_path.read_bytes(),
-                    b"previous version",
-                )
+    assert Counter(objects_after) == Counter(objects_before)
 
-    def test_valid_content_replaces_previous_file(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "pit_stops.parquet"
-            output_path.write_bytes(b"previous version")
+    assert output_path.read_bytes() == b"previous version"
 
-            with duckdb.connect() as connection:
-                converted = connection.sql("""
-                    SELECT '04' AS car_number
-                """)
 
-                connection.sql("""
-                    SELECT '99' AS car_number
-                """).create_view("silver_pit_stops")
+def test_valid_content_replaces_previous_file(tmp_path, connection):
+    directory = tmp_path
+    output_path = Path(directory) / "pit_stops.parquet"
+    output_path.write_bytes(b"previous version")
 
-                objects_before = connection.sql("SHOW TABLES").fetchall()
+    converted = connection.sql("""
+        SELECT '04' AS car_number
+    """)
 
-                publish_silver(connection, converted, output_path)
+    connection.sql("""
+        SELECT '99' AS car_number
+    """).create_view("silver_pit_stops")
 
-                objects_after = connection.sql("SHOW TABLES").fetchall()
+    objects_before = connection.sql("SHOW TABLES").fetchall()
 
-                self.assertCountEqual(objects_after, objects_before)
+    publish_silver(connection, converted, output_path)
 
-                saved = connection.read_parquet(str(output_path))
-                rows = saved.fetchall()
+    objects_after = connection.sql("SHOW TABLES").fetchall()
 
-                self.assertEqual(rows, [("04",)])
+    assert Counter(objects_after) == Counter(objects_before)
 
-    def test_row_count_mismatch_preserves_previous_file(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "pit_stops.parquet"
-            output_path.write_bytes(b"previous version")
-            with duckdb.connect() as connection:
-                converted = connection.sql("""
-                    SELECT *
-                    FROM (VALUES ('24'), ('25')) AS t(car_number)
-                """)
-                converted.create_view("silver_pit_stops")
+    saved = connection.read_parquet(str(output_path))
+    rows = saved.fetchall()
 
-                different_content = connection.sql("""
-                    SELECT '25' AS car_number
-                """)
+    assert rows == [("04",)]
 
-                with patch(
-                    "duckdb.DuckDBPyConnection.read_parquet",
-                    return_value=different_content,
-                ):
-                    with self.assertRaisesRegex(
-                        ValueError,
-                        "Parquet publication rejected: row count mismatch",
-                    ) as raised:
-                        publish_silver(connection, converted, output_path)
-                    self.assertIn(f"path={output_path}", str(raised.exception))
-                    self.assertIn("expected=2, saved=1", str(raised.exception))
 
-            self.assertEqual(
-                output_path.read_bytes(),
-                b"previous version",
-            )
+def test_row_count_mismatch_preserves_previous_file(tmp_path, connection):
+    directory = tmp_path
+    output_path = Path(directory) / "pit_stops.parquet"
+    output_path.write_bytes(b"previous version")
+    converted = connection.sql("""
+        SELECT *
+        FROM (VALUES ('24'), ('25')) AS t(car_number)
+    """)
+    converted.create_view("silver_pit_stops")
 
-    def test_publishes_car_entries_with_custom_source_view(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "car_entries.parquet"
+    different_content = connection.sql("""
+        SELECT '25' AS car_number
+    """)
 
-            with duckdb.connect() as connection:
-                car_entries = connection.sql("""
-                    SELECT
-                        'test-source' AS source_id,
-                        '0' AS source_entry_index,
-                        '04' AS car_number,
-                        0 AS pit_stop_count
-                """)
-                car_entries.create_view("silver_car_entries")
+    with patch(
+        "duckdb.DuckDBPyConnection.read_parquet",
+        return_value=different_content,
+    ):
+        with pytest.raises(
+            ValueError, match="Parquet publication rejected: row count mismatch"
+        ) as raised:
+            publish_silver(connection, converted, output_path)
+        assert f"path={output_path}" in str(raised.value)
+        assert "expected=2, saved=1" in str(raised.value)
 
-                publish_silver(
-                    connection,
-                    car_entries,
-                    output_path,
-                )
+    assert output_path.read_bytes() == b"previous version"
 
-                rows = connection.read_parquet(
-                    str(output_path)
-                ).fetchall()
 
-                self.assertEqual(
-                    rows,
-                    [("test-source", "0", "04", 0)],
-                )
+def test_publishes_car_entries_with_custom_source_view(tmp_path, connection):
+    directory = tmp_path
+    output_path = Path(directory) / "car_entries.parquet"
+
+    car_entries = connection.sql("""
+        SELECT
+            'test-source' AS source_id,
+            '0' AS source_entry_index,
+            '04' AS car_number,
+            0 AS pit_stop_count
+    """)
+    car_entries.create_view("silver_car_entries")
+
+    publish_silver(
+        connection,
+        car_entries,
+        output_path,
+    )
+
+    rows = connection.read_parquet(str(output_path)).fetchall()
+
+    assert rows == [("test-source", "0", "04", 0)]

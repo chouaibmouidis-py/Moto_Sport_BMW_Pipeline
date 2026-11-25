@@ -32,7 +32,7 @@ maintenance lot, whose local tests do not establish remote deployment.
 
 ```bash
 uv sync --locked
-uv run --locked --no-sync python -m unittest discover -s tests -v
+uv run --locked --no-sync python -m pytest -v
 uv run --locked --no-sync python run_pipeline.py --log-file data/logs/pipeline.log
 ```
 
@@ -175,7 +175,9 @@ upload preparation. These two reads can observe different file versions. A
 will validate and archive the same bytes, removing redundant work. Holding all
 file contents in memory is a separate limitation; this change is not yet implemented.
 
-The latest local suite has 227 passing tests. Synthetic and temporary-file tests
+The latest local pytest run has 296 passing tests and 97 passing subtests.
+Parametrization exposes former inner cases separately; the changed count does
+not represent additional behavioral coverage. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,
 publication failure, context restoration, additive schema migration and archive
 pinning. They establish only the behaviors asserted by those scenarios.
@@ -200,7 +202,9 @@ The recent implementation review is complete. Close its maintenance lot with a
 final diff and test check, local commit, authorized push and CI. Data publication
 is a separate workflow when rebuilding/publishing is required. The next development
 milestone follows the documented test-first workflow.
-A dbt-duckdb pilot, pytest fixture refactor and streaming hashes remain planned.
+A dbt-duckdb pilot and streaming hashes remain planned. The pytest migration is complete locally: all non-empty test modules use native
+functions and explicit fixtures; existing scenarios and assertions are retained. See the
+[pytest migration guide](pytest_migration.md).
 
 Historical source qualifications:
 [2023](imsa_2023_season_coverage.fr.md),

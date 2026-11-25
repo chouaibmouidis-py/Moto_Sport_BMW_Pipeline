@@ -1,49 +1,50 @@
 """Verify local file integrity against recorded SHA-256 metadata."""
 
-import unittest
-import tempfile
-from pathlib import Path
-from file_integrity import verify_local_file
 import hashlib
 import json
 
-class FileIntegrityTests(unittest.TestCase):
-    def test_missing_metadata_raises(self):
-        with tempfile.TemporaryDirectory() as directory:
-            source_path = Path(directory) / "source.json"
-            metadata_path = Path(directory) / "metadata.json"
+import pytest
 
-            source_path.write_bytes(b"{}")
+from file_integrity import verify_local_file
 
-            self.assertRaises(
-                FileNotFoundError,
-                verify_local_file,
-                source_path,
-                metadata_path,
-            )
 
-    def test_hash_mismatch_raises(self):
-        with tempfile.TemporaryDirectory() as directory:
-            source_path = Path(directory) / "source.json"
-            metadata_path = Path(directory) / "metadata.json"
+@pytest.fixture
+def integrity_path(tmp_path):
+    source_path = tmp_path / "source.json"
+    metada_path = tmp_path / "metadata.json"
 
-            source_path.write_bytes(b"BMW")
-            metadata_path.write_text('{"sha256": "empreinte_incorrect"}', encoding="utf-8")
-            self.assertRaises(
-                ValueError,
-                verify_local_file,
-                source_path,
-                metadata_path,
-            )
+    return (source_path, metada_path)
 
-    def test_matching_hash_is_accepted(self):
-        with tempfile.TemporaryDirectory() as directory:
-            source_path = Path(directory) / "source.json"
-            metadata_path = Path(directory) / "metadata.json"
 
-            source_path.write_bytes(b"BMW")
-            expected_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+def test_missing_metadata_raises(integrity_path):
+    source_path, metadata_path = integrity_path
 
-            metadata = {"sha256": expected_hash}
-            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
-            verify_local_file(source_path, metadata_path)
+    source_path.write_bytes(b"{}")
+
+    with pytest.raises(FileNotFoundError):
+        verify_local_file(source_path, metadata_path)
+
+
+def test_hash_mismatch_raises(integrity_path):
+    source_path, metadata_path = integrity_path
+
+    source_path.write_bytes(b"BMW")
+
+    metadata_path.write_text('{"sha256": "empreinte_incorrect"}', encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        verify_local_file(source_path, metadata_path)
+
+
+def test_matching_hash_is_accepted(integrity_path):
+    source_path, metadata_path = integrity_path
+
+    source_path.write_bytes(b"BMW")
+
+    expected_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+
+    metadata = {"sha256": expected_hash}
+
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    verify_local_file(source_path, metadata_path)

@@ -13,7 +13,7 @@ independently of BMW and IMSA.
 
 **Python · SQL · DuckDB · Airflow · GitHub Actions · MotherDuck · Streamlit**
 
-## Hosted dashboard coverage
+## Coverage & release status
 
 | Season | Source formats | Race entries | BMW entries |
 | --- | --- | ---: | ---: |
@@ -23,26 +23,10 @@ independently of BMW and IMSA.
 | 2025 | Classification and pit-stop JSON | 469 | 48 |
 | **Total** | **34 races** | **1,453** | **140** |
 
-The common Gold participant table contains **45 columns**, including session
-context, stop statistics, source provenance and quality statuses. The JSON
-workflow covers 8,307 detailed stops; the CSV/PDF path covers 3,953 in 2023
-and 1,762 in Daytona 2022.
-
-## Locally validated coverage
-
-The local pipeline also includes **Daytona 2022**: 61 participants (3 BMW) and
-1,762 extracted pit stops. Both sources are enabled in the manifest after a
-complete local Raw → Bronze → Silver → Gold run. Local Gold now contains
-**1,453 participants, including 140 BMW, across 34 races, with 45 columns**.
-The previous 1,392 participant records are preserved, apart from the documented
-targeted manufacturer corrections. Exact model corrections are computed in
-Silver and retained in Gold with `matched_override` / `silver_override` statuses.
-
-The Daytona 2022 extension has been published, with its dashboard operation
-confirmed by the maintainer. The source archive contains 114 verified files and
-MotherDuck history has received the 16 additional columns. The subsequent
-case-handling and rollback-diagnostic changes are a separate maintenance lot:
-local test results do not by themselves establish their remote deployment.
+The Daytona 2022 extension (45 columns, 114 archived files) is live on the
+hosted dashboard. Subsequent maintenance fixes (case-independent checks and
+exception preservation on failed rollback) and the pytest migration are validated
+locally, with 296 passing tests and 97 passing subtests, and await their own deployment.
 
 ## Delivered milestones
 
@@ -55,8 +39,13 @@ local test results do not by themselves establish their remote deployment.
 | Traceability and publication | Versioned inputs, SHA-256 checks, verified Parquet writes and independent Gold activation. Remote publication validates content before switching the active run in a transaction. |
 | Remote reconstruction and access | 114-file source archive renewed and restored for verification; additive history migration completed; hosted dashboard uses a separate read-only identity. |
 | Review maintenance — locally validated | Case-independent coherence rules, contextual logs, and preservation of the original exception if rollback also fails. These later fixes are distinct from the already published data extension. |
-| Regression coverage | Latest full local run on 24 November 2026: **227 passing tests**, including mutation, publication failure, migration and archive scenarios. |
+| Pytest migration — completed locally | All non-empty test modules use native pytest functions and explicit fixtures. Scenarios, assertions and per-test isolation are preserved; see the migration guide. |
+| Regression coverage | Latest full local run on 25 November 2026: **296 passing tests and 97 passing subtests**, including mutation, publication failure, migration and archive scenarios. |
 
+All 56 non-empty test modules now use native pytest functions. Shared fixtures
+provide isolated DuckDB connections, temporary paths and contextual log capture.
+Input variants are parameterized; checks within a shared scenario use native
+pytest subtests. No TestCase classes remain. See the [migration guide](docs/pytest_migration.md).
 Tests are launched explicitly or by CI; running the pipeline alone does not run
 the `tests/` suite. Data validation inside production modules still executes on
 every applicable pipeline run. New development follows a test-first workflow:
@@ -100,9 +89,16 @@ Initial setup and JSON downloads require Internet access.
 
 ```bash
 uv sync --locked
-uv run --locked python -m unittest discover -s tests -v
+uv run --locked python -m pytest -v
 uv run --locked python run_pipeline.py
 ```
+
+The default command processes all enabled JSON, CSV and PDF sources. It does
+not publish to MotherDuck. See the [execution guide](docs/project_reference.md#execution-order)
+for refresh, selection and publication options.
+
+<details>
+<summary>Advanced CLI & legacy diagnostics</summary>
 
 Optional diagnostics for the legacy JSON main-run reference:
 
@@ -122,10 +118,9 @@ Enable detailed tables and retain execution logs:
 uv run --locked python run_pipeline.py --verbose --log-file data/logs/pipeline.log
 ```
 
-Run all enabled sources through the shared pipeline (JSON, CSV and PDF):
+Select sources or execute individual stages:
 
 ```bash
-uv run python run_pipeline.py
 # Optional selection, without creating a format- or season-specific launcher:
 uv run python run_pipeline.py --season 2023 --event daytona
 # Airflow invokes these same stages:
@@ -170,6 +165,8 @@ The [execution guide](docs/project_reference.md#execution-order) covers the shar
 commands, source refresh and selection. The [2023 qualification](docs/imsa_2023_season_coverage.fr.md)
 retains historical findings; the [current reference](docs/project_reference.md#responsibilities-and-active-paths)
 describes the common production paths for JSON and CSV/PDF.
+
+</details>
 
 ## Dashboard
 
@@ -247,7 +244,6 @@ Tests precede each behavioral change; measurements precede performance claims.
 | File-by-file archive processing | Validate, insert, reread and release one payload before the next; retain a lightweight inventory and commit only after full verification. Test a later-file failure and measure peak memory. Handling a single oversized BLOB in chunks remains a separate interface question. |
 | Failed-candidate retention | Add explicit failure status/time, a configurable retention period and a dry-run cleanup command. Protect active, running and successful historical runs; test selection and deletion safeguards before enabling a real scheduled trigger. |
 | dbt-duckdb pilot | Move a bounded vertical slice of transformations/tests while preserving contracts and explicit publication/activation guarantees. Expand only after equivalence is verified. |
-| pytest fixture refactor | Share setup code without sharing mutable state between tests; preserve visible scenario inputs, expected outputs and existing assertions. |
 | Streaming integrity helpers | Reduce full-file hashing/copy memory with a measured, tested common implementation while keeping hashes tied to the bytes actually processed. |
 | Wider source coverage | Qualify additional report families and races before activation, including the remaining 2022 scope and future car/motorcycle sources. Worldwide 2022–2026 coverage remains an objective. |
 

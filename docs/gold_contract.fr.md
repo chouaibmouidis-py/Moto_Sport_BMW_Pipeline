@@ -56,7 +56,7 @@ schema migration are not automatically performed on push.
 
 ## Evidence and limits
 
-The 227-test suite includes preservation, invalid-input, mutation, failure,
+The pytest suite (296 tests and 97 subtests passing) includes preservation, invalid-input, mutation, failure,
 rollback and migration scenarios. Real local reconstruction and remote archive
 restoration were also checked. These checks do not establish completeness of
 all reports, concurrent-publication safety or hardware-crash recovery. Preserve

@@ -2,81 +2,79 @@
 
 import hashlib
 from pathlib import Path
-import tempfile
-import unittest
 
 import duckdb
+import pytest
 
 from moto_sport_bmw_pipeline.pipeline import publish_pdf_pit_stops_from_bronze
 
 
-class PdfPitStopsPipelineTests(unittest.TestCase):
-    def test_transforms_and_publishes_silver_with_correct_schema(self):
-        project_directory = Path(__file__).resolve().parent.parent
+def test_transforms_and_publishes_silver_with_correct_schema(tmp_path):
+    project_directory = Path(__file__).resolve().parent.parent
 
-        with tempfile.TemporaryDirectory() as directory:
-            bronze_path = Path(directory) / "bronze.parquet"
-            output_path = Path(directory) / "silver.parquet"
+    directory = tmp_path
+    bronze_path = Path(directory) / "bronze.parquet"
+    output_path = Path(directory) / "silver.parquet"
 
-            with duckdb.connect() as connection:
-                connection.sql("""
-                    SELECT *
-                    FROM (VALUES
-                        ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 2, 'line 1'),
-                        ('source-1', 'pdf-sha', '24', 2, '1:22.665', 1, 1, 3, 'line 2')
-                    ) AS t(
-                        source_id, pdf_sha256, car_number, pit_number,
-                        pit_time_raw, page_number, column_number,
-                        block_line_number, source_line
-                    )
-                """).write_parquet(str(bronze_path))
-
-            expected_bronze_sha = hashlib.sha256(bronze_path.read_bytes()).hexdigest()
-
-            result = publish_pdf_pit_stops_from_bronze(
-                project_directory,
-                bronze_path,
-                output_path,
+    with duckdb.connect() as connection:
+        connection.sql("""
+            SELECT *
+            FROM (VALUES
+                ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 2, 'line 1'),
+                ('source-1', 'pdf-sha', '24', 2, '1:22.665', 1, 1, 3, 'line 2')
+            ) AS t(
+                source_id, pdf_sha256, car_number, pit_number,
+                pit_time_raw, page_number, column_number,
+                block_line_number, source_line
             )
-            self.assertEqual(result, output_path)
+        """).write_parquet(str(bronze_path))
 
-            with duckdb.connect() as connection:
-                saved = connection.read_parquet(str(output_path))
-                rows = saved.project(
-                    "source_id, pdf_sha256, bronze_sha256, car_number, pit_number, pit_time_raw, pit_time_in_seconds"
-                ).fetchall()
+    expected_bronze_sha = hashlib.sha256(bronze_path.read_bytes()).hexdigest()
 
-            self.assertEqual(rows, [
-                ('source-1', 'pdf-sha', expected_bronze_sha, '24', 1, '1:28.481', 88.481),
-                ('source-1', 'pdf-sha', expected_bronze_sha, '24', 2, '1:22.665', 82.665),
-            ])
+    result = publish_pdf_pit_stops_from_bronze(
+        project_directory,
+        bronze_path,
+        output_path,
+    )
+    assert result == output_path
 
-    def test_duplicate_stop_keys_preserve_previous_output(self):
-        project_directory = Path(__file__).resolve().parent.parent
+    with duckdb.connect() as connection:
+        saved = connection.read_parquet(str(output_path))
+        rows = saved.project(
+            "source_id, pdf_sha256, bronze_sha256, car_number, pit_number, pit_time_raw, pit_time_in_seconds"
+        ).fetchall()
 
-        with tempfile.TemporaryDirectory() as directory:
-            bronze_path = Path(directory) / "bronze.parquet"
-            output_path = Path(directory) / "silver.parquet"
-            output_path.write_bytes(b"previous version")
+    assert rows == [
+        ("source-1", "pdf-sha", expected_bronze_sha, "24", 1, "1:28.481", 88.481),
+        ("source-1", "pdf-sha", expected_bronze_sha, "24", 2, "1:22.665", 82.665),
+    ]
 
-            with duckdb.connect() as connection:
-                connection.sql("""
-                    SELECT *
-                    FROM (VALUES
-                        ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 2, 'line 1'),
-                        ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 3, 'line 2')
-                    ) AS t(
-                        source_id, pdf_sha256, car_number, pit_number,
-                        pit_time_raw, page_number, column_number,
-                        block_line_number, source_line
-                    )
-                """).write_parquet(str(bronze_path))
 
-            with self.assertRaisesRegex(ValueError, "duplicate stop keys"):
-                publish_pdf_pit_stops_from_bronze(
-                    project_directory,
-                    bronze_path,
-                    output_path,
-                )
+def test_duplicate_stop_keys_preserve_previous_output(tmp_path, connection):
+    project_directory = Path(__file__).resolve().parent.parent
 
-            self.assertEqual(output_path.read_bytes(), b"previous version")
+    directory = tmp_path
+    bronze_path = Path(directory) / "bronze.parquet"
+    output_path = Path(directory) / "silver.parquet"
+    output_path.write_bytes(b"previous version")
+
+    connection.sql("""
+        SELECT *
+        FROM (VALUES
+            ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 2, 'line 1'),
+            ('source-1', 'pdf-sha', '24', 1, '1:28.481', 1, 1, 3, 'line 2')
+        ) AS t(
+            source_id, pdf_sha256, car_number, pit_number,
+            pit_time_raw, page_number, column_number,
+            block_line_number, source_line
+        )
+    """).write_parquet(str(bronze_path))
+
+    with pytest.raises(ValueError, match="duplicate stop keys"):
+        publish_pdf_pit_stops_from_bronze(
+            project_directory,
+            bronze_path,
+            output_path,
+        )
+
+    assert output_path.read_bytes() == b"previous version"
