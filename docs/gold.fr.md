@@ -97,23 +97,29 @@ preserves the prior pin. These checks run against temporary files/local DuckDB,
 not against the live MotherDuck archive. No production performance or cost gain
 has been measured; this code change has not been deployed to the remote workflow.
 
-All prepared file payloads still accumulate in source_files before the database
-connection opens. Single reading removes redundant I/O and keeps validation tied
-to the submitted bytes; it does not bound cumulative payload memory. File-by-file
-processing is the next separate milestone.
-
-The related bounded-memory archive milestone processes one file at a time inside
+The archiver processes one file at a time inside
 the archive transaction: read and validate, insert, verify the saved bytes, then
 release the content before handling the next file. Only lightweight inventory
 records are retained across files. The full inventory is verified before COMMIT;
 the local pin changes afterward. This bounds accumulated Python file payloads by
 the largest file in flight rather than their total size; it does not cap total
 process memory or remove DuckDB/driver buffers. Chunked handling of an individually
-oversized BLOB requires separate interface validation. Tests must check incremental
-processing and preservation of the previous pin on a later-file failure, with a
-representative peak-memory measurement. The current dataset has not established
-a measured universal 1 GB memory bound. This is preventive planned work, not an
-implemented streaming guarantee.
+oversized BLOB requires separate interface validation. Local tests verify that A
+is stored before B is prepared, and that invalid B rolls back A and its inventory
+without replacing the previous pin.
+
+The Python allocation guard uses synthetic files and initializes DuckDB's lazy
+Python dependencies with a parameterized SELECT before tracing. It does not read
+the measured files during initialization. Cases with 1, 3 and 10 files must stay
+below the payload threshold; a deliberate wrapper retaining all 10 payloads must
+exceed it while still performing the real archive writes. This checks sensitivity
+to accumulation rather than asserting only a successful run.
+
+tracemalloc covers traced Python allocations during the callback, not all native
+engine/driver buffers or previously allocated memory. Separate exploratory cold
+process measurements showed that overall resident memory can grow with the file
+count. No universal process RAM bound or production MotherDuck saving is claimed.
+The file-by-file change and memory guard are locally validated, not cloud deployed.
 
 ```text
 data/gold/current.json

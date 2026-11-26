@@ -172,10 +172,14 @@ it is planned, not deployed, and must preserve the current content contract.
 Source archival now reads each source once and uses the validated bytes for its
 archive payload. Metadata-backed sources also retain the exact metadata bytes
 used to obtain the expected hash. See the [single-read archive contract](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
-All payloads still accumulate before insertion; file-by-file bounded-memory
-handling remains planned and is not delivered by this change.
+Payloads are prepared, inserted, read-back verified and released file by file in
+one transaction. Only lightweight inventory records accumulate. Tests cover
+incremental insertion, later-file rollback and a warmed Python allocation guard
+with a deliberate payload-retention control. Native/driver/transaction memory,
+cold-start RSS and individually oversized files remain separate limits; this is
+not a total-process memory bound or a live MotherDuck benchmark.
 
-The latest local pytest run has 302 passing tests and 97 passing subtests.
+The latest local pytest run on 26 November 2026 has 312 passing tests and 97 passing subtests.
 Parametrization exposes former inner cases separately; the changed count does
 not represent additional behavioral coverage. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,

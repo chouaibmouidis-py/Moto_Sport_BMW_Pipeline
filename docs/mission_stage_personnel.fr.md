@@ -27,7 +27,7 @@ or net time lost on track.
 | Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
 | Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
-| Validation | 302 passing pytest tests and 97 passing subtests; complete local rebuild and remote archive/schema checks performed separately. |
+| Validation | 312 passing pytest tests and 97 passing subtests locally on 26 November 2026; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain
@@ -89,8 +89,11 @@ measured without weakening historical-content preservation. See the documented
 Single-read source archival is implemented and validated locally: the same source
 bytes are checked and submitted, and metadata bytes are retained unchanged.
 Tests cover both expected-hash paths, read counts, archived metadata fields and
-preservation of the previous pin on invalid metadata hashes. The file-by-file
-memory milestone remains separate: all payloads still accumulate before insertion.
+preservation of the previous pin on invalid metadata hashes. File-by-file handling
+is also validated locally: insert and verify before preparing the next source,
+retain only lightweight inventory, and roll back earlier inserts on a later-file
+failure. The warmed Python allocation guard detects deliberate accumulation;
+it does not bound total process RAM or qualify live MotherDuck memory.
 See the [archive contract and memory limit](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
 
 Concurrency, recovery after hardware failure, automatic remote revision detection

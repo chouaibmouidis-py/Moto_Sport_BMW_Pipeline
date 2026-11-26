@@ -24,9 +24,10 @@ independently of BMW and IMSA.
 | **Total** | **34 races** | **1,453** | **140** |
 
 The Daytona 2022 extension (45 columns, 114 archived files) is live on the
-hosted dashboard. Subsequent maintenance fixes (case-independent checks and
-exception preservation on failed rollback), the pytest migration and single-read archival are validated
-locally, with 302 passing tests and 97 passing subtests, and await their own deployment.
+hosted dashboard. Subsequent maintenance, the pytest migration and file-by-file
+archival are validated locally with 312 passing tests and 97 passing subtests.
+Pushing code triggers CI; renewing the archive and running production publication
+are separate operations.
 
 ## Delivered milestones
 
@@ -40,10 +41,10 @@ locally, with 302 passing tests and 97 passing subtests, and await their own dep
 | Remote reconstruction and access | 114-file source archive renewed and restored for verification; additive history migration completed; hosted dashboard uses a separate read-only identity. |
 | Review maintenance — locally validated | Case-independent coherence rules, contextual logs, and preservation of the original exception if rollback also fails. These later fixes are distinct from the already published data extension. |
 | Pytest migration — completed locally | All non-empty test modules use native pytest functions and explicit fixtures. Scenarios, assertions and per-test isolation are preserved; see the migration guide. |
-| Single-read archival — locally validated | Manifest and metadata hash paths reuse validated source bytes; metadata bytes are retained unchanged. Tests cover read counts, metadata round trips and rejection without changing the previous pin. Payload accumulation remains a separate memory milestone. |
-| Regression coverage | Latest full local run on 25 November 2026: **302 passing tests and 97 passing subtests**, including mutation, publication failure, migration and archive scenarios. |
+| File-by-file archival — locally validated | Validate, insert and verify each file before preparing the next; retain lightweight inventory records. Single-read, metadata round-trip, later-file rollback and Python payload-retention tests pass locally. |
+| Regression coverage | Latest full local run on 26 November 2026: **312 passing tests and 97 passing subtests**, including mutation, publication failure, migration and archive scenarios. |
 
-All 56 non-empty test modules now use native pytest functions. Shared fixtures
+All non-empty test modules now use native pytest functions. Shared fixtures
 provide isolated DuckDB connections, temporary paths and contextual log capture.
 Input variants are parameterized; checks within a shared scenario use native
 pytest subtests. No TestCase classes remain. See the [migration guide](docs/pytest_migration.md).
@@ -217,7 +218,7 @@ to preserve previously shared links.
 | Source accuracy and interpretation | Hashes establish byte identity, not sporting truth. Missing observations remain NULL; source count discrepancies remain visible. Clock-derived durations assume a stop under 24 hours. |
 | Historical manufacturer evidence | Some earlier-season name resolution uses later reports. Assess temporal leakage before predictive or pre-race use; explicit model corrections retain their status and provenance. |
 | Migration client memory | `fetchall()` plus `Counter` retains historical/visible rows in Python. Memory and transfer volume grow with the history; no large-history memory/cost benchmark is established. |
-| Archive payload memory | Sources and metadata are read once; the validated bytes are retained for archival. All file payloads still accumulate in Python before upload; file-by-file processing is not implemented. |
+| Archive memory | File payloads no longer accumulate in Python. Inventory grows with file count; one complete file, metadata and engine/driver/transaction buffers still consume memory. The warmed Python allocation guard is not a total-process RAM bound or a live MotherDuck benchmark. |
 | Failed candidate retention | Local candidate files may remain after failure. Automatic expiration and cleanup are not implemented. |
 | Operational failure boundaries | Concurrency and hardware-crash recovery are not qualified. If connection loss prevents rollback, the remote outcome must be verified after reconnection; preserving the exception does not confirm rollback. |
 | Reconstruction and source revisions | Snapshots retain inputs and SQL, not the Python implementation/environment. Preserve the code revision and lockfile. The pinned archive does not discover new races or upstream corrections automatically. |
@@ -234,14 +235,13 @@ corrections. See the [reuse notes](docs/project_reference.md#remaining-work-and-
 
 ## Planned milestones
 
-The following work is **planned, not implemented**. Complete the current review
-maintenance commit and CI before opening the next implementation milestone.
+The following work is **planned, not implemented**.
 Tests precede each behavioral change; measurements precede performance claims.
 
 | Milestone | Target and acceptance |
 | --- | --- |
 | Exact migration checks inside the engine | Replace Python-wide historical copies with occurrence-sensitive before/after comparisons and scalar results. Preserve content, duplicate, NULL and rollback semantics; measure engine placement, RAM, transfers and temporary-storage cost. COUNT alone or an aggregated fingerprint must not silently weaken the contract. |
-| File-by-file archive processing | Validate, insert, reread and release one payload before the next; retain a lightweight inventory and commit only after full verification. Test a later-file failure and measure peak memory. Handling a single oversized BLOB in chunks remains a separate interface question. |
+| Archive engine and oversized-file memory | Qualify native/driver/transaction memory and cold-start RSS separately from the completed Python payload-retention guard. Validate chunked handling before accepting individually oversized BLOBs. Preserve the all-or-nothing archive transaction. |
 | Failed-candidate retention | Add explicit failure status/time, a configurable retention period and a dry-run cleanup command. Protect active, running and successful historical runs; test selection and deletion safeguards before enabling a real scheduled trigger. |
 | dbt-duckdb pilot | Move a bounded vertical slice of transformations/tests while preserving contracts and explicit publication/activation guarantees. Expand only after equivalence is verified. |
 | Streaming integrity helpers | Reduce full-file hashing/copy memory with a measured, tested common implementation while keeping hashes tied to the bytes actually processed. |

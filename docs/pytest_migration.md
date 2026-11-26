@@ -1,9 +1,11 @@
 # Pytest migration
 
-The local migration is complete on 25 November 2026. All 56 non-empty test
+The local migration was completed on 25 November 2026. All maintained test
 modules use native pytest functions; there are no TestCase classes, self.assert*
 checks, setUp/tearDown methods or manually managed TemporaryDirectory blocks.
-The empty archive-file-preparation draft remains untouched.
+At migration time, 56 modules contained tests and the archive-file-preparation
+draft was empty. That draft has since become an active, versioned test module,
+and the memory-probe tests have been added.
 
 Pytest is a development dependency pinned in uv.lock. Pytest 9 supplies the
 native subtests fixture without an additional plugin. unittest.mock is retained
@@ -55,12 +57,12 @@ check another log record. Failed subtests still fail the containing test while
 allowing later checks to execute.
 
 Before the final migration batch, the full suite passed with 265 tests and 143
-subtests. The final suite passes with **296 tests and 97 native subtests** in
+subtests. The migration-only final suite passed with **296 tests and 97 native subtests** in
 **39.93 seconds**. Collection counts change when inner cases become independent
 parameterized tests; they do not imply new behavioral coverage. A structural
 audit against the pre-batch files retained all 225 test-function names and all
 396 assertion/exception-check sites, and compared normalized SQL literals. The
-57-file inventory includes the one empty draft; 56 modules contain actual tests.
+57-file inventory at that point included the one empty draft and 56 active test modules.
 
 The pre-batch run took 54.20 seconds. These are individual local observations,
 not a controlled repeated benchmark or a guaranteed performance improvement.
@@ -74,7 +76,10 @@ collected. Tests run explicitly or through CI; starting the pipeline does not
 implicitly execute the tests directory. Production data controls remain in their
 own modules and still execute during applicable pipeline stages.
 
-The migration itself did not implement single-read archival; that subsequent
-archive milestone is now validated locally. Streaming BLOB handling,
+The migration itself did not implement archival changes. Subsequent single-read
+and file-by-file archival milestones are validated locally; the latest full run
+on 26 November 2026 has 312 passing tests and 97 passing subtests. The Python
+allocation guard covers payload retention, not total engine or process memory.
+Streaming BLOB handling,
 engine-side migration comparisons, candidate retention and dbt remain planned. New behavior still
 starts with a contract and a meaningful failing test before implementation.
