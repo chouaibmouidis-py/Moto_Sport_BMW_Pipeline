@@ -179,12 +179,24 @@ with a deliberate payload-retention control. Native/driver/transaction memory,
 cold-start RSS and individually oversized files remain separate limits; this is
 not a total-process memory bound or a live MotherDuck benchmark.
 
-The latest local pytest run on 26 November 2026 has 312 passing tests and 97 passing subtests.
-Parametrization exposes former inner cases separately; the changed count does
-not represent additional behavioral coverage. Synthetic and temporary-file tests
+Restoration now reads only paths and hashes into its inventory. It checks the
+inventory count and all destination paths before fetching one payload at a time.
+Each payload is validated and written to a unique neighboring temporary file,
+then reread and released from Python before the next payload is fetched. Only
+paths remain across files. Final replacements start after every file is prepared.
+An invalid second file preserves both existing destinations and staged temporaries
+are removed. Replacement-time failures can leave mixed final versions; there is
+no global filesystem transaction. Temporary disk usage grows with the staged
+archive size. See the [restoration contract](gold.fr.md#file-by-file-source-restoration).
+
+The latest local pytest run on 26 November 2026 has 334 passing tests and 97 passing subtests.
+Earlier parametrization exposed former inner cases separately; restoration adds
+new behavioral coverage. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,
-publication failure, context restoration, additive schema migration and archive
-pinning. They establish only the behaviors asserted by those scenarios.
+publication failure, context restoration, additive schema migration, archive
+pinning and progressive restoration. They establish only the behaviors asserted
+by those scenarios. File-by-file transfer is not end-to-end micro-batching of
+Bronze, Silver and Gold.
 
 The complete real local rebuild produced 1,453 participants and 140 BMW across
 45 columns. Comparison in both directions with EXCEPT ALL retained the previous

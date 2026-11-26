@@ -93,14 +93,14 @@ def store_archive_file(connection, source_file):
         )
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--pin",
         action="store_true",
         help="Update the local archive reference after remote verification.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     configure_logging()
 
     manifest_path = PROJECT_DIR / "config" / "sources.json"

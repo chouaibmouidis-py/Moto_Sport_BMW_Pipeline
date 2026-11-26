@@ -25,7 +25,7 @@ independently of BMW and IMSA.
 
 The Daytona 2022 extension (45 columns, 114 archived files) is live on the
 hosted dashboard. Subsequent maintenance, the pytest migration and file-by-file
-archival are validated locally with 312 passing tests and 97 passing subtests.
+archival/restoration are validated locally with 334 passing tests and 97 passing subtests.
 Pushing code triggers CI; renewing the archive and running production publication
 are separate operations.
 
@@ -42,7 +42,9 @@ are separate operations.
 | Review maintenance — locally validated | Case-independent coherence rules, contextual logs, and preservation of the original exception if rollback also fails. These later fixes are distinct from the already published data extension. |
 | Pytest migration — completed locally | All non-empty test modules use native pytest functions and explicit fixtures. Scenarios, assertions and per-test isolation are preserved; see the migration guide. |
 | File-by-file archival — locally validated | Validate, insert and verify each file before preparing the next; retain lightweight inventory records. Single-read, metadata round-trip, later-file rollback and Python payload-retention tests pass locally. |
-| Regression coverage | Latest full local run on 26 November 2026: **312 passing tests and 97 passing subtests**, including mutation, publication failure, migration and archive scenarios. |
+| File-by-file restoration — locally validated | Load a lightweight inventory, fetch and validate one payload, verify a unique temporary file, then release the payload before fetching the next. Replace destinations only after all files are prepared; invalid later content preserves existing files and removes staged temporaries. |
+| Archive regression maintenance | Isolated fixtures share repeated setup; explicit CLI arguments replace argv patches in archive tests. A golden archive ID detects changes to the fixed inventory serialization. |
+| Regression coverage | Latest full local run on 26 November 2026: **334 passing tests and 97 passing subtests**, including mutation, publication failure, migration, archive and restoration scenarios. |
 
 All non-empty test modules now use native pytest functions. Shared fixtures
 provide isolated DuckDB connections, temporary paths and contextual log capture.
@@ -219,6 +221,7 @@ to preserve previously shared links.
 | Historical manufacturer evidence | Some earlier-season name resolution uses later reports. Assess temporal leakage before predictive or pre-race use; explicit model corrections retain their status and provenance. |
 | Migration client memory | `fetchall()` plus `Counter` retains historical/visible rows in Python. Memory and transfer volume grow with the history; no large-history memory/cost benchmark is established. |
 | Archive memory | File payloads no longer accumulate in Python. Inventory grows with file count; one complete file, metadata and engine/driver/transaction buffers still consume memory. The warmed Python allocation guard is not a total-process RAM bound or a live MotherDuck benchmark. |
+| Restoration memory and activation | Payloads are fetched and staged one at a time; inventory and staged paths grow with file count. Temporary disk usage grows with the archive size. Final replacements are individually atomic, not globally atomic: a failure during activation can leave mixed versions. Cleanup errors are logged and can leave temporary files. |
 | Failed candidate retention | Local candidate files may remain after failure. Automatic expiration and cleanup are not implemented. |
 | Operational failure boundaries | Concurrency and hardware-crash recovery are not qualified. If connection loss prevents rollback, the remote outcome must be verified after reconnection; preserving the exception does not confirm rollback. |
 | Reconstruction and source revisions | Snapshots retain inputs and SQL, not the Python implementation/environment. Preserve the code revision and lockfile. The pinned archive does not discover new races or upstream corrections automatically. |
@@ -242,6 +245,8 @@ Tests precede each behavioral change; measurements precede performance claims.
 | --- | --- |
 | Exact migration checks inside the engine | Replace Python-wide historical copies with occurrence-sensitive before/after comparisons and scalar results. Preserve content, duplicate, NULL and rollback semantics; measure engine placement, RAM, transfers and temporary-storage cost. COUNT alone or an aggregated fingerprint must not silently weaken the contract. |
 | Archive engine and oversized-file memory | Qualify native/driver/transaction memory and cold-start RSS separately from the completed Python payload-retention guard. Validate chunked handling before accepting individually oversized BLOBs. Preserve the all-or-nothing archive transaction. |
+| Progressive processing beyond source transfer | Audit downloading, Bronze extraction, Silver consolidation and Gold publication independently; extend progressive processing where it preserves cross-source checks and activation contracts. File-by-file archive/restore does not establish end-to-end micro-batching. |
+| Restoration recovery and staging budget | Test replacement failures and recovery from mixed final versions, qualify concurrent restores and crash recovery, and define temporary-disk capacity/cleanup policies. Existing preservation tests cover preparation failures, not global multi-file atomicity. |
 | Failed-candidate retention | Add explicit failure status/time, a configurable retention period and a dry-run cleanup command. Protect active, running and successful historical runs; test selection and deletion safeguards before enabling a real scheduled trigger. |
 | dbt-duckdb pilot | Move a bounded vertical slice of transformations/tests while preserving contracts and explicit publication/activation guarantees. Expand only after equivalence is verified. |
 | Streaming integrity helpers | Reduce full-file hashing/copy memory with a measured, tested common implementation while keeping hashes tied to the bytes actually processed. |
@@ -252,12 +257,12 @@ Detailed delivery scope and acceptance criteria are maintained in the
 explicitly rather than inferred from this backlog; no delivery dates or measured
 savings are claimed for work not yet executed.
 
-## Licence
+## License
 
 Copyright 2026 Chouaib MOUID. Original project code and original documentation
 are licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for
 attribution and scope.
 
 Official IMSA reports, source datasets, third-party materials and BMW/IMSA
-trademarks are excluded from this code licence and retain their own rights and
+trademarks are excluded from this code license and retain their own rights and
 usage terms. This project is not affiliated with or endorsed by BMW or IMSA.

@@ -77,9 +77,15 @@ implicitly execute the tests directory. Production data controls remain in their
 own modules and still execute during applicable pipeline stages.
 
 The migration itself did not implement archival changes. Subsequent single-read
-and file-by-file archival milestones are validated locally; the latest full run
-on 26 November 2026 has 312 passing tests and 97 passing subtests. The Python
+and file-by-file archival/restoration milestones are validated locally; the latest full run
+on 26 November 2026 has 334 passing tests and 97 passing subtests. The Python
 allocation guard covers payload retention, not total engine or process memory.
+Archive tests share isolated setup and an explicit helper for adding sources;
+the A/B observer is shared while rollback assertions remain visible. Archive CLI
+arguments are passed to `main(argv)` rather than patching `sys.argv`. The fixed
+archive-ID expectation locks the test inventory's serialization. Restoration
+tests observe real queries/writes and include a deliberate payload-retention
+control for the allocation threshold.
 Streaming BLOB handling,
 engine-side migration comparisons, candidate retention and dbt remain planned. New behavior still
 starts with a contract and a meaningful failing test before implementation.

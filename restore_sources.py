@@ -1,17 +1,115 @@
 """Restore a pinned source archive for pipeline execution."""
 
+import argparse
+import getpass
+import hashlib
 import json
 import logging
-import getpass
 import os
-import duckdb
-from moto_sport_bmw_pipeline.paths import PROJECT_DIR
-from moto_sport_bmw_pipeline.logging_config import configure_logging, log_operation
-import hashlib
-import argparse
+import tempfile
 from pathlib import Path
 
+import duckdb
+
+from moto_sport_bmw_pipeline.logging_config import configure_logging, log_operation
+from moto_sport_bmw_pipeline.paths import PROJECT_DIR
+
 logger = logging.getLogger("moto_sport_bmw_pipeline.restore_sources")
+
+
+def validate_archive_content(
+    relative_path,
+    expected_sha256,
+    size_bytes,
+    content,
+) -> None:
+
+    if content is None or size_bytes is None:
+        raise ValueError(
+            f"Source restoration rejected: missing content for {relative_path}"
+        )
+    if len(content) != size_bytes:
+        raise ValueError(
+            f"Source restoration rejected: size mismatch for {relative_path}"
+        )
+    actual_sha256 = hashlib.sha256(content).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError(
+            f"Source restoration rejected: hash mismatch for {relative_path}"
+        )
+
+
+def load_archive_inventory(connection, archive_id):
+
+    query = connection.execute(
+        """
+        SELECT
+            relative_path,
+            sha256
+        FROM
+            bmw_analytics.main.source_archive_inventory
+        WHERE archive_id = ?
+        ORDER BY relative_path
+    """,
+        [archive_id],
+    ).fetchall()
+
+    return query
+
+
+def load_archive_file(connection, relative_path, expected_sha256):
+
+    query = connection.execute(
+        """
+        SELECT
+            size_bytes,
+            content
+        FROM
+            bmw_analytics.main.source_archive
+        WHERE
+            relative_path = ? AND sha256 = ?
+    """,
+        [relative_path, expected_sha256],
+    ).fetchone()
+
+    return query
+
+
+def build_restore_targets(restore_directory, inventory):
+
+    restore_directory = restore_directory.resolve()
+    targets = []
+    for relative_path, expected_sha256 in inventory:
+        target_path = (restore_directory / relative_path).resolve()
+        if not target_path.is_relative_to(restore_directory / "data" / "raw"):
+            raise ValueError(
+                f"Source restoration rejected: invalid path {relative_path}"
+            )
+        targets.append((target_path, relative_path, expected_sha256))
+    return targets
+
+
+def stage_restore_file(target_path, content):
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    descriptor, filename = tempfile.mkstemp(
+        dir=target_path.parent, prefix=f"{target_path.name}", suffix=".part"
+    )
+    temporary_path = Path(filename)
+    try:
+        with os.fdopen(descriptor, "wb") as file:
+            file.write(content)
+        if temporary_path.read_bytes() != content:
+            raise ValueError(
+                f"Source restoration rejected: written content differs for {target_path}"
+            )
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+    return temporary_path
+
 
 def main():
 
@@ -31,8 +129,13 @@ def main():
         archive_reference = json.load(file)
 
     archive_id = archive_reference["archive_id"]
-    with log_operation(logger, "Restore pinned source archive",
-                       run_id=archive_id, stage="restore_sources", source_id="-"):
+    with log_operation(
+        logger,
+        "Restore pinned source archive",
+        run_id=archive_id,
+        stage="restore_sources",
+        source_id="-",
+    ):
         expected_file_count = archive_reference["file_count"]
 
         logger.info(
@@ -47,47 +150,10 @@ def main():
             ).strip()
 
         with duckdb.connect("md:bmw_analytics") as connection:
-            archived_files = connection.execute(
-                """
-                SELECT
-                    inventory.relative_path,
-                    inventory.sha256,
-                    archive.size_bytes,
-                    archive.content
-                FROM bmw_analytics.main.source_archive_inventory AS inventory
-                LEFT JOIN bmw_analytics.main.source_archive AS archive
-                    ON inventory.relative_path = archive.relative_path
-                    AND inventory.sha256 = archive.sha256
-                WHERE inventory.archive_id = ?
-                ORDER BY inventory.relative_path
-                """,
-                [archive_id],
-            ).fetchall()
+            inventory = load_archive_inventory(connection, archive_id)
 
-            logger.info("Retrieved inventory entries: %s", len(archived_files))
-
-            if len(archived_files) != expected_file_count:
+            if len(inventory) != expected_file_count:
                 raise ValueError("Source restoration rejected: file count mismatch")
-
-            for relative_path, expected_sha256, size_bytes, content in archived_files:
-                if content is None or size_bytes is None:
-                    raise ValueError(
-                        f"Source restoration rejected: missing content for {relative_path}"
-                    )
-
-                if len(content) != size_bytes:
-                    raise ValueError(
-                        f"Source restoration rejected: size mismatch for {relative_path}"
-                    )
-
-                actual_sha256 = hashlib.sha256(content).hexdigest()
-
-                if actual_sha256 != expected_sha256:
-                    raise ValueError(
-                        f"Source restoration rejected: hash mismatch for {relative_path}"
-                    )
-
-            logger.info("Verified archived files: %s", len(archived_files))
 
             if args.destination is None:
                 restore_directory = (
@@ -96,42 +162,52 @@ def main():
             else:
                 restore_directory = args.destination.resolve()
 
-            restore_targets = []
+            targets = build_restore_targets(restore_directory, inventory)
+            staged_files = []
 
-            for relative_path, _, _, content in archived_files:
-                target_path = (restore_directory / relative_path).resolve()
-
-                if not target_path.is_relative_to(
-                    restore_directory / "data" / "raw"
-                ):
-                    raise ValueError(
-                        f"Source restoration rejected: invalid path {relative_path}"
+            try:
+                for target_path, relative_path, expected_sha256 in targets:
+                    archived_file = load_archive_file(
+                        connection, relative_path, expected_sha256
                     )
 
-                restore_targets.append((target_path, content))
+                    if archived_file is None:
+                        raise ValueError(
+                            "Source restoration rejected: missing content "
+                            f"for {relative_path}"
+                        )
 
-            for target_path, content in restore_targets:
-                target_path.parent.mkdir(parents=True, exist_ok=True)
+                    size_bytes, content = archived_file
 
-                temporary_path = target_path.with_name(
-                    target_path.name + ".part"
-                )
-
-                temporary_path.write_bytes(content)
-
-                if temporary_path.read_bytes() != content:
-                    raise ValueError(
-                        f"Source restoration rejected: written content differs "
-                        f"for {target_path}"
+                    validate_archive_content(
+                        relative_path, expected_sha256, size_bytes, content
                     )
 
-                temporary_path.replace(target_path)
+                    temporary_path = stage_restore_file(target_path, content)
+                    staged_files.append((temporary_path, target_path))
+
+                    del content
+                    del archived_file
+
+                for temporary_path, target_path in staged_files:
+                    temporary_path.replace(target_path)
+
+            finally:
+                for temporary_path, _ in staged_files:
+                    try:
+                        temporary_path.unlink(missing_ok=True)
+                    except OSError:
+                        logger.exception(
+                            "Could not remove restore temporary: %s",
+                            temporary_path,
+                        )
 
             logger.info(
                 "Restored and verified %s files in %s",
-                len(restore_targets),
+                len(targets),
                 restore_directory,
             )
+
 
 if __name__ == "__main__":
     main()

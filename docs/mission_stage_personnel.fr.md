@@ -27,7 +27,8 @@ or net time lost on track.
 | Diagnosis | Logs identify run, stage and source where applicable; failures propagate. Quality reports retain nonblocking source discrepancies. |
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
 | Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
-| Validation | 312 passing pytest tests and 97 passing subtests locally on 26 November 2026; complete local rebuild and remote archive/schema checks performed separately. |
+| Progressive source restoration | One payload fetched, validated and staged at a time; activation after complete preparation. Invalid later content preserves old destinations and removes staged files. Global replacement atomicity remains unqualified. |
+| Validation | 334 passing pytest tests and 97 passing subtests locally on 26 November 2026; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain
@@ -95,6 +96,14 @@ retain only lightweight inventory, and roll back earlier inserts on a later-file
 failure. The warmed Python allocation guard detects deliberate accumulation;
 it does not bound total process RAM or qualify live MotherDuck memory.
 See the [archive contract and memory limit](gold.fr.md#archive-repeated-reads-and-planned-single-read-validation).
+
+Progressive restoration is also validated locally, with real local DuckDB queries
+and temporary-file writes. Tests cover staging order, exact contents, preservation
+and cleanup after invalid later content, and Python allocation guards with a
+deliberate-retention control. Native memory, staging disk capacity, individually
+oversized files and recovery during multi-file replacement remain separate work.
+The change does not convert every pipeline stage to micro-batching. See the
+[restoration contract](gold.fr.md#file-by-file-source-restoration).
 
 Concurrency, recovery after hardware failure, automatic remote revision detection
 and a shared detailed-stop table are not established by this delivery. Machine

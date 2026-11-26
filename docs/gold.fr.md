@@ -119,7 +119,50 @@ tracemalloc covers traced Python allocations during the callback, not all native
 engine/driver buffers or previously allocated memory. Separate exploratory cold
 process measurements showed that overall resident memory can grow with the file
 count. No universal process RAM bound or production MotherDuck saving is claimed.
-The file-by-file change and memory guard are locally validated, not cloud deployed.
+The file-by-file change and memory guard are locally validated. A code push
+does not renew the remote archive or qualify its memory usage on MotherDuck.
+
+### File-by-file source restoration
+
+`restore_sources.py` first loads the pinned inventory's paths and hashes and checks
+its file count. All destination paths must resolve beneath the selected
+destination's `data/raw` directory before any content is retrieved.
+
+For each inventory entry, restoration fetches one `(size_bytes, content)` row
+using both path and hash, validates presence/size/SHA-256, and writes a unique
+temporary file beside its destination. The temporary is reread to compare exact
+bytes. Only the temporary/destination paths are retained across iterations;
+payload references are removed before the next file is fetched.
+
+After every file is prepared, restoration replaces the destinations. A preparation
+failure removes earlier staged temporaries and leaves existing destinations
+unchanged. The helper also removes its own temporary on an ordinary write/readback
+failure. Main cleanup logs removal failures, which can leave files behind.
+Each replacement is individual: activation is not a global filesystem transaction.
+A failure during replacement can leave a mixture of old and new destination
+files. Concurrent restoration and hardware-crash recovery are not qualified.
+
+Local tests cover exact restored bytes, missing content/size, wrong size/hash,
+path-and-hash lookup, invalid destination paths, unique temporary names, readback
+failure, and staging A before fetching B while both old destinations are intact.
+On invalid B, a file-set assertion checks that only the two original destination
+files remain. Temporarily disabling cleanup made that assertion fail; restoring
+cleanup returned it to green.
+
+The restoration allocation guard uses 1, 3 and 10 synthetic files of 4 MiB, prepared
+in local DuckDB before tracing. The expected Python peak is below a 14 MiB test
+threshold. A control retains all ten payloads while performing real writes and
+must exceed that same threshold. These tests detect Python payload accumulation;
+they do not cap native engine/driver memory, characterize cold-start process RSS,
+or measure remote MotherDuck performance. Inventory/path memory grows with file
+count and temporary disk usage grows with total staged bytes. Single-file chunking,
+staging capacity policies and activation recovery remain separate milestones.
+
+Archive tests also share isolated setup and accept explicit `main(argv)` arguments.
+A literal expected archive ID for the fixed test inventory detects changes in
+serialization. Changing a separator caused that assertion to fail; the compact
+format was restored before validation. Intentional format changes must account
+for persisted references rather than silently updating the test constant.
 
 ```text
 data/gold/current.json
