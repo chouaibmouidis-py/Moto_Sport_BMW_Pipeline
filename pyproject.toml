@@ -3,6 +3,7 @@ name = "moto-sport-bmw-pipeline"
 version = "0.1.0"
 description = "Educational IMSA extraction pipeline focused on BMW race entries"
 readme = "README.md"
+license = "Apache-2.0"
 authors = [
     { name = "MOUID", email = "chouaibmouidis@gmail.com" }
 ]

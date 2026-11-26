@@ -251,3 +251,13 @@ Detailed delivery scope and acceptance criteria are maintained in the
 [project brief](docs/mission_stage_personnel.fr.md). The next milestone is chosen
 explicitly rather than inferred from this backlog; no delivery dates or measured
 savings are claimed for work not yet executed.
+
+## Licence
+
+Copyright 2026 Chouaib MOUID. Original project code and original documentation
+are licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for
+attribution and scope.
+
+Official IMSA reports, source datasets, third-party materials and BMW/IMSA
+trademarks are excluded from this code licence and retain their own rights and
+usage terms. This project is not affiliated with or endorsed by BMW or IMSA.
