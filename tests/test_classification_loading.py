@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from analyze_classification import load_classification_sources
+from moto_sport_bmw_pipeline.bronze_storage import publish_bronze
 from moto_sport_bmw_pipeline.quality import build_source_pairs
 from moto_sport_bmw_pipeline.source_loading import (
     load_classification_csv_bronze,
@@ -14,7 +15,8 @@ from moto_sport_bmw_pipeline.source_loading import (
 )
 
 
-def test_loads_multiple_sources_with_their_hashes(tmp_path, connection):
+def test_loads_multiple_sources_with_their_hashes(tmp_path, vortex_connection):
+    connection = vortex_connection
     directory = tmp_path
     project_directory = Path(directory)
     sources = [
@@ -33,7 +35,7 @@ def test_loads_multiple_sources_with_their_hashes(tmp_path, connection):
         )
         bronze_path.parent.mkdir(parents=True)
 
-        connection.sql(
+        document = connection.sql(
             """
             SELECT
                 CAST(? AS JSON) AS session,
@@ -41,7 +43,8 @@ def test_loads_multiple_sources_with_their_hashes(tmp_path, connection):
                 '[]'::JSON AS classification
             """,
             params=['{"event_name": "' + source["source_id"] + '"}'],
-        ).write_parquet(str(bronze_path))
+        )
+        publish_bronze(connection, document, bronze_path)
 
         expected.append(
             (
@@ -66,7 +69,8 @@ def test_loads_multiple_sources_with_their_hashes(tmp_path, connection):
     assert Counter(rows) == Counter(expected)
 
 
-def test_rejects_batch_when_a_bronze_file_is_missing(tmp_path, connection):
+def test_rejects_batch_when_a_bronze_file_is_missing(tmp_path, vortex_connection):
+    connection = vortex_connection
     directory = tmp_path
     project_directory = Path(directory)
     sources = [
@@ -79,12 +83,13 @@ def test_rejects_batch_when_a_bronze_file_is_missing(tmp_path, connection):
     )
     bronze_path.parent.mkdir(parents=True)
 
-    connection.sql("""
+    document = connection.sql("""
         SELECT
             '{}'::JSON AS session,
             '{}'::JSON AS fastest_lap,
             '[]'::JSON AS classification
-    """).write_parquet(str(bronze_path))
+    """)
+    publish_bronze(connection, document, bronze_path)
 
     with pytest.raises(
         FileNotFoundError, match="missing Bronze file for source 'classification-b'"

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import duckdb
 import pytest
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.batch_processing import build_classification_batch
 
@@ -47,7 +48,11 @@ def test_separates_event_outputs_and_preserves_provenance(tmp_path):
         )
     reference = root / "data" / "current.json"
     reference.write_bytes(b'{"run_id":"previous-run"}')
-    results = build_classification_batch(root, {"season": 2023, "events": events})
+    results = build_classification_batch(
+        root,
+        {"season": 2023, "events": events},
+        extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+    )
     assert [row["participants"] for row in results] == [1, 1]
     assert [row["missing_positions"] for row in results] == [1, 1]
     for event in events:

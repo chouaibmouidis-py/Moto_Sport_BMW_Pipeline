@@ -3,11 +3,15 @@
 Coordinates and sequence checks are explicit; this is not a universal PDF parser.
 """
 
-from pathlib import Path
+import logging
 import re
+from collections.abc import Iterable, Iterator
+from contextlib import closing
+from pathlib import Path
 
 from pypdf import PdfReader
 
+logger = logging.getLogger(__name__)
 
 CAR_HEADER = re.compile(r"^(\d+)(?:\s+[A-Za-z]|$)")
 # Retain likely stop rows even when their remaining fields cannot be parsed.
@@ -19,9 +23,9 @@ STOP_ROW = re.compile(
 )
 
 
-def parse_stop_blocks(
-    blocks: list[tuple[int | None, int | None, str]],
-) -> list[dict]:
+def iter_parse_stop_blocks(
+    blocks: Iterable[tuple[int | None, int | None, str]],
+) -> Iterator[dict]:
     """Parse ordered blocks while retaining each stop's extracted location.
 
     block_line_number counts retained text lines, not visual PDF lines.
@@ -29,7 +33,6 @@ def parse_stop_blocks(
     """
     current_car = None
     expected_stop_number = 1
-    rows = []
 
     for page_number, column_number, block in blocks:
         for block_line_number, line in enumerate(block.splitlines(), start=1):
@@ -54,7 +57,7 @@ def parse_stop_blocks(
                         f"for car {current_car} (expected {expected_stop_number})"
                     )
                 expected_stop_number += 1
-                rows.append({
+                yield {
                     "car_number": current_car,
                     "pit_number": stop_number,
                     "pit_time_raw": stop.group(2),
@@ -62,9 +65,14 @@ def parse_stop_blocks(
                     "column_number": column_number,
                     "block_line_number": block_line_number,
                     "source_line": line,
-                })
+                }
 
-    return rows
+
+def parse_stop_blocks(
+    blocks: Iterable[tuple[int | None, int | None, str]],
+) -> list[dict]:
+    """Compatibility materializer for callers explicitly requesting all rows."""
+    return list(iter_parse_stop_blocks(blocks))
 
 
 def classify_token(x: float, y: float, value: str, size: float):
@@ -83,46 +91,60 @@ def classify_token(x: float, y: float, value: str, size: float):
 
     # Centers of the observed header positions (1, 2, or 3 digits).
     header_x = 65.05 if column == 0 else 325.85
-    if (
-        value.isdigit()
-        and len(value) <= 3
-        and size >= 16
-        and abs(x - header_x) < 12
-    ):
+    if value.isdigit() and len(value) <= 3 and size >= 16 and abs(x - header_x) < 12:
         return column, value
 
     return None
 
-def extract_stop_blocks(
+
+def iter_stop_blocks(
     source_path: Path,
-) -> list[tuple[int, int, str]]:
+) -> Iterator[tuple[int, int, str]]:
     """Extract ordered text blocks with one-based page and column numbers."""
-    blocks = []
+    # Supplying the stream avoids PdfReader(path)'s initial full-file BytesIO copy.
+    with source_path.open("rb") as stream:
+        reader = PdfReader(stream)
+        try:
+            for page_number, page in enumerate(reader.pages, start=1):
+                columns = [[], []]
 
-    for page_number, page in enumerate(PdfReader(source_path).pages, start=1):
-        columns = [[], []]
+                def collect(text, cm, tm, font, size):
+                    x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
+                    y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
+                    classified = classify_token(x, y, text.strip(), size or 0)
 
-        def collect(text, cm, tm, font, size):
-            x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
-            y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
-            classified = classify_token(x, y, text.strip(), size or 0)
+                    if classified is not None:
+                        column, value = classified
+                        columns[column].append((y, value))
 
-            if classified is not None:
-                column, value = classified
-                columns[column].append((y, value))
+                page.extract_text(visitor_text=collect)
 
-        page.extract_text(visitor_text=collect)
+                for column_number, column in enumerate(columns, start=1):
+                    ordered_text = "\n".join(
+                        value
+                        for _, value in sorted(
+                            column, key=lambda item: item[0], reverse=True
+                        )
+                    )
+                    yield page_number, column_number, ordered_text
+        finally:
+            try:
+                reader.close()
+            except Exception:
+                logger.exception("Could not close PDF reader: %s", source_path)
 
-        for column_number, column in enumerate(columns, start=1):
-            ordered_text = "\n".join(
-                value
-                for _, value in sorted(column, key=lambda item: item[0], reverse=True)
-            )
-            blocks.append((page_number, column_number, ordered_text))
 
-    return blocks
+def extract_stop_blocks(source_path: Path) -> list[tuple[int, int, str]]:
+    """Compatibility materializer; production extraction uses the iterator."""
+    return list(iter_stop_blocks(source_path))
+
+
+def iter_stops(source_path: Path) -> Iterator[dict]:
+    """Yield validated stops and close the page stream on failure or cancellation."""
+    with closing(iter_stop_blocks(source_path)) as blocks:
+        yield from iter_parse_stop_blocks(blocks)
 
 
 def extract_stops(source_path: Path) -> list[dict]:
     """Extract raw stop fields and their page, column and retained text line."""
-    return parse_stop_blocks(extract_stop_blocks(source_path))
+    return list(iter_stops(source_path))

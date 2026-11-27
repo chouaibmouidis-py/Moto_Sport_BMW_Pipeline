@@ -25,9 +25,15 @@ independently of BMW and IMSA.
 
 The Daytona 2022 extension (45 columns, 114 archived files) is live on the
 hosted dashboard. Subsequent maintenance, the pytest migration and file-by-file
-archival/restoration are validated locally with 334 passing tests and 97 passing subtests.
+archival/restoration and the subsequent shared Bronze publication are validated locally
+with **437 passing tests and 97 passing subtests**.
 Pushing code triggers CI; renewing the archive and running production publication
 are separate operations.
+
+The local 68-report storage qualification preserves content and provenance, but
+Vortex produced 6.33 MB against 1.73 MB for Parquet with the tested settings.
+**Parquet remains the production format; Vortex stays experimental.** See the
+[protocol, results and decision](docs/real_bronze_vortex_qualification.md).
 
 ## Delivered milestones
 
@@ -44,7 +50,12 @@ are separate operations.
 | File-by-file archival — locally validated | Validate, insert and verify each file before preparing the next; retain lightweight inventory records. Single-read, metadata round-trip, later-file rollback and Python payload-retention tests pass locally. |
 | File-by-file restoration — locally validated | Load a lightweight inventory, fetch and validate one payload, verify a unique temporary file, then release the payload before fetching the next. Replace destinations only after all files are prepared; invalid later content preserves existing files and removes staged temporaries. |
 | Archive regression maintenance | Isolated fixtures share repeated setup; explicit CLI arguments replace argv patches in archive tests. A golden archive ID detects changes to the fixed inventory serialization. |
-| Regression coverage | Latest full local run on 26 November 2026: **334 passing tests and 97 passing subtests**, including mutation, publication failure, migration, archive and restoration scenarios. |
+| Progressive source download — locally validated | Stream HTTP chunks to a unique temporary file and update SHA-256 from the same chunks. Reuse the digest in acquisition metadata; preserve the previous source and original exception on failure. Parsing and cached-file verification remain separate memory concerns. |
+| Common Bronze publication — locally validated | JSON, CSV and PDF extraction share write/reread/schema/content checks, replacement and cleanup. Exact occurrence-sensitive comparison stays in DuckDB; source-specific JSON checks and PDF provenance are retained. |
+| JSON Bronze Python memory — locally validated | Roots and validation stay inside DuckDB instead of full Python document copies. Warmed 20,000-entry guards stay below 2 MiB traced Python allocations; retained-payload positive controls exceed it. All 44 real JSON reports match existing Bronze. Native engine RAM is not bounded by this guard. |
+| PDF/CSV Bronze buffers — locally validated | PDF stops flow page-by-page into bounded insertion batches; file hashing is streamed. All 12 real PDF reports (5,715 stops) and 12 CSV reports (516 rows) match existing Bronze. CSV stays native DuckDB. Batch guards exclude pypdf caches and native engine RAM. |
+| Storage experiment — measured locally | All 68 real reports preserve content, logical schema and Silver input provenance. Vortex uses 3.65× the storage of Parquet on this layout; the earlier 47.78% synthetic saving is not a pipeline saving. Parquet retained for production. |
+| Regression coverage | Latest full local run on 27 November 2026: **437 passing tests and 97 passing subtests**, including JSON/PDF allocation guards, mutation, publication failure, storage qualification, archive and restoration scenarios. |
 
 All non-empty test modules now use native pytest functions. Shared fixtures
 provide isolated DuckDB connections, temporary paths and contextual log capture.
@@ -93,9 +104,11 @@ Initial setup and JSON downloads require Internet access.
 
 ```bash
 uv sync --locked
-uv run --locked python -m pytest -v
 uv run --locked python run_pipeline.py
 ```
+
+To run the full test suite, prepare Vortex for the storage experiments first.
+See the [local test setup](docs/ci.fr.md#local-test-setup).
 
 The default command processes all enabled JSON, CSV and PDF sources. It does
 not publish to MotherDuck. See the [execution guide](docs/project_reference.md#execution-order)
@@ -207,6 +220,10 @@ and tables in an update use the same downloaded Gold snapshot.
 | Configuring source reports | [Configuration guide](config/README.fr.md) |
 | Qualified sources and remaining coverage | [Source inventory](docs/source_inventory.fr.md) and [coverage plan](docs/coverage_plan.fr.md) |
 | Automated checks and manual source smoke check | [CI guide](docs/ci.fr.md) |
+| Local Parquet/Vortex protocol, measurements and limitations | [Storage format experiment](docs/parquet_vortex_benchmark.md) |
+| Real Bronze storage results and deployment decision evidence | [68-report qualification](docs/real_bronze_vortex_qualification.md) |
+| JSON Bronze allocation guards and unchanged real-data output | [JSON memory maintenance](docs/bronze_json_memory.md) |
+| Completed Bronze buffers, PDF batches, streamed hashes and remaining memory limits | [Progressive Bronze processing](docs/bronze_progressive_processing.md) |
 | Assignment, acceptance criteria and current milestones | [Project brief](docs/mission_stage_personnel.fr.md) |
 
 Public documentation is in English. Historical `.fr.md` filenames are retained
@@ -249,7 +266,7 @@ Tests precede each behavioral change; measurements precede performance claims.
 | Restoration recovery and staging budget | Test replacement failures and recovery from mixed final versions, qualify concurrent restores and crash recovery, and define temporary-disk capacity/cleanup policies. Existing preservation tests cover preparation failures, not global multi-file atomicity. |
 | Failed-candidate retention | Add explicit failure status/time, a configurable retention period and a dry-run cleanup command. Protect active, running and successful historical runs; test selection and deletion safeguards before enabling a real scheduled trigger. |
 | dbt-duckdb pilot | Move a bounded vertical slice of transformations/tests while preserving contracts and explicit publication/activation guarantees. Expand only after equivalence is verified. |
-| Streaming integrity helpers | Reduce full-file hashing/copy memory with a measured, tested common implementation while keeping hashes tied to the bytes actually processed. |
+| Remaining integrity/copy memory | Extend the shared streamed file-digest helper beyond the completed Raw/Bronze/processing paths to remaining snapshot and remote-maintenance code. Keep archive hashes tied to already validated payload bytes without introducing duplicate reads. |
 | Wider source coverage | Qualify additional report families and races before activation, including the remaining 2022 scope and future car/motorcycle sources. Worldwide 2022–2026 coverage remains an objective. |
 
 Detailed delivery scope and acceptance criteria are maintained in the

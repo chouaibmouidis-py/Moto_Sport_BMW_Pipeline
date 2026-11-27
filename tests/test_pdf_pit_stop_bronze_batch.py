@@ -6,8 +6,10 @@ from unittest.mock import patch
 
 import duckdb
 import pytest
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.batch_processing import build_pdf_bronze_batch
+from moto_sport_bmw_pipeline.bronze_storage import read_bronze
 
 
 def test_missing_later_input_prevents_any_bronze_publication(tmp_path):
@@ -105,9 +107,13 @@ def test_builds_bronze_per_event_with_exact_schema_and_provenance(tmp_path):
     catalog = {"season": 2023, "events": events}
 
     with patch(
-        "moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[mock_record]
+        "moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[mock_record]
     ):
-        results = build_pdf_bronze_batch(root, catalog)
+        results = build_pdf_bronze_batch(
+            root,
+            catalog,
+            extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+        )
 
     assert len(results) == 2
     for res in results:
@@ -119,8 +125,10 @@ def test_builds_bronze_per_event_with_exact_schema_and_provenance(tmp_path):
         bronze_path = root / "data" / "bronze" / source_id / "document.parquet"
         assert bronze_path.is_file()
 
-        with duckdb.connect() as conn:
-            saved = conn.read_parquet(str(bronze_path))
+        with duckdb.connect(
+            config={"extension_directory": str(VORTEX_EXTENSION_DIRECTORY)}
+        ) as conn:
+            saved = read_bronze(conn, bronze_path)
             assert saved.columns == [
                 "source_id",
                 "pdf_sha256",

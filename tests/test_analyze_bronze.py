@@ -17,6 +17,7 @@ from analyze_bronze import (
     transform_sessions,
     validate_entry_links,
 )
+from moto_sport_bmw_pipeline.bronze_storage import publish_bronze
 
 
 def test_import_does_not_start_pipeline():
@@ -93,7 +94,8 @@ def test_loads_only_enabled_source_sessions(connection):
     assert rows == target
 
 
-def test_loads_pit_stop_bronze_with_provenance(tmp_path, connection):
+def test_loads_pit_stop_bronze_with_provenance(tmp_path, vortex_connection):
+    connection = vortex_connection
     directory = tmp_path
     project_directory = Path(directory)
     bronze_path = (
@@ -101,11 +103,12 @@ def test_loads_pit_stop_bronze_with_provenance(tmp_path, connection):
     )
     bronze_path.parent.mkdir(parents=True)
 
-    connection.sql("""
+    document = connection.sql("""
         SELECT
             '{"event_name": "Test race"}'::JSON AS session,
             '[]'::JSON AS pit_stop_analysis
-    """).write_parquet(str(bronze_path))
+    """)
+    publish_bronze(connection, document, bronze_path)
 
     load_pit_stop_bronze(
         connection,

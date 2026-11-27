@@ -1,0 +1,67 @@
+{
+  "duckdb": "1.5.4",
+  "platform": "macOS-13.7.8-x86_64-i386-64bit",
+  "protected_files_verified": 197,
+  "records": [
+    {
+      "source_id": "imsa-2022-daytona-race-hour24-classification-official",
+      "rows": 61,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-daytona-race-classification-official",
+      "rows": 61,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-sebring-race-classification-official",
+      "rows": 53,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-long-beach-race-classification-official",
+      "rows": 28,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-laguna-seca-race-classification-official",
+      "rows": 38,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-watkins-glen-race-classification-official",
+      "rows": 57,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-canadian-tire-motorsport-park-race-classification-official",
+      "rows": 34,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-lime-rock-race-classification-official",
+      "rows": 20,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-road-america-race-classification-official",
+      "rows": 45,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-vir-race-classification-official",
+      "rows": 19,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-indianapolis-race-classification-official",
+      "rows": 48,
+      "content_verified": true
+    },
+    {
+      "source_id": "imsa-2023-road-atlanta-race-classification-official",
+      "rows": 52,
+      "content_verified": true
+    }
+  ]
+}

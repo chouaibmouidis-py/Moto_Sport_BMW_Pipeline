@@ -1,0 +1,200 @@
+{
+  "duckdb": "1.5.4",
+  "platform": "macOS-13.7.8-x86_64-i386-64bit",
+  "protected_files_verified": 197,
+  "real_documents": [
+    {
+      "source_id": "imsa-2024-watkins-glen-race-hour6-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-watkins-glen-race-hour6-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-indianapolis-race-hour6-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-indianapolis-race-hour6-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-road-atlanta-race-hour10-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-road-atlanta-race-hour10-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-daytona-race-hour24-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-daytona-race-hour24-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-sebring-race-hour12-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-sebring-race-hour12-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-long-beach-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-long-beach-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-canadian-tire-motorsport-park-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-canadian-tire-motorsport-park-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-vir-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-vir-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-laguna-seca-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-laguna-seca-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-detroit-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-detroit-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-road-america-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2024-road-america-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-indianapolis-race-hour6-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-indianapolis-race-hour6-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-road-atlanta-race-hour10-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-road-atlanta-race-hour10-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-canadian-tire-motorsport-park-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-canadian-tire-motorsport-park-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-vir-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-vir-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-sebring-race-hour12-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-sebring-race-hour12-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-watkins-glen-race-hour6-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-watkins-glen-race-hour6-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-laguna-seca-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-laguna-seca-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-detroit-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-detroit-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-daytona-race-hour24-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-long-beach-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-road-america-race-classification-official",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-road-america-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-long-beach-race-pit-stops",
+      "matches_existing_bronze": true
+    },
+    {
+      "source_id": "imsa-2025-daytona-race-hour24-pit-stops",
+      "matches_existing_bronze": true
+    }
+  ],
+  "python_allocation_measurements": [
+    {
+      "root": "classification",
+      "entries": 20000,
+      "source_bytes": 4780050,
+      "traced_python_peak_bytes": 270629,
+      "threshold_bytes": 2097152
+    },
+    {
+      "root": "pit_stop_analysis",
+      "entries": 20000,
+      "source_bytes": 5420053,
+      "traced_python_peak_bytes": 270534,
+      "threshold_bytes": 2097152
+    }
+  ],
+  "native_memory_measured": false
+}

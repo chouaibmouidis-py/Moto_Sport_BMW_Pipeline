@@ -6,8 +6,10 @@ from pathlib import Path
 
 import duckdb
 import pytest
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.batch_processing import build_pdf_silver_batch
+from moto_sport_bmw_pipeline.bronze_storage import publish_bronze
 
 
 def test_missing_bronze_input_prevents_any_silver_publication(tmp_path):
@@ -59,8 +61,10 @@ def test_builds_silver_per_event_and_converts_durations(tmp_path):
         bronze_path = root / "data" / "bronze" / source_id / "document.parquet"
         bronze_path.parent.mkdir(parents=True)
 
-        with duckdb.connect() as connection:
-            connection.sql(
+        with duckdb.connect(
+            config={"extension_directory": str(VORTEX_EXTENSION_DIRECTORY)}
+        ) as connection:
+            document = connection.sql(
                 """
                 SELECT
                     ? AS source_id,
@@ -74,7 +78,8 @@ def test_builds_silver_per_event_and_converts_durations(tmp_path):
                     'synthetic stop line' AS source_line
             """,
                 params=[source_id, raw_duration],
-            ).write_parquet(str(bronze_path))
+            )
+            publish_bronze(connection, document, bronze_path)
 
         expected_hashes[source_id] = hashlib.sha256(
             bronze_path.read_bytes()
@@ -90,6 +95,7 @@ def test_builds_silver_per_event_and_converts_durations(tmp_path):
     results = build_pdf_silver_batch(
         root,
         {"season": 2023, "events": events},
+        extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
     )
 
     assert Counter(

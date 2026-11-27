@@ -26,7 +26,7 @@ def test_preserves_raw_duration_text_number_and_pdf_location(tmp_path, connectio
     source.write_bytes(b"PDF extraction is mocked")
     output = Path(directory) / "bronze" / "document.parquet"
     with patch(
-        "moto_sport_bmw_pipeline.bronze.extract_stops",
+        "moto_sport_bmw_pipeline.bronze.iter_stops",
         return_value=[record],
     ):
         result = build_pdf_pit_stop_bronze(source, output, "test-source")
@@ -70,7 +70,7 @@ def test_parser_failure_preserves_previous_output(tmp_path):
     source.write_bytes(b"PDF extraction is mocked")
     output.write_bytes(b"previous version")
     with patch(
-        "moto_sport_bmw_pipeline.bronze.extract_stops",
+        "moto_sport_bmw_pipeline.bronze.iter_stops",
         side_effect=ValueError("unreadable stop row"),
     ):
         with pytest.raises(ValueError, match="unreadable stop row"):
@@ -86,7 +86,7 @@ def test_write_failure_preserves_previous_output(tmp_path):
     output.write_bytes(b"previous version")
     with (
         patch(
-            "moto_sport_bmw_pipeline.bronze.extract_stops",
+            "moto_sport_bmw_pipeline.bronze.iter_stops",
             return_value=[],
         ),
         patch(
@@ -107,7 +107,7 @@ def test_empty_extraction_keeps_typed_schema_without_inventing_stops(
     output = Path(directory) / "document.parquet"
     source.write_bytes(b"PDF extraction is mocked")
     with patch(
-        "moto_sport_bmw_pipeline.bronze.extract_stops",
+        "moto_sport_bmw_pipeline.bronze.iter_stops",
         return_value=[],
     ):
         build_pdf_pit_stop_bronze(source, output, "test-source")
@@ -138,7 +138,7 @@ def test_source_change_during_extraction_preserves_previous_output(tmp_path):
         return []
 
     with patch(
-        "moto_sport_bmw_pipeline.bronze.extract_stops",
+        "moto_sport_bmw_pipeline.bronze.iter_stops",
         side_effect=change_source,
     ):
         with pytest.raises(ValueError, match="source changed during extraction"):

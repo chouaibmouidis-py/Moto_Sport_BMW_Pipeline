@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from pypdf import PdfWriter
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.manifest import select_documents
 from moto_sport_bmw_pipeline.orchestration import main, run_stages
@@ -41,10 +42,14 @@ def test_csv_pdf_logs_identify_source_and_aggregate_boundaries(
     directory = tmp_path
     root = Path(directory)
     sources = prepare_csv_pdf(root)
-    with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[]):
+    with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[]):
         with context_caplog.at_level("INFO", logger="moto_sport_bmw_pipeline"):
             captured = context_caplog
-            run_stages(root, sources)
+            run_stages(
+                root,
+                sources,
+                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+            )
     records = captured.records
     for stage, source_id in (
         ("raw", "2022-classification"),
@@ -80,7 +85,11 @@ def test_raw_failure_is_logged_with_source_before_propagation(context_caplog, tm
         captured = context_caplog
 
         with pytest.raises(ValueError, match="Raw fingerprint mismatch"):
-            run_stages(root, sources)
+            run_stages(
+                root,
+                sources,
+                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+            )
     failures = [r for r in captured.records if r.levelno >= logging.ERROR]
     assert any(
         (
@@ -113,7 +122,10 @@ def test_duplicate_or_missing_pair_rejected_before_execution(tmp_path):
         (root / "config/sources.json").write_text(json.dumps({"documents": sources}))
         with patch("moto_sport_bmw_pipeline.orchestration.run_stages") as run:
             with pytest.raises(ValueError, match=message):
-                main([], project_directory=root)
+                main(
+                    ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+                    project_directory=root,
+                )
             run.assert_not_called()
 
 
@@ -220,9 +232,17 @@ def test_csv_pdf_runs_through_common_pipeline_without_json_or_second_catalog(
         "block_line_number": 2,
         "source_line": "test",
     }
-    with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[stop]):
-        gold_run = main([], project_directory=root)
+    with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[stop]):
+        gold_run = main(
+            ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+            project_directory=root,
+        )
     processing = get_current_run(root / "data/processing")
+    inventory = json.loads((processing / "outputs.json").read_text(encoding="utf-8"))
+    assert set(inventory["bronze_hashes"]) == {
+        "data/bronze/2022-classification/document.parquet",
+        "data/bronze/2022-pit_stops/document.parquet",
+    }
     assert get_current_run(root / "data/gold").resolve() == gold_run
     assert not (root / "data/current.json").exists()
     saved = connection.read_parquet(str(gold_run / "race_car_summary.parquet"))
@@ -244,8 +264,11 @@ def test_report_write_failure_preserves_previous_processing_and_gold(tmp_path):
     directory = tmp_path
     root = Path(directory)
     sources = prepare_csv_pdf(root)
-    with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[]):
-        main([], project_directory=root)
+    with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[]):
+        main(
+            ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+            project_directory=root,
+        )
     previous_processing = (root / "data/processing/current.json").read_bytes()
     previous_gold = (root / "data/gold/current.json").read_bytes()
     count = 0
@@ -261,7 +284,11 @@ def test_report_write_failure_preserves_previous_processing_and_gold(tmp_path):
         "moto_sport_bmw_pipeline.pipeline.publish_parquet", side_effect=fail_report
     ):
         with pytest.raises(OSError, match="report write failed"):
-            build_processing_run(root, sources)
+            build_processing_run(
+                root,
+                sources,
+                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+            )
     assert (root / "data/processing/current.json").read_bytes() == previous_processing
     assert (root / "data/gold/current.json").read_bytes() == previous_gold
 
@@ -295,12 +322,15 @@ def test_json_and_mixed_sources_use_the_same_pipeline(
         source["expected_sha256"] = hashlib.sha256(raw.read_bytes()).hexdigest()
     selected = json_sources + csv_sources if mixed else json_sources
     (root / "config/sources.json").write_text(json.dumps({"documents": selected}))
-    with patch("moto_sport_bmw_pipeline.bronze.extract_stops", return_value=[]):
+    with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[]):
         with patch("moto_sport_bmw_pipeline.orchestration.configure_logging"):
             with context_caplog.at_level("INFO", logger="moto_sport_bmw_pipeline"):
                 captured = context_caplog
 
-                run = main([], project_directory=root)
+                run = main(
+                    ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+                    project_directory=root,
+                )
     actual = (
         connection.read_parquet(str(run / "race_car_summary.parquet"))
         .project("season")
@@ -308,6 +338,11 @@ def test_json_and_mixed_sources_use_the_same_pipeline(
         .fetchall()
     )
     assert actual == ([(2022,), (2024,)] if mixed else [(2024,)])
+    processing = get_current_run(root / "data/processing")
+    inventory = json.loads((processing / "outputs.json").read_text(encoding="utf-8"))
+    assert set(inventory["bronze_hashes"]) == {
+        f"data/bronze/{source['source_id']}/document.parquet" for source in selected
+    }
     assert any(
         (
             record.stage == "load_bronze"

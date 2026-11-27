@@ -2,12 +2,26 @@
 
 import duckdb
 import pytest
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 
 @pytest.fixture
 def connection():
     """Give each test its own in-memory DuckDB connection and close it afterward."""
     with duckdb.connect() as database_connection:
+        yield database_connection
+
+
+@pytest.fixture
+def vortex_connection():
+    """Isolated connection using the explicitly installed local test extension."""
+    with duckdb.connect(
+        config={
+            "extension_directory": str(VORTEX_EXTENSION_DIRECTORY),
+            "autoload_known_extensions": False,
+            "autoinstall_known_extensions": False,
+        }
+    ) as database_connection:
         yield database_connection
 
 

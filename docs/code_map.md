@@ -8,7 +8,9 @@ The production pipeline is organized by responsibility, not by season or file fo
 | Selection, identifier validation and report pairing | `src/moto_sport_bmw_pipeline/manifest.py` |
 | Download, cached-source verification and format validation | `src/moto_sport_bmw_pipeline/raw_download.py` |
 | Raw extraction and Bronze construction | `src/moto_sport_bmw_pipeline/bronze.py` |
+| Shared Bronze write, reread, logical schema/content validation and cleanup | `src/moto_sport_bmw_pipeline/bronze_storage.py` |
 | PDF layout interpretation | `src/moto_sport_bmw_pipeline/pdf_parser.py` |
+| Buffered SHA-256 and metadata fingerprint verification | `src/moto_sport_bmw_pipeline/integrity.py` |
 | Bronze loading and session context | `src/moto_sport_bmw_pipeline/source_loading.py` |
 | Normalization | `src/moto_sport_bmw_pipeline/silver.py` and `sql/` |
 | Blocking invariants and nonblocking quality reports | `src/moto_sport_bmw_pipeline/quality.py` |
@@ -46,6 +48,22 @@ production CLIs or configuration files. The supported report pairings currently
 are JSON classification + JSON stops, and CSV classification + PDF stops.
 Unknown formats and unsupported pairings fail before acquisition. Supporting a
 new pairing still requires an adapter and tests; it is not automatic.
+
+All source readers publish through the same Bronze storage mechanism. Production
+uses `document.parquet` for every source format. Vortex remains an explicitly
+selected storage experiment after the [real-data qualification](real_bronze_vortex_qualification.md)
+found larger outputs for this layout. The common reader restores logical JSON
+columns explicitly; source normalization remains in Silver.
+
+JSON Bronze builders snapshot and validate their roots inside DuckDB; Python
+receives scalar checks rather than complete decoded documents. Buffered pre/post
+Raw fingerprints detect observed source changes before replacement. See the
+[allocation guards and real-data equivalence](bronze_json_memory.md).
+
+PDF Bronze consumes lazy stop records in bounded insertion batches. File digests
+are buffered; source-format interpretation and source locations are preserved.
+CSV continues to use the native DuckDB reader. See the
+[completed Bronze application-buffer scope](bronze_progressive_processing.md).
 
 ```bash
 uv run python run_pipeline.py

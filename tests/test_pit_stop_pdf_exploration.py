@@ -39,7 +39,7 @@ def raw_stop(car_number, pit_number, duration, *, page_number=1, line_number=1):
     }
 
 
-def test_extraction_retains_page_column_and_line():
+def test_extraction_retains_page_column_and_line(tmp_path):
     from unittest.mock import Mock
 
     first_line = "1 11:10:21.650 11:11:50.131 1:28.481 1:28.481"
@@ -66,11 +66,13 @@ def test_extraction_retains_page_column_and_line():
     page.extract_text.side_effect = visit
     reader = Mock()
     reader.pages = [page]
+    source_path = tmp_path / "synthetic.pdf"
+    source_path.write_bytes(b"PDF reader is simulated")
     with patch(
         "moto_sport_bmw_pipeline.pdf_parser.PdfReader",
         return_value=reader,
     ):
-        rows = extract_stops(Path("synthetic.pdf"))
+        rows = extract_stops(source_path)
     assert rows == [
         {
             "car_number": "24",

@@ -1,9 +1,31 @@
 # Detailed project reference
 
-Current implementation and delivery status, reviewed on 24 November 2026.
+Current implementation and delivery status, reviewed on 27 November 2026.
 The [assignment](mission_stage_personnel.fr.md) defines the business objective;
 this document describes the implemented pipeline. Annual qualification reports
 retain their original measurements and dates rather than defining current runtime.
+
+Latest local maintenance: source transfer streams chunks and reuses its incremental
+SHA-256; Bronze extraction delegates storage to `bronze_storage.py` for common
+schema/content validation and failure cleanup. All production Bronze paths remain
+`document.parquet`. Vortex is retained in experiments: real qualification of all
+68 enabled reports found preserved content/provenance but larger Vortex outputs
+(6,326,672 versus 1,733,515 bytes). The maintainer chose Parquet for production.
+See the [qualification and decision](real_bronze_vortex_qualification.md).
+No existing data files or active references were replaced by this maintenance.
+
+Subsequent JSON memory maintenance removes full Python document decoding and
+readback copies. Root/count validation is native DuckDB; pre/post buffered Raw
+hashes reject observed changes. All 44 real JSON documents match existing Bronze;
+the JSON milestone passed its full local suite. See the
+[allocation evidence and remaining native/PDF limits](bronze_json_memory.md).
+
+The subsequent PDF completion yields page blocks and validated stops lazily,
+inserts bounded batches and shares buffered SHA-256 with input loaders and
+processing fingerprints. All 12 real PDFs and 12 real CSVs match existing Bronze.
+The latest complete local suite passes 437 tests and 97 subtests; all three input
+families are covered. Parser caches and native memory remain a separate scope:
+[progressive Bronze processing](bronze_progressive_processing.md).
 
 ## Coverage and delivery state
 
@@ -189,7 +211,7 @@ are removed. Replacement-time failures can leave mixed final versions; there is
 no global filesystem transaction. Temporary disk usage grows with the staged
 archive size. See the [restoration contract](gold.fr.md#file-by-file-source-restoration).
 
-The latest local pytest run on 26 November 2026 has 334 passing tests and 97 passing subtests.
+The latest local pytest run on 27 November 2026 has 437 passing tests and 97 passing subtests.
 Earlier parametrization exposed former inner cases separately; restoration adds
 new behavioral coverage. Synthetic and temporary-file tests
 cover conversions, keys, relationships, row preservation, input mutation,

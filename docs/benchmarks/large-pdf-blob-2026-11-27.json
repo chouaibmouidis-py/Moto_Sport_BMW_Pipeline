@@ -1,0 +1,93 @@
+{
+  "input_bytes": 123008176,
+  "sha256": "e980cb4ed51713516041d4e5d03917f3d746f73affcf034b019388a825ee14e9",
+  "pages": 54,
+  "schema": {
+    "content": "BLOB"
+  },
+  "rows": 1,
+  "duckdb": "1.5.4",
+  "vortex_version": "275ac23",
+  "platform": "macOS-13.7.8-x86_64-i386-64bit",
+  "pairs": 4,
+  "threads": 2,
+  "memory_limit": "2GB",
+  "settings": "Writer defaults; warmed writers; OS cache uncontrolled; no RSS measurement",
+  "measurements": [
+    {
+      "pair": 0,
+      "position": 0,
+      "format": "parquet",
+      "size_bytes": 122682786,
+      "write_seconds": 0.5681805290514603,
+      "exact_match": true
+    },
+    {
+      "pair": 0,
+      "position": 1,
+      "format": "vortex",
+      "size_bytes": 123010688,
+      "write_seconds": 0.8079036999843083,
+      "exact_match": true
+    },
+    {
+      "pair": 1,
+      "position": 0,
+      "format": "vortex",
+      "size_bytes": 123010688,
+      "write_seconds": 1.015658498974517,
+      "exact_match": true
+    },
+    {
+      "pair": 1,
+      "position": 1,
+      "format": "parquet",
+      "size_bytes": 122682786,
+      "write_seconds": 0.4138836679630913,
+      "exact_match": true
+    },
+    {
+      "pair": 2,
+      "position": 0,
+      "format": "parquet",
+      "size_bytes": 122682786,
+      "write_seconds": 0.3734393310151063,
+      "exact_match": true
+    },
+    {
+      "pair": 2,
+      "position": 1,
+      "format": "vortex",
+      "size_bytes": 123010688,
+      "write_seconds": 0.8449618989834562,
+      "exact_match": true
+    },
+    {
+      "pair": 3,
+      "position": 0,
+      "format": "vortex",
+      "size_bytes": 123010688,
+      "write_seconds": 0.8222010140307248,
+      "exact_match": true
+    },
+    {
+      "pair": 3,
+      "position": 1,
+      "format": "parquet",
+      "size_bytes": 122682786,
+      "write_seconds": 0.41071544197620824,
+      "exact_match": true
+    }
+  ],
+  "summary": {
+    "parquet": {
+      "size_bytes": 122682786.0,
+      "write_seconds": 0.41229955496964976
+    },
+    "vortex": {
+      "size_bytes": 123010688.0,
+      "write_seconds": 0.8335814565070905
+    }
+  },
+  "source_url": "https://indonesiangeoparks.org/wp-content/uploads/2026/10/Indonesia-Geoparks-Report-Langkawi-2026.pdf"
+}

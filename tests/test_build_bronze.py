@@ -2,9 +2,11 @@
 
 import hashlib
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from build_bronze import build_document, main
 
@@ -87,7 +89,7 @@ def test_main_reads_filename_from_manifest(tmp_path):
     )
 
     with patch("build_bronze.PROJECT_DIR", root):
-        main()
+        main(extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)))
 
     output_path = root / "data" / "bronze" / source_id / "document.parquet"
     assert output_path.is_file()

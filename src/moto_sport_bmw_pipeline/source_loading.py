@@ -1,9 +1,11 @@
 """Load manifest session metadata and versioned Bronze documents into DuckDB."""
 
-from pathlib import Path
-import hashlib
 import logging
+from pathlib import Path
 
+from .bronze import bronze_document_path
+from .bronze_storage import read_bronze
+from .integrity import sha256_file
 from .logging_config import log_operation
 
 logger = logging.getLogger(__name__)
@@ -12,9 +14,14 @@ logger = logging.getLogger(__name__)
 def select_classification_sources(documents, *, format=None):
     selected_sources = []
     for document in documents:
-        if document.get("enabled", False) and document["document_type"] == "classification" and (format is None or document.get("format", "json") == format):
+        if (
+            document.get("enabled", False)
+            and document["document_type"] == "classification"
+            and (format is None or document.get("format", "json") == format)
+        ):
             selected_sources.append(document)
     return selected_sources
+
 
 def load_source_sessions(connection, documents) -> None:
 
@@ -45,6 +52,26 @@ def load_source_sessions(connection, documents) -> None:
             ],
         )
 
+
+def load_pit_stop_file(
+    connection, bronze_path: Path, source_id, *, view_name="bronze_document"
+):
+    """Load one explicit file with its logical schema and provenance.
+
+    Collective production loading and isolated storage experiments share this
+    reader; the caller chooses the destination view, not the storage policy.
+    """
+    saved = read_bronze(
+        connection, bronze_path, json_columns=("session", "pit_stop_analysis")
+    )
+    bronze_sha256 = sha256_file(bronze_path)
+    saved.create_view("pit_stop_file_input", replace=True)
+    connection.sql(
+        "SELECT session, pit_stop_analysis, ? AS source_id, ? AS bronze_sha256 FROM pit_stop_file_input",
+        params=[source_id, bronze_sha256],
+    ).create_view(view_name, replace=True)
+
+
 def load_pit_stop_bronze(
     connection,
     sources,
@@ -61,47 +88,52 @@ def load_pit_stop_bronze(
     """)
 
     for source in sources:
-        with log_operation(logger, "Load JSON Bronze report",
-                           stage="load_bronze", source_id=source["source_id"]):
-            bronze_path = (
-             project_directory
-                / "data"
-                / "bronze"
-                / source["source_id"]
-                / "document.parquet"
+        with log_operation(
+            logger,
+            "Load JSON Bronze report",
+            stage="load_bronze",
+            source_id=source["source_id"],
+        ):
+            bronze_path = bronze_document_path(project_directory, source)
+
+            load_pit_stop_file(
+                connection,
+                bronze_path,
+                source["source_id"],
+                view_name="pit_stop_source_input",
             )
-
-            bronze_sha256 = hashlib.sha256(
-                bronze_path.read_bytes()
-            ).hexdigest()
-
             connection.execute(
                 """
                 INSERT INTO bronze_document
-                SELECT session, pit_stop_analysis, ?, ?
-                FROM read_parquet(?)
+                SELECT session, pit_stop_analysis, source_id, bronze_sha256
+                FROM pit_stop_source_input
                 """,
-                [
-                    source["source_id"],
-                    bronze_sha256,
-                    str(bronze_path),
-                ],
             )
 
             logger.info("Bronze source loaded: %s", source["source_id"])
 
+
 def select_pit_stop_sources(documents, *, format=None):
     selected_sources = []
     for document in documents:
-        if document.get("enabled", False) and document["document_type"] == "pit_stops" and (format is None or document.get("format", "json") == format):
+        if (
+            document.get("enabled", False)
+            and document["document_type"] == "pit_stops"
+            and (format is None or document.get("format", "json") == format)
+        ):
             selected_sources.append(document)
     return selected_sources
 
+
 def load_classification_bronze(connection, bronze_path, source_id):
-    saved = connection.read_parquet(str(bronze_path))
-    bronze_sha256 = hashlib.sha256(
-        bronze_path.read_bytes()
-    ).hexdigest()
+
+    saved = read_bronze(
+        connection,
+        bronze_path,
+        json_columns=("session", "fastest_lap", "classification"),
+    )
+
+    bronze_sha256 = sha256_file(bronze_path)
 
     saved.create_view("bronze_classification_input")
 
@@ -116,11 +148,8 @@ def load_classification_bronze(connection, bronze_path, source_id):
         params=[source_id, bronze_sha256],
     ).create_view("bronze_classification")
 
-def load_classification_sources(
-    connection,
-    sources,
-    project_directory: Path,
-) -> None:
+
+def load_classification_sources(connection, sources, project_directory: Path) -> None:
 
     connection.execute("""
         CREATE TEMP TABLE bronze_classification (
@@ -133,15 +162,13 @@ def load_classification_sources(
     """)
 
     for source in sources:
-        with log_operation(logger, "Load JSON Bronze report",
-                           stage="load_bronze", source_id=source["source_id"]):
-            bronze_path = (
-             project_directory
-                / "data"
-                / "bronze"
-                / source["source_id"]
-                / "document.parquet"
-            )
+        with log_operation(
+            logger,
+            "Load JSON Bronze report",
+            stage="load_bronze",
+            source_id=source["source_id"],
+        ):
+            bronze_path = bronze_document_path(project_directory, source)
 
             if not bronze_path.is_file():
                 raise FileNotFoundError(
@@ -149,24 +176,27 @@ def load_classification_sources(
                     f"for source '{source['source_id']}': {bronze_path}"
                 )
 
-            bronze_sha256 = hashlib.sha256(
-                bronze_path.read_bytes()
-            ).hexdigest()
+            bronze_sha256 = sha256_file(bronze_path)
+
+            saved = read_bronze(
+                connection,
+                bronze_path,
+                json_columns=("session", "fastest_lap", "classification"),
+            )
+
+            saved.create_view("classification_source_input", replace=True)
 
             connection.execute(
                 """
                 INSERT INTO bronze_classification
                 SELECT session, fastest_lap, classification, ?, ?
-                FROM read_parquet(?)
+                FROM classification_source_input
                 """,
-                [
-                    source["source_id"],
-                    bronze_sha256,
-                    str(bronze_path),
-                ],
+                [source["source_id"], bronze_sha256],
             )
 
             logger.info("Bronze source loaded: %s", source["source_id"])
+
 
 def load_classification_csv_bronze(
     connection,
@@ -174,11 +204,9 @@ def load_classification_csv_bronze(
     source_id: str,
 ) -> None:
     """Load classification CSV Bronze with its source ID and file fingerprint."""
-    bronze_sha256 = hashlib.sha256(
-        bronze_path.read_bytes()
-    ).hexdigest()
+    bronze_sha256 = sha256_file(bronze_path)
 
-    document = connection.read_parquet(str(bronze_path))
+    document = read_bronze(connection, bronze_path)
     document.create_view("classification_csv_input")
 
     connection.sql(
@@ -192,16 +220,15 @@ def load_classification_csv_bronze(
         params=[source_id, bronze_sha256],
     ).create_view("bronze_classification_csv")
 
+
 def load_pdf_pit_stop_bronze(
     connection,
     bronze_path: Path,
 ) -> None:
     """Load extracted PDF stops and identify the exact Bronze file version."""
-    bronze_sha256 = hashlib.sha256(
-        bronze_path.read_bytes()
-    ).hexdigest()
+    bronze_sha256 = sha256_file(bronze_path)
 
-    document = connection.read_parquet(str(bronze_path))
+    document = read_bronze(connection, bronze_path)
     document.create_view("pdf_pit_stop_input")
 
     connection.sql(
@@ -214,6 +241,7 @@ def load_pdf_pit_stop_bronze(
         params=[bronze_sha256],
     ).create_view("bronze_pdf_pit_stops")
 
+
 def load_csv_pdf_source_sessions(connection, catalog: dict) -> None:
     """Map configured CSV/PDF documents to their declared race sessions."""
     documents = []
@@ -225,14 +253,16 @@ def load_csv_pdf_source_sessions(connection, catalog: dict) -> None:
         ):
             source_id = Path(event[path_field]).parent.name
 
-            documents.append({
-                "source_id": source_id,
-                "championship": catalog["championship"],
-                "season": catalog["season"],
-                "event_id": event["event_id"],
-                "session_id": event["session_id"],
-                "document_type": document_type,
-                "enabled": True,
-            })
+            documents.append(
+                {
+                    "source_id": source_id,
+                    "championship": catalog["championship"],
+                    "season": catalog["season"],
+                    "event_id": event["event_id"],
+                    "session_id": event["session_id"],
+                    "document_type": document_type,
+                    "enabled": True,
+                }
+            )
 
     load_source_sessions(connection, documents)

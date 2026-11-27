@@ -1,0 +1,158 @@
+{
+  "duckdb": "1.5.4",
+  "platform": "macOS-13.7.8-x86_64-i386-64bit",
+  "rows": 1000000,
+  "pairs": 6,
+  "threads": 2,
+  "memory_limit": "512MB",
+  "cache_policy": "writers warmed; scans after validation; OS cache uncontrolled",
+  "parquet_compression": "DuckDB default",
+  "measurements": [
+    {
+      "pair": 0,
+      "position": 0,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.28503655799431726,
+      "scan_seconds": 0.04596935800509527,
+      "filter_seconds": 0.006821674993261695,
+      "size_bytes": 4580728,
+      "content_verified": true
+    },
+    {
+      "pair": 0,
+      "position": 1,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.25380284400307573,
+      "scan_seconds": 0.050017080997349694,
+      "filter_seconds": 0.007662844000151381,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 1,
+      "position": 0,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.3240040779928677,
+      "scan_seconds": 0.059939296974334866,
+      "filter_seconds": 0.00880274799419567,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 1,
+      "position": 1,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.23510841900133528,
+      "scan_seconds": 0.0645190570212435,
+      "filter_seconds": 0.011313360999338329,
+      "size_bytes": 4580728,
+      "content_verified": true
+    },
+    {
+      "pair": 2,
+      "position": 0,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.3113285379949957,
+      "scan_seconds": 0.05387853199499659,
+      "filter_seconds": 0.008735826006159186,
+      "size_bytes": 4580728,
+      "content_verified": true
+    },
+    {
+      "pair": 2,
+      "position": 1,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.39396390499314293,
+      "scan_seconds": 0.046076765982434154,
+      "filter_seconds": 0.008299475011881441,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 3,
+      "position": 0,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.2310426789917983,
+      "scan_seconds": 0.04638161897310056,
+      "filter_seconds": 0.008239311981014907,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 3,
+      "position": 1,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.1683352309919428,
+      "scan_seconds": 0.04566583799896762,
+      "filter_seconds": 0.00777452701004222,
+      "size_bytes": 4580728,
+      "content_verified": true
+    },
+    {
+      "pair": 4,
+      "position": 0,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.1858274060068652,
+      "scan_seconds": 0.04472119201091118,
+      "filter_seconds": 0.007064125995384529,
+      "size_bytes": 4580728,
+      "content_verified": true
+    },
+    {
+      "pair": 4,
+      "position": 1,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.2299852499854751,
+      "scan_seconds": 0.05134611000539735,
+      "filter_seconds": 0.007120815978851169,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 5,
+      "position": 0,
+      "format": "vortex",
+      "rows": 1000000,
+      "write_seconds": 0.3139991700008977,
+      "scan_seconds": 0.0868565840064548,
+      "filter_seconds": 0.01566459398600273,
+      "size_bytes": 2391956,
+      "content_verified": true
+    },
+    {
+      "pair": 5,
+      "position": 1,
+      "format": "parquet",
+      "rows": 1000000,
+      "write_seconds": 0.407500452012755,
+      "scan_seconds": 0.05688686700887047,
+      "filter_seconds": 0.008064877998549491,
+      "size_bytes": 4580728,
+      "content_verified": true
+    }
+  ],
+  "summary": {
+    "parquet": {
+      "write_seconds": 0.26007248849782627,
+      "scan_seconds": 0.04992394500004593,
+      "filter_seconds": 0.007919702504295856,
+      "size_bytes": 4580728.0
+    },
+    "vortex": {
+      "write_seconds": 0.2839010070019867,
+      "scan_seconds": 0.05068159550137352,
+      "filter_seconds": 0.008269393496448174,
+      "size_bytes": 2391956.0
+    }
+  }
+}

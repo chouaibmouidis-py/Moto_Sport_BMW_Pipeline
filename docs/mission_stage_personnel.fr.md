@@ -1,6 +1,6 @@
 # Personal internship assignment — BMW racing data
 
-Status reviewed on 24 November 2026. Public documentation is maintained in English;
+Status reviewed on 27 November 2026. Public documentation is maintained in English;
 historical filenames are retained to preserve existing links.
 
 This is an independent educational portfolio project. BMW is the fictional
@@ -15,6 +15,18 @@ competitors in the analytical dataset so BMW entries can be compared in context.
 A reported pit-stop duration is not a direct measure of mechanics' performance
 or net time lost on track.
 
+The latest local architecture milestone shares Bronze publication across all
+source readers and qualifies storage against all 68 enabled real reports. Parquet
+remains the production format after that experiment; Vortex stays experimental.
+Content/schema/provenance validation succeeded, while the proposed storage saving
+did not hold for this layout. See the [measured results](real_bronze_vortex_qualification.md).
+The JSON part of the Bronze memory audit is locally validated: full Python
+document copies are removed, with allocation guards and equivalence on all 44
+JSON reports. PDF batching and streamed file integrity are now locally validated
+as well; all 68 real reports match existing Bronze. Parser caches, native engine
+memory and hosted deployment remain future work. See the
+[complete Bronze application-buffer scope](bronze_progressive_processing.md).
+
 ## Delivered scope and publication status
 
 | Deliverable | Verified state |
@@ -28,7 +40,7 @@ or net time lost on track.
 | Remote prerequisites | 114-file archive renewed and restored for verification. Sixteen sporting columns added to MotherDuck history without changing its active run or public projection. |
 | Hosted dashboard | Daytona 2022 extension published; operation confirmed by the maintainer. Extended scope: 1,453 participations and 140 BMW. |
 | Progressive source restoration | One payload fetched, validated and staged at a time; activation after complete preparation. Invalid later content preserves old destinations and removes staged files. Global replacement atomicity remains unqualified. |
-| Validation | 334 passing pytest tests and 97 passing subtests locally on 26 November 2026; complete local rebuild and remote archive/schema checks performed separately. |
+| Validation | 437 passing pytest tests and 97 passing subtests locally on 27 November 2026; complete local rebuild and remote archive/schema checks performed separately. |
 
 The original three-report pilot and its early figures describe earlier deliveries.
 They are not the current acceptance baseline. Annual qualification reports remain

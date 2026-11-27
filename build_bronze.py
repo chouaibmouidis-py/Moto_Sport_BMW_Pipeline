@@ -6,7 +6,7 @@ import logging
 import uuid
 
 import duckdb
-from moto_sport_bmw_pipeline.bronze import build_document
+from moto_sport_bmw_pipeline.bronze import build_document, bronze_document_path
 
 from download import RAW_DIR
 from file_integrity import verify_local_file
@@ -18,7 +18,7 @@ logger = logging.getLogger("moto_sport_bmw_pipeline.build_bronze")
 PROJECT_DIR = Path(__file__).resolve().parent
 
 
-def main() -> None:
+def main(*, extension_directory: Path | None = None) -> None:
     configure_logging()
     manifest_path = PROJECT_DIR / "config" / "sources.json"
 
@@ -36,16 +36,12 @@ def main() -> None:
                 / source["source_id"]
                 / source["filename"]
             )
-            output_path = (
-                PROJECT_DIR / "data" / "bronze"
-                / source["source_id"]
-                / "document.parquet"
-            )
+            output_path = bronze_document_path(PROJECT_DIR, source)
 
             logger.info('%s %s', "Processing:", source["source_id"])
             metadata_path = source_path.parent / "metadata.json"
 
             verify_local_file(source_path, metadata_path)
-            build_document(source_path, output_path)
+            build_document(source_path, output_path, extension_directory=extension_directory)
 if __name__ == "__main__":
     main()

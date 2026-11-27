@@ -1,0 +1,111 @@
+{
+  "duckdb": "1.5.4",
+  "platform": "macOS-13.7.8-x86_64-i386-64bit",
+  "batch_size": 64,
+  "protected_files_verified": 197,
+  "real_pdf_reports": [
+    {
+      "source_id": "imsa-2022-daytona-race-hour24-pit-stops",
+      "source_bytes": 236108,
+      "rows": 1762,
+      "content_verified": true,
+      "python_peak_bytes": 35910428
+    },
+    {
+      "source_id": "imsa-2023-daytona-race-pit-stops",
+      "source_bytes": 227528,
+      "rows": 1631,
+      "content_verified": true,
+      "python_peak_bytes": 2413883
+    },
+    {
+      "source_id": "imsa-2023-sebring-race-pit-stops",
+      "source_bytes": 175541,
+      "rows": 733,
+      "content_verified": true,
+      "python_peak_bytes": 1777858
+    },
+    {
+      "source_id": "imsa-2023-long-beach-race-pit-stops",
+      "source_bytes": 130008,
+      "rows": 28,
+      "content_verified": true,
+      "python_peak_bytes": 685271
+    },
+    {
+      "source_id": "imsa-2023-laguna-seca-race-pit-stops",
+      "source_bytes": 98796,
+      "rows": 124,
+      "content_verified": true,
+      "python_peak_bytes": 940882
+    },
+    {
+      "source_id": "imsa-2023-watkins-glen-race-pit-stops",
+      "source_bytes": 155592,
+      "rows": 383,
+      "content_verified": true,
+      "python_peak_bytes": 1161925
+    },
+    {
+      "source_id": "imsa-2023-canadian-tire-motorsport-park-race-pit-stops",
+      "source_bytes": 94571,
+      "rows": 96,
+      "content_verified": true,
+      "python_peak_bytes": 787391
+    },
+    {
+      "source_id": "imsa-2023-lime-rock-race-pit-stops",
+      "source_bytes": 129519,
+      "rows": 45,
+      "content_verified": true,
+      "python_peak_bytes": 711168
+    },
+    {
+      "source_id": "imsa-2023-road-america-race-pit-stops",
+      "source_bytes": 138103,
+      "rows": 116,
+      "content_verified": true,
+      "python_peak_bytes": 947795
+    },
+    {
+      "source_id": "imsa-2023-vir-race-pit-stops",
+      "source_bytes": 128921,
+      "rows": 46,
+      "content_verified": true,
+      "python_peak_bytes": 710504
+    },
+    {
+      "source_id": "imsa-2023-indianapolis-race-pit-stops",
+      "source_bytes": 140792,
+      "rows": 126,
+      "content_verified": true,
+      "python_peak_bytes": 909501
+    },
+    {
+      "source_id": "imsa-2023-road-atlanta-race-pit-stops",
+      "source_bytes": 167699,
+      "rows": 625,
+      "content_verified": true,
+      "python_peak_bytes": 1476557
+    }
+  ],
+  "synthetic_batch_guards": [
+    {
+      "rows": 100,
+      "batch_size": 64,
+      "python_peak_bytes": 270743,
+      "producer": "synthetic iterator; pypdf excluded"
+    },
+    {
+      "rows": 5000,
+      "batch_size": 64,
+      "python_peak_bytes": 274676,
+      "producer": "synthetic iterator; pypdf excluded"
+    }
+  ],
+  "retained_records_positive_control": {
+    "rows": 5000,
+    "python_peak_bytes": 4637720
+  },
+  "native_rss_measured": false
+}

@@ -1,44 +1,55 @@
 """Coordinate the JSON Bronze-to-Silver candidate run and activate only after publication."""
 
-from pathlib import Path
 import json
 import logging
 import uuid
-import hashlib
-from .parquet_writer import publish_parquet
-from .silver import transform_classification_csv, transform_pdf_pit_stops
-from .source_loading import (
-    load_classification_csv_bronze,
-    load_csv_pdf_source_sessions,
-    load_pdf_pit_stop_bronze,
-)
+from pathlib import Path
+
 import duckdb
 
+from .bronze import bronze_document_path
 from .diagnostics import show_pipeline_tables
 from .duration_quality import build_duration_reports
+from .integrity import sha256_file
 from .logging_config import log_context, log_operation
 from .marts import (
     build_classification_marts,
     build_csv_pdf_race_summary,
     build_enriched_stops,
 )
+from .parquet_writer import publish_parquet
 from .publication import OUTPUT_VIEWS, publish_run_outputs
-from .quality import build_session_quality, build_source_pairs, build_classification_gap_issues
+from .quality import (
+    build_classification_gap_issues,
+    build_session_quality,
+    build_source_pairs,
+)
 from .run_reference import activate_run
 from .silver import (
-    transform_car_entries, transform_classification, transform_driver_entries,
-    transform_pit_stops, transform_sessions,
+    transform_car_entries,
+    transform_classification,
+    transform_classification_csv,
+    transform_driver_entries,
+    transform_pdf_pit_stops,
+    transform_pit_stops,
+    transform_sessions,
 )
 from .source_loading import (
-    load_classification_sources, load_pit_stop_bronze, load_source_sessions,
-    select_pit_stop_sources,
+    load_classification_csv_bronze,
+    load_classification_sources,
+    load_csv_pdf_source_sessions,
+    load_pdf_pit_stop_bronze,
+    load_pit_stop_bronze,
+    load_source_sessions,
     select_classification_sources,
+    select_pit_stop_sources,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def build_candidate_run(project_directory: Path, *, verbose=False, documents=None, activate=True) -> Path:
+def build_candidate_run(project_directory: Path, *, verbose=False, documents=None, activate=True,
+                        extension_directory: Path | None = None) -> Path:
     """Build all candidate outputs, then update current.json after success."""
     manifest_path = project_directory / "config" / "sources.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if documents is None else {"documents": documents}
@@ -53,7 +64,8 @@ def build_candidate_run(project_directory: Path, *, verbose=False, documents=Non
     with log_context(run_id, stage="process", source_id="-"):
         logger.info("Candidate run started; pit-stop sources: %s", len(pit_sources))
         try:
-            with duckdb.connect() as connection:
+            config = {} if extension_directory is None else {"extension_directory": str(extension_directory)}
+            with duckdb.connect(config=config) as connection:
                 load_source_sessions(connection, manifest["documents"])
                 build_source_pairs(connection, project_directory)
                 connection.execute(
@@ -76,7 +88,11 @@ def build_candidate_run(project_directory: Path, *, verbose=False, documents=Non
                     build_session_quality(connection, project_directory)
                     build_duration_reports(connection, project_directory, verbose=verbose)
                     build_enriched_stops(connection, project_directory)
-                load_classification_sources(connection, classification_sources, project_directory)
+                load_classification_sources(
+                    connection,
+                    classification_sources,
+                    project_directory,
+                )
                 with log_operation(logger, "Normalize JSON classifications", stage="silver"):
                     transform_classification(connection, project_directory)
                 with log_operation(logger, "Build JSON participant marts", stage="marts"):
@@ -104,11 +120,13 @@ def publish_classification_csv_from_bronze(
     output_path: Path,
     *,
     quality_output_path: Path | None = None,
+    extension_directory: Path | None = None,
 ) -> Path:
     """Load, validate, transform and publish one classification CSV Bronze."""
     with log_operation(logger, "Normalize classification CSV and write its quality report",
                        stage="silver", source_id=source_id):
-        with duckdb.connect() as connection:
+        config = {} if extension_directory is None else {"extension_directory": str(extension_directory)}
+        with duckdb.connect(config=config) as connection:
             load_classification_csv_bronze(
                 connection,
                 bronze_path,
@@ -138,11 +156,14 @@ def publish_pdf_pit_stops_from_bronze(
     project_directory: Path,
     bronze_path: Path,
     output_path: Path,
+    *,
+    extension_directory: Path | None = None,
 ) -> Path:
     """Load, validate, transform and publish one PDF pit stop Bronze."""
     with log_operation(logger, "Normalize PDF pit stops",
                        stage="silver", source_id=bronze_path.parent.name):
-        with duckdb.connect() as connection:
+        config = {} if extension_directory is None else {"extension_directory": str(extension_directory)}
+        with duckdb.connect(config=config) as connection:
             load_pdf_pit_stop_bronze(
                 connection,
                 bronze_path,
@@ -194,7 +215,8 @@ def publish_csv_pdf_race_summary(
         return output_path
 
 
-def build_processing_run(project_directory: Path, documents: list[dict], *, verbose=False) -> Path:
+def build_processing_run(project_directory: Path, documents: list[dict], *, verbose=False,
+                         extension_directory: Path | None = None) -> Path:
     """Activate processing only after all selected report outputs are complete."""
     from .manifest import pair_reports
 
@@ -205,14 +227,15 @@ def build_processing_run(project_directory: Path, documents: list[dict], *, verb
                        run_id=run.name, stage="process", source_id="-"):
         hashes = {}
         for source in documents:
-            path = project_directory / "data/bronze" / source["source_id"] / "document.parquet"
+            path = bronze_document_path(project_directory, source)
             with log_operation(logger, "Fingerprint Bronze input",
                                stage="verify_inputs", source_id=source["source_id"]):
-                hashes[path.relative_to(project_directory).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+                hashes[path.relative_to(project_directory).as_posix()] = sha256_file(path)
         json_documents = [source for source in documents if source["format"] == "json"]
         outputs = []
         if json_documents:
-            json_run = build_candidate_run(project_directory, documents=json_documents, activate=False, verbose=verbose)
+            options = {} if extension_directory is None else {"extension_directory": extension_directory}
+            json_run = build_candidate_run(project_directory, documents=json_documents, activate=False, verbose=verbose, **options)
             logger.info("JSON adapter run linked to processing run: json_run=%s", json_run.name)
             outputs.extend(
                 [{"role": "json_participant_mart", "path": (json_run / "marts/race_car_summary.parquet").relative_to(project_directory).as_posix()},
@@ -229,15 +252,17 @@ def build_processing_run(project_directory: Path, documents: list[dict], *, verb
             stops_path = directory / "silver/pit_stops.parquet"
             publish_classification_csv_from_bronze(
                 project_directory,
-                project_directory / "data/bronze" / source_id / "document.parquet",
+                bronze_document_path(project_directory, classification),
                 source_id, classification_path,
                 quality_output_path=directory / "quality/classification_gap_issues.parquet",
+                **({} if extension_directory is None else {"extension_directory": extension_directory}),
             )
             outputs.append({"role": "classification_quality_report", "path": (directory / "quality/classification_gap_issues.parquet").relative_to(project_directory).as_posix()})
             publish_pdf_pit_stops_from_bronze(
                 project_directory,
-                project_directory / "data/bronze" / stops["source_id"] / "document.parquet",
+                bronze_document_path(project_directory, stops),
                 stops_path,
+                **({} if extension_directory is None else {"extension_directory": extension_directory}),
             )
             event = {
                 "event_id": classification["event_id"], "session_id": classification["session_id"],
@@ -249,11 +274,11 @@ def build_processing_run(project_directory: Path, documents: list[dict], *, verb
             publish_csv_pdf_race_summary(project_directory, catalog, classification_path, stops_path, mart_path)
             outputs.append({"role": "csv_pdf_participant_mart", "path": mart_path.relative_to(project_directory).as_posix()})
         for relative, expected in hashes.items():
-            if hashlib.sha256((project_directory / relative).read_bytes()).hexdigest() != expected:
+            if sha256_file(project_directory / relative) != expected:
                 raise ValueError(f"Processing rejected: Bronze input changed: {relative}")
         for output in outputs:
             path = project_directory / output["path"]
-            output["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            output["sha256"] = sha256_file(path)
         (run / "sources.json").write_text(json.dumps({"documents": documents}, indent=2), encoding="utf-8")
         (run / "outputs.json").write_text(json.dumps({"outputs": outputs, "bronze_hashes": hashes}, indent=2), encoding="utf-8")
         activate_run(run, required_outputs=("sources.json", "outputs.json"))
