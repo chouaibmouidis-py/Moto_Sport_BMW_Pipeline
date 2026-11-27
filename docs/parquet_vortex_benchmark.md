@@ -90,7 +90,7 @@ requires network access. Tests and the benchmark only LOAD it.
 ```bash
 uv sync --locked
 uv run --locked --no-sync python -c 'import duckdb; c = duckdb.connect(config={"extension_directory": "/private/tmp/bmw-vortex-extensions"}); c.execute("INSTALL vortex"); c.close()'
-uv run --locked --no-sync python -m pytest tests/test_timing.py tests/test_bronze_storage_formats.py tests/test_storage_benchmark.py -v
+uv run --locked --no-sync python -m pytest tests/test_timing.py experiments/storage_formats/tests -v
 uv run --locked --no-sync python -m experiments.storage_formats.benchmark --rows 100000 --pairs 6 --report /private/tmp/storage-100k.json
 uv run --locked --no-sync python -m experiments.storage_formats.benchmark --rows 1000000 --pairs 6 --report /private/tmp/storage-1m.json
 ```

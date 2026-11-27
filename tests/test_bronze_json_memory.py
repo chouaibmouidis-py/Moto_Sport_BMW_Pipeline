@@ -2,7 +2,6 @@ import json
 
 import duckdb
 import pytest
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from memory_probe import measure_python_memory
 from moto_sport_bmw_pipeline import bronze
@@ -28,7 +27,7 @@ def json_bronze_case(tmp_path, request):
     return source, builder
 
 
-@pytest.mark.parametrize("storage_format", ["parquet", "vortex"])
+@pytest.mark.parametrize("storage_format", ["parquet"])
 def test_json_publication_does_not_decode_or_fetch_documents_in_python(
     json_bronze_case, tmp_path, monkeypatch, storage_format
 ):
@@ -42,7 +41,7 @@ def test_json_publication_does_not_decode_or_fetch_documents_in_python(
         patcher.setattr(json, "load", forbidden)
         patcher.setattr(json, "loads", forbidden)
         patcher.setattr(duckdb.DuckDBPyRelation, "fetchall", forbidden)
-        builder(source, output, extension_directory=VORTEX_EXTENSION_DIRECTORY)
+        builder(source, output)
     assert output.is_file()
     assert not list(tmp_path.glob("*.tmp.*"))
 

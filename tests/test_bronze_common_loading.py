@@ -3,7 +3,6 @@ from pathlib import Path
 
 import duckdb
 import pytest
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline import bronze, source_loading
 
@@ -11,12 +10,9 @@ from moto_sport_bmw_pipeline import bronze, source_loading
 @pytest.mark.parametrize(
     "kind, storage_format",
     [
-        ("pit_json", "vortex"),
         ("pit_json", "parquet"),
         ("csv", "parquet"),
-        ("csv", "vortex"),
         ("pdf", "parquet"),
-        ("pdf", "vortex"),
     ],
 )
 def test_source_loaders_share_storage_reader(
@@ -24,7 +20,7 @@ def test_source_loaders_share_storage_reader(
 ):
     source = tmp_path / "source"
     output = tmp_path / "data/bronze/source-a" / f"document.{storage_format}"
-    extension_directory = Path(str(VORTEX_EXTENSION_DIRECTORY))
+    extension_directory = Path("extensions")
     options = {"extension_directory": extension_directory}
     if kind == "pit_json":
         source.write_text(

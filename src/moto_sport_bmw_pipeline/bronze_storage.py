@@ -13,13 +13,12 @@ def _quoted(name):
 
 def read_bronze(connection, path: Path, *, json_columns=()):
     """Read a storage format and restore explicitly declared logical JSON fields."""
-    if path.suffix == ".vortex":
-        connection.execute("LOAD vortex")
-        saved = connection.sql("SELECT * FROM read_vortex(?)", params=[str(path)])
-    elif path.suffix == ".parquet":
-        saved = connection.read_parquet(str(path))
-    else:
+    if path.suffix != ".parquet":
         raise ValueError(f"Unexpected file format {path}")
+    return restore_json_columns(connection.read_parquet(str(path)), json_columns)
+
+
+def restore_json_columns(saved, json_columns):
     missing = set(json_columns) - set(saved.columns)
     if missing:
         raise ValueError(f"Bronze missing JSON columns: {sorted(missing)}")
@@ -43,8 +42,27 @@ def publish_bronze(
     Readers extract source fields; an optional validator checks source-specific
     invariants. Publication mechanics are shared by all source formats.
     """
-    if output_path.suffix not in {".parquet", ".vortex"}:
+    if output_path.suffix != ".parquet":
         raise ValueError(f"Unexpected file format {output_path}")
+    publish_candidate(
+        connection,
+        document,
+        output_path,
+        write=_write_parquet,
+        read=read_bronze,
+        reader=reader,
+        validate=validate,
+    )
+
+
+def _write_parquet(connection, document, view, path):
+    document.write_parquet(str(path))
+
+
+def publish_candidate(
+    connection, document, output_path, *, write, read, reader=None, validate=None
+):
+    """Validate and promote a candidate written by the supplied storage adapter."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex
     temporary = output_path.with_name(
@@ -58,17 +76,11 @@ def publish_bronze(
     ]
     try:
         document.create_view(expected_view)
-        if output_path.suffix == ".vortex":
-            connection.execute("LOAD vortex")
-            connection.execute(
-                f"COPY {_quoted(expected_view)} TO ? (FORMAT vortex)", [str(temporary)]
-            )
-        else:
-            document.write_parquet(str(temporary))
+        write(connection, document, expected_view, temporary)
         saved = (
             reader(connection, temporary)
             if reader
-            else read_bronze(connection, temporary, json_columns=json_columns)
+            else read(connection, temporary, json_columns=json_columns)
         )
         if saved.columns != document.columns or saved.types != document.types:
             raise ValueError("Bronze publication rejected: schema differs")

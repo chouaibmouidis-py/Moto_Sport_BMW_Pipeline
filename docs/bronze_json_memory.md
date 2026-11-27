@@ -82,5 +82,4 @@ pipeline stages remain separate qualification scopes.
 uv run --locked --no-sync python -m pytest tests/test_bronze_json_memory.py -v
 ```
 
-Vortex must already be installed for the experimental cases. Its test directory
-follows BMW_VORTEX_EXTENSION_DIRECTORY; pytest does not install extensions.
+The optional Vortex cases run separately. See the [experiment setup](ci.fr.md#local-test-setup).

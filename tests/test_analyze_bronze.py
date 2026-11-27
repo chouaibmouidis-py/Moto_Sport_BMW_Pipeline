@@ -94,8 +94,7 @@ def test_loads_only_enabled_source_sessions(connection):
     assert rows == target
 
 
-def test_loads_pit_stop_bronze_with_provenance(tmp_path, vortex_connection):
-    connection = vortex_connection
+def test_loads_pit_stop_bronze_with_provenance(tmp_path, connection):
     directory = tmp_path
     project_directory = Path(directory)
     bronze_path = (

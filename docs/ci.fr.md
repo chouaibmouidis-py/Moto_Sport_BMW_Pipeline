@@ -3,18 +3,12 @@
 `Pipeline CI` starts on pushes, pull requests and manual runs.
 It installs Python 3.12 and the dependencies locked in `uv.lock`, then runs the
 tests, checks both package entry points and validates manifest identifiers.
-The shared local action `.github/actions/install-vortex` explicitly installs
-and loads Vortex, then exports its extension directory for experimental tests.
-The production Bronze remains Parquet and does not require Vortex to run.
+The standard suite runs with Parquet.
 Previous runs for the same ref are canceled when a new version arrives.
 The GitHub token remains read-only.
 
 The automated suite uses synthetic data, temporary files and mocked downloads.
-The optional Detroit real-Raw qualification test explicitly skips when its local
-report is absent; it is not counted as a real-data validation by CI. The complete
-68-report experiment is a separate local command with recorded results.
-Installing dependencies and the Vortex extension requires network access;
-the tests themselves do not install extensions or download race reports.
+
 
 The manual `Manual IMSA source smoke check` workflow retains the actual download
 of a historical source. This check is not a full run of the seasons and may fail
@@ -32,21 +26,22 @@ The configuration follows the official GitHub Actions syntax and uv integration:
 
 ## Local test setup
 
-From the repository root, install Vortex explicitly into a directory shared by
-the installer and pytest.
+Run the standard suite with `uv run --locked --no-sync python -m pytest -v`.
+
+For the optional storage experiments, install Vortex into a directory shared by the installer and pytest.
 
 ```bash
 uv sync --locked
 export BMW_VORTEX_EXTENSION_DIRECTORY="${TMPDIR:-/tmp}/bmw-vortex-extensions"
 uv run --locked --no-sync python -c 'import os, duckdb; c = duckdb.connect(config={"extension_directory": os.environ["BMW_VORTEX_EXTENSION_DIRECTORY"]}); c.execute("INSTALL vortex"); c.close()'
-uv run --locked --no-sync python -m pytest -v
+uv run --locked --no-sync python -m pytest experiments/storage_formats/tests -v
 ```
 
 ## Remote Gold publication
 
 `Build and publish IMSA Gold` is a separate workflow, triggered manually or on
 Mondays at 23:59 in `Africa/Casablanca`. It installs the locked orchestration
-dependencies, installs the experimental test extension, runs pytest, initializes
+dependencies, runs the standard pytest suite, initializes
 temporary Airflow metadata and executes the seven-task
 DAG with `airflow dags test`. This executes real tasks without hosting a
 permanent scheduler or web interface.

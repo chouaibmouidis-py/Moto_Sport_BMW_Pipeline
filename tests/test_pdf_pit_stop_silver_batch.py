@@ -6,7 +6,6 @@ from pathlib import Path
 
 import duckdb
 import pytest
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.batch_processing import build_pdf_silver_batch
 from moto_sport_bmw_pipeline.bronze_storage import publish_bronze
@@ -62,7 +61,7 @@ def test_builds_silver_per_event_and_converts_durations(tmp_path):
         bronze_path.parent.mkdir(parents=True)
 
         with duckdb.connect(
-            config={"extension_directory": str(VORTEX_EXTENSION_DIRECTORY)}
+            config={"extension_directory": str(Path("extensions"))}
         ) as connection:
             document = connection.sql(
                 """
@@ -95,7 +94,7 @@ def test_builds_silver_per_event_and_converts_durations(tmp_path):
     results = build_pdf_silver_batch(
         root,
         {"season": 2023, "events": events},
-        extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+        extension_directory=Path("extensions"),
     )
 
     assert Counter(

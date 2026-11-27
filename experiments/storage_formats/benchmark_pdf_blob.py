@@ -12,7 +12,7 @@ from pathlib import Path
 import duckdb
 from pypdf import PdfReader
 
-from moto_sport_bmw_pipeline.bronze_storage import read_bronze
+from experiments.storage_formats.bronze_adapter import read_bronze
 from moto_sport_bmw_pipeline.timing import measure_duration
 
 logger = logging.getLogger(__name__)

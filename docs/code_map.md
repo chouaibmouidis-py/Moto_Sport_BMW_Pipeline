@@ -55,6 +55,10 @@ selected storage experiment after the [real-data qualification](real_bronze_vort
 found larger outputs for this layout. The common reader restores logical JSON
 columns explicitly; source normalization remains in Silver.
 
+Production Bronze readers and writers accept Parquet paths. Vortex-specific
+reads and writes live in the [experimental adapter](../experiments/storage_formats/bronze_adapter.py).
+The experiments reuse the same candidate validation and cleanup.
+
 JSON Bronze builders snapshot and validate their roots inside DuckDB; Python
 receives scalar checks rather than complete decoded documents. Buffered pre/post
 Raw fingerprints detect observed source changes before replacement. See the

@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 import pytest
 from pypdf import PdfWriter
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.manifest import select_documents
 from moto_sport_bmw_pipeline.orchestration import main, run_stages
@@ -48,7 +47,7 @@ def test_csv_pdf_logs_identify_source_and_aggregate_boundaries(
             run_stages(
                 root,
                 sources,
-                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+                extension_directory=Path("extensions"),
             )
     records = captured.records
     for stage, source_id in (
@@ -88,7 +87,7 @@ def test_raw_failure_is_logged_with_source_before_propagation(context_caplog, tm
             run_stages(
                 root,
                 sources,
-                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+                extension_directory=Path("extensions"),
             )
     failures = [r for r in captured.records if r.levelno >= logging.ERROR]
     assert any(
@@ -123,7 +122,7 @@ def test_duplicate_or_missing_pair_rejected_before_execution(tmp_path):
         with patch("moto_sport_bmw_pipeline.orchestration.run_stages") as run:
             with pytest.raises(ValueError, match=message):
                 main(
-                    ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+                    ["--extension-directory", str(Path("extensions"))],
                     project_directory=root,
                 )
             run.assert_not_called()
@@ -234,7 +233,7 @@ def test_csv_pdf_runs_through_common_pipeline_without_json_or_second_catalog(
     }
     with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[stop]):
         gold_run = main(
-            ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+            ["--extension-directory", str(Path("extensions"))],
             project_directory=root,
         )
     processing = get_current_run(root / "data/processing")
@@ -266,7 +265,7 @@ def test_report_write_failure_preserves_previous_processing_and_gold(tmp_path):
     sources = prepare_csv_pdf(root)
     with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[]):
         main(
-            ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+            ["--extension-directory", str(Path("extensions"))],
             project_directory=root,
         )
     previous_processing = (root / "data/processing/current.json").read_bytes()
@@ -287,7 +286,7 @@ def test_report_write_failure_preserves_previous_processing_and_gold(tmp_path):
             build_processing_run(
                 root,
                 sources,
-                extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+                extension_directory=Path("extensions"),
             )
     assert (root / "data/processing/current.json").read_bytes() == previous_processing
     assert (root / "data/gold/current.json").read_bytes() == previous_gold
@@ -328,7 +327,7 @@ def test_json_and_mixed_sources_use_the_same_pipeline(
                 captured = context_caplog
 
                 run = main(
-                    ["--extension-directory", str(VORTEX_EXTENSION_DIRECTORY)],
+                    ["--extension-directory", str(Path("extensions"))],
                     project_directory=root,
                 )
     actual = (

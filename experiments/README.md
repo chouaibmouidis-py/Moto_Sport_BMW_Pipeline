@@ -1,5 +1,9 @@
 # Local experiments
 
+The optional storage tests run with
+`uv run --locked --no-sync python -m pytest experiments/storage_formats/tests -v`.
+See the [local test setup](../docs/ci.fr.md#local-test-setup) for the Vortex installation.
+
 These tools explore implementation choices without changing the production
 pipeline. Their findings apply to the recorded workloads and environments.
 

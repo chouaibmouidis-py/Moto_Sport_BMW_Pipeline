@@ -15,8 +15,7 @@ from moto_sport_bmw_pipeline.source_loading import (
 )
 
 
-def test_loads_multiple_sources_with_their_hashes(tmp_path, vortex_connection):
-    connection = vortex_connection
+def test_loads_multiple_sources_with_their_hashes(tmp_path, connection):
     directory = tmp_path
     project_directory = Path(directory)
     sources = [
@@ -69,8 +68,7 @@ def test_loads_multiple_sources_with_their_hashes(tmp_path, vortex_connection):
     assert Counter(rows) == Counter(expected)
 
 
-def test_rejects_batch_when_a_bronze_file_is_missing(tmp_path, vortex_connection):
-    connection = vortex_connection
+def test_rejects_batch_when_a_bronze_file_is_missing(tmp_path, connection):
     directory = tmp_path
     project_directory = Path(directory)
     sources = [

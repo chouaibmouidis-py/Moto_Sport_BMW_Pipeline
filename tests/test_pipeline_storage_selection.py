@@ -2,17 +2,12 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline import pipeline
 
 
-@pytest.mark.parametrize(
-    "extension_directory", [None, Path(str(VORTEX_EXTENSION_DIRECTORY))]
-)
-def test_candidate_requests_vortex_classification(
-    tmp_path, monkeypatch, extension_directory
-):
+@pytest.mark.parametrize("extension_directory", [None, Path("extensions")])
+def test_candidate_loads_classification(tmp_path, monkeypatch, extension_directory):
 
     sources = [
         {

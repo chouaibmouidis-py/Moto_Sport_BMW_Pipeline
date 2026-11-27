@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import duckdb
 import pytest
-from vortex_support import VORTEX_EXTENSION_DIRECTORY
 
 from moto_sport_bmw_pipeline.batch_processing import build_pdf_bronze_batch
 from moto_sport_bmw_pipeline.bronze_storage import read_bronze
@@ -106,13 +105,11 @@ def test_builds_bronze_per_event_with_exact_schema_and_provenance(tmp_path):
 
     catalog = {"season": 2023, "events": events}
 
-    with patch(
-        "moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[mock_record]
-    ):
+    with patch("moto_sport_bmw_pipeline.bronze.iter_stops", return_value=[mock_record]):
         results = build_pdf_bronze_batch(
             root,
             catalog,
-            extension_directory=Path(str(VORTEX_EXTENSION_DIRECTORY)),
+            extension_directory=Path("extensions"),
         )
 
     assert len(results) == 2
@@ -126,7 +123,7 @@ def test_builds_bronze_per_event_with_exact_schema_and_provenance(tmp_path):
         assert bronze_path.is_file()
 
         with duckdb.connect(
-            config={"extension_directory": str(VORTEX_EXTENSION_DIRECTORY)}
+            config={"extension_directory": str(Path("extensions"))}
         ) as conn:
             saved = read_bronze(conn, bronze_path)
             assert saved.columns == [

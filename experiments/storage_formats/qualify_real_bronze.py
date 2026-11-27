@@ -12,8 +12,8 @@ from pathlib import Path
 
 import duckdb
 
-from moto_sport_bmw_pipeline import bronze, source_loading
-from moto_sport_bmw_pipeline.bronze_storage import publish_bronze, read_bronze
+from experiments.storage_formats import bronze_adapter
+from experiments.storage_formats.bronze_adapter import publish_bronze, read_bronze
 from moto_sport_bmw_pipeline.timing import measure_duration
 
 logger = logging.getLogger(__name__)
@@ -61,10 +61,10 @@ def qualify_source(project, source, work, extension_directory, *, pairs=4):
             else ("session", "pit_stop_analysis")
         )
     builders = {
-        ("classification", "json"): bronze.build_classification_document,
-        ("pit_stops", "json"): bronze.build_document,
-        ("classification", "csv"): bronze.build_classification_csv,
-        ("pit_stops", "pdf"): bronze.build_pdf_pit_stop_bronze,
+        ("classification", "json"): bronze_adapter.build_classification_document,
+        ("pit_stops", "json"): bronze_adapter.build_document,
+        ("classification", "csv"): bronze_adapter.build_classification_csv,
+        ("pit_stops", "pdf"): bronze_adapter.build_pdf_pit_stop_bronze,
     }
     initial = {}
     measurements = []
@@ -113,22 +113,22 @@ def qualify_source(project, source, work, extension_directory, *, pairs=4):
             ).fetchone()[0]
 
             if key == ("classification", "json"):
-                source_loading.load_classification_bronze(
+                bronze_adapter.load_classification_bronze(
                     connection, paths["vortex"], source["source_id"]
                 )
                 table = "bronze_classification"
             elif key == ("pit_stops", "json"):
-                source_loading.load_pit_stop_file(
+                bronze_adapter.load_pit_stop_file(
                     connection, paths["vortex"], source["source_id"]
                 )
                 table = "bronze_document"
             elif key == ("classification", "csv"):
-                source_loading.load_classification_csv_bronze(
+                bronze_adapter.load_classification_csv_bronze(
                     connection, paths["vortex"], source["source_id"]
                 )
                 table = "bronze_classification_csv"
             else:
-                source_loading.load_pdf_pit_stop_bronze(connection, paths["vortex"])
+                bronze_adapter.load_pdf_pit_stop_bronze(connection, paths["vortex"])
                 table = "bronze_pdf_pit_stops"
             loaded = connection.table(table)
             if loaded.count("*").fetchone()[0] != rows:

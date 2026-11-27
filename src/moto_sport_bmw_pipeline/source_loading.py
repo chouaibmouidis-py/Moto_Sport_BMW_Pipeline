@@ -54,14 +54,19 @@ def load_source_sessions(connection, documents) -> None:
 
 
 def load_pit_stop_file(
-    connection, bronze_path: Path, source_id, *, view_name="bronze_document"
+    connection,
+    bronze_path: Path,
+    source_id,
+    *,
+    view_name="bronze_document",
+    _read=read_bronze,
 ):
     """Load one explicit file with its logical schema and provenance.
 
     Collective production loading and isolated storage experiments share this
     reader; the caller chooses the destination view, not the storage policy.
     """
-    saved = read_bronze(
+    saved = _read(
         connection, bronze_path, json_columns=("session", "pit_stop_analysis")
     )
     bronze_sha256 = sha256_file(bronze_path)
@@ -125,9 +130,11 @@ def select_pit_stop_sources(documents, *, format=None):
     return selected_sources
 
 
-def load_classification_bronze(connection, bronze_path, source_id):
+def load_classification_bronze(
+    connection, bronze_path, source_id, *, _read=read_bronze
+):
 
-    saved = read_bronze(
+    saved = _read(
         connection,
         bronze_path,
         json_columns=("session", "fastest_lap", "classification"),
@@ -199,14 +206,12 @@ def load_classification_sources(connection, sources, project_directory: Path) ->
 
 
 def load_classification_csv_bronze(
-    connection,
-    bronze_path: Path,
-    source_id: str,
+    connection, bronze_path: Path, source_id: str, *, _read=read_bronze
 ) -> None:
     """Load classification CSV Bronze with its source ID and file fingerprint."""
     bronze_sha256 = sha256_file(bronze_path)
 
-    document = read_bronze(connection, bronze_path)
+    document = _read(connection, bronze_path)
     document.create_view("classification_csv_input")
 
     connection.sql(
@@ -222,13 +227,12 @@ def load_classification_csv_bronze(
 
 
 def load_pdf_pit_stop_bronze(
-    connection,
-    bronze_path: Path,
+    connection, bronze_path: Path, *, _read=read_bronze
 ) -> None:
     """Load extracted PDF stops and identify the exact Bronze file version."""
     bronze_sha256 = sha256_file(bronze_path)
 
-    document = read_bronze(connection, bronze_path)
+    document = _read(connection, bronze_path)
     document.create_view("pdf_pit_stop_input")
 
     connection.sql(

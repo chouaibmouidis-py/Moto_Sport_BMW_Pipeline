@@ -10,7 +10,7 @@ from pathlib import Path
 
 import duckdb
 
-from .bronze_storage import publish_bronze, read_bronze
+from .bronze_storage import publish_bronze
 from .integrity import sha256_file
 from .logging_config import log_operation
 from .pdf_parser import iter_stops
@@ -32,7 +32,7 @@ def _connection_config(extension_directory):
 
 
 def _check_output(output_path):
-    if output_path.suffix not in {".parquet", ".vortex"}:
+    if output_path.suffix != ".parquet":
         raise ValueError(f"Unexpected file format {output_path}")
 
 
@@ -76,9 +76,12 @@ def build_pdf_pit_stop_bronze(
     *,
     extension_directory: Path | None = None,
     batch_size: int = 500,
+    _publish=None,
 ) -> Path:
     """Preserve the PDF reader's extracted fields, fingerprint and locations."""
-    _check_output(output_path)
+    if _publish is None:
+        _check_output(output_path)
+        _publish = publish_bronze
     if (
         isinstance(batch_size, bool)
         or not isinstance(batch_size, int)
@@ -143,7 +146,7 @@ def build_pdf_pit_stop_bronze(
                     "PDF Bronze rejected: source changed during publication"
                 )
 
-        publish_bronze(
+        _publish(
             connection,
             connection.table("bronze_pdf_pit_stops"),
             output_path,
@@ -164,19 +167,33 @@ def read_classification_csv(connection, source_path: Path):
 
 
 def build_classification_csv(
-    source_path: Path, output_path: Path, *, extension_directory: Path | None = None
+    source_path: Path,
+    output_path: Path,
+    *,
+    extension_directory: Path | None = None,
+    _publish=None,
 ) -> None:
-    _check_output(output_path)
+    if _publish is None:
+        _check_output(output_path)
+        _publish = publish_bronze
     with duckdb.connect(config=_connection_config(extension_directory)) as connection:
         document = read_classification_csv(connection, source_path)
-        publish_bronze(connection, document, output_path)
+        _publish(connection, document, output_path)
 
 
 def _publish_json_document(
-    source_path, output_path, roots, *, extension_directory=None, classification=False
+    source_path,
+    output_path,
+    roots,
+    *,
+    extension_directory=None,
+    classification=False,
+    _publish=None,
 ):
     """Freeze JSON inside DuckDB; return only validation scalars to Python."""
-    _check_output(output_path)
+    if _publish is None:
+        _check_output(output_path)
+        _publish = publish_bronze
 
     def fingerprint():
         return sha256_file(source_path)
@@ -275,44 +292,37 @@ def _publish_json_document(
             if fingerprint() != original_hash:
                 raise ValueError("Bronze rejected: source changed during publication")
 
-        # Classification callers retain their explicit logical-schema reader.
-        reader = (
-            read_vortex_classification
-            if classification and output_path.suffix == ".vortex"
-            else None
-        )
-        publish_bronze(
-            connection, document, output_path, reader=reader, validate=validate
-        )
+        _publish(connection, document, output_path, validate=validate)
 
 
 def build_document(
-    source_path: Path, output_path: Path, *, extension_directory: Path | None = None
+    source_path: Path,
+    output_path: Path,
+    *,
+    extension_directory: Path | None = None,
+    _publish=None,
 ) -> None:
     _publish_json_document(
         source_path,
         output_path,
         ("session", "pit_stop_analysis"),
         extension_directory=extension_directory,
+        _publish=_publish,
     )
 
 
 def build_classification_document(
-    source_path: Path, output_path: Path, *, extension_directory: Path | None = None
+    source_path: Path,
+    output_path: Path,
+    *,
+    extension_directory: Path | None = None,
+    _publish=None,
 ) -> None:
     _publish_json_document(
         source_path,
         output_path,
         ("session", "fastest_lap", "classification"),
         extension_directory=extension_directory,
+        _publish=_publish,
         classification=True,
-    )
-
-
-def read_vortex_classification(connection, source_path):
-    """Compatibility reader: restore classification's logical JSON schema."""
-    return read_bronze(
-        connection,
-        source_path,
-        json_columns=("session", "fastest_lap", "classification"),
     )

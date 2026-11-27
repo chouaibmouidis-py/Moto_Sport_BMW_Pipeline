@@ -36,9 +36,6 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --python 3.12 --group orchestration
 
-      - name: Prepare Vortex
-        uses: ./.github/actions/install-vortex
-
       - name: Run unit and local integration tests
         run: uv run --locked --no-sync python -m pytest -v
 

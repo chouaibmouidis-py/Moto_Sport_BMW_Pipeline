@@ -26,7 +26,7 @@ independently of BMW and IMSA.
 The Daytona 2022 extension (45 columns, 114 archived files) is live on the
 hosted dashboard. Subsequent maintenance, the pytest migration and file-by-file
 archival/restoration and the subsequent shared Bronze publication are validated locally
-with **437 passing tests and 97 passing subtests**.
+with **408 standard tests, 97 passing subtests and 29 optional experiment tests**.
 Pushing code triggers CI; renewing the archive and running production publication
 are separate operations.
 
@@ -55,7 +55,7 @@ Vortex produced 6.33 MB against 1.73 MB for Parquet with the tested settings.
 | JSON Bronze Python memory — locally validated | Roots and validation stay inside DuckDB instead of full Python document copies. Warmed 20,000-entry guards stay below 2 MiB traced Python allocations; retained-payload positive controls exceed it. All 44 real JSON reports match existing Bronze. Native engine RAM is not bounded by this guard. |
 | PDF/CSV Bronze buffers — locally validated | PDF stops flow page-by-page into bounded insertion batches; file hashing is streamed. All 12 real PDF reports (5,715 stops) and 12 CSV reports (516 rows) match existing Bronze. CSV stays native DuckDB. Batch guards exclude pypdf caches and native engine RAM. |
 | Storage experiment — measured locally | All 68 real reports preserve content, logical schema and Silver input provenance. Vortex uses 3.65× the storage of Parquet on this layout; the earlier 47.78% synthetic saving is not a pipeline saving. Parquet retained for production. |
-| Regression coverage | Latest full local run on 27 November 2026: **437 passing tests and 97 passing subtests**, including JSON/PDF allocation guards, mutation, publication failure, storage qualification, archive and restoration scenarios. |
+| Regression coverage | Latest full local run on 27 November 2026: **408 standard tests, 97 passing subtests and 29 optional experiment tests**, including JSON/PDF allocation guards, mutation, publication failure, storage qualification, archive and restoration scenarios. |
 
 All non-empty test modules now use native pytest functions. Shared fixtures
 provide isolated DuckDB connections, temporary paths and contextual log capture.
@@ -107,7 +107,7 @@ uv sync --locked
 uv run --locked python run_pipeline.py
 ```
 
-To run the full test suite, prepare Vortex for the storage experiments first.
+The standard test suite runs independently of the optional Vortex experiments.
 See the [local test setup](docs/ci.fr.md#local-test-setup).
 
 The default command processes all enabled JSON, CSV and PDF sources. It does
